@@ -1,0 +1,135 @@
+version: 1
+regression_command: [python, regression.py]
+cases:
+  - id: response-secret-positive
+    module: service
+    callable: customer_response
+    args: [cust-alice, tenant-a]
+    kwargs: {}
+    sensitive: &alice
+      - {marker: cust-alice, class: INTERNAL, symbol: customer.customer_id}
+      - {marker: alice.synthetic@example.invalid, class: PERSONAL, symbol: customer.email}
+      - {marker: SYNTHETIC_PASSWORD_HASH_ALICE_7e31, class: SECRET, symbol: customer.password_hash}
+      - {marker: SYNTHETIC_SESSION_ALICE_4f92, class: SECRET, symbol: customer.session_token}
+    context: &self
+      audience: authenticated_self
+      tenant: tenant-a
+      source_tenant: tenant-a
+      authorized: true
+      synthetic: true
+    expect: {customer_id: cust-alice, display_name: Alice Example, email: alice.synthetic@example.invalid}
+    expected_violation: true
+    finding: {file: service.py, function: customer_response, sink: HTTP_RESPONSE, symbol: customer.password_hash}
+  - id: response-allowlisted-safe
+    module: service
+    callable: customer_profile
+    args: [cust-alice, tenant-a]
+    kwargs: {}
+    sensitive: *alice
+    context: *self
+    expect: {customer_id: cust-alice, display_name: Alice Example, email: alice.synthetic@example.invalid}
+    expected_violation: false
+    finding: {file: service.py, function: customer_profile, sink: HTTP_RESPONSE}
+  - id: logging-pii-positive
+    module: service
+    callable: audit_customer
+    args: [cust-alice, tenant-a]
+    kwargs: {}
+    sensitive: *alice
+    context: *self
+    expect: {recorded: true, customer_id: cust-alice}
+    expected_violation: true
+    finding: {file: service.py, function: audit_customer, sink: APPLICATION_LOG, symbol: customer.email}
+  - id: logging-id-safe
+    module: service
+    callable: audit_safe
+    args: [cust-alice, tenant-a]
+    kwargs: {}
+    sensitive: *alice
+    context: *self
+    expect: {recorded: true, customer_id: cust-alice}
+    expected_violation: false
+    finding: {file: service.py, function: audit_safe, sink: HTTP_RESPONSE}
+  - id: analytics-egress-positive
+    module: service
+    callable: track_customer
+    args: [cust-alice, tenant-a]
+    kwargs: {}
+    sensitive: *alice
+    context: &vendor
+      audience: authenticated_self
+      recipient: synthetic_analytics
+      contract: aggregate_only
+      tenant: tenant-a
+      source_tenant: tenant-a
+      authorized: true
+      synthetic: true
+    capture_calls: &analytics
+      - module: analytics
+        callable: track
+        sink: THIRD_PARTY_ANALYTICS
+        return_value: {accepted: true}
+    expect: {accepted: true, event: profile_view}
+    expected_violation: true
+    finding: {file: service.py, function: track_customer, sink: THIRD_PARTY_ANALYTICS, symbol: customer.email}
+  - id: analytics-aggregate-safe
+    module: service
+    callable: track_safe
+    args: []
+    kwargs: {}
+    sensitive: *alice
+    context: *vendor
+    capture_calls: *analytics
+    expect: {accepted: true, event: catalog_view}
+    expected_violation: false
+  - id: tenant-unauthorized-positive
+    module: service
+    callable: tenant_export_unsafe
+    args: [cust-bob, tenant-a]
+    kwargs: {}
+    sensitive: &bob
+      - {marker: cust-bob, class: INTERNAL, symbol: customer.customer_id}
+      - {marker: SYNTHETIC_ADDRESS_BOB_d650, class: PERSONAL, symbol: customer.address}
+    context: &cross
+      audience: authenticated_self
+      tenant: tenant-a
+      source_tenant: tenant-b
+      authorized: false
+      synthetic: true
+    expect: {}
+    expected_violation: true
+    finding: {file: service.py, function: tenant_export_unsafe, sink: HTTP_RESPONSE, symbol: customer.address}
+  - id: tenant-unauthorized-denied-safe
+    module: service
+    callable: tenant_export
+    args: [cust-bob, tenant-a]
+    kwargs: {}
+    sensitive: *bob
+    context: *cross
+    expect: {error: forbidden}
+    expected_violation: false
+    finding: {file: service.py, function: tenant_export, sink: HTTP_RESPONSE}
+  - id: tenant-authorized-safe
+    module: service
+    callable: tenant_export
+    args: [cust-bob, tenant-b]
+    kwargs: {}
+    sensitive: *bob
+    context:
+      audience: authenticated_self
+      tenant: tenant-b
+      source_tenant: tenant-b
+      authorized: true
+      synthetic: true
+    expect: {customer_id: cust-bob, address: SYNTHETIC_ADDRESS_BOB_d650}
+    expected_violation: false
+    finding: {file: service.py, function: tenant_export, sink: HTTP_RESPONSE}
+  - id: public-catalog-safe
+    module: service
+    callable: public_catalog
+    args: []
+    kwargs: {}
+    sensitive: *alice
+    context: *self
+    expect: {service: Synthetic Customer Desk}
+    expected_violation: false

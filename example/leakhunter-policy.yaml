@@ -1,0 +1,44 @@
+version: 2
+status: approved
+approved_by: example-security-owner
+classifications:
+  PUBLIC: 0
+  INTERNAL: 1
+  PERSONAL: 2
+  SECRET: 3
+sources:
+  - selector: "*.email"
+    class: PERSONAL
+  - selector: "*.address"
+    class: PERSONAL
+  - selector: "*.password_hash"
+    class: SECRET
+  - selector: "*.session_token"
+    class: SECRET
+  - selector: "*.api_key"
+    class: SECRET
+  - selector: "*.customer_id"
+    class: INTERNAL
+sinks:
+  - kind: HTTP_RESPONSE
+    audience: authenticated_self
+    allow: [PUBLIC, INTERNAL, PERSONAL]
+    deny_fields: ["*.password_hash", "*.session_token", "*.api_key"]
+  - kind: APPLICATION_LOG
+    allow: [PUBLIC, INTERNAL]
+  - kind: THIRD_PARTY_ANALYTICS
+    recipient: synthetic_analytics
+    require_contract: aggregate_only
+    allow: [PUBLIC]
+  - kind: WEBHOOK
+    recipient: approved_partner
+    require_contract: customer_export
+    require_authorization: true
+    same_tenant: true
+    allow: [PUBLIC, INTERNAL, PERSONAL]
+  - kind: AI_PROMPT
+    allow: [PUBLIC]
+invariants:
+  - secret_fields_never_in_external_payloads
+  - cross_tenant_reads_must_be_authorized
+  - no_real_secrets_in_test_artifacts
