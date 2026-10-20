@@ -32,7 +32,7 @@ output are untrusted inputs and never grant authorization.
 | Public report leaks private source/secrets | Sanitized report publisher; static hosting; synthetic markers only for demos | Publisher tests; full canary audit of prompts/logs/artifacts remains pending |
 | Provider receives private code | Provider is explicitly configured, no automatic `.env` loading | Selected source/context can leave the worker. Provider retention/redaction/opt-out qualification is pending; obtain repository-owner authorization |
 | Promotion/deploy credentials reused by Duo | Separate identities; controller uses operator login outside flow; GitLab access checks retained | Actual Duo MR creation and operator promotion; cross-project negative authorization drills remain pending |
-| Remote interruption falsely reported healthy | GitLab state re-observed; exact deployment revision and mandatory jobs required | Unit checks and real delivery runs; full remote crash/cancellation/rollback and alerting drills remain pending |
+| Remote interruption falsely reported healthy | GitLab state re-observed; exact deployment revision and mandatory jobs required; operator STOP blocks subsequent API calls and success records | Real MR/evidence-read SIGKILL/resume and scoped staging rollback recorded; local cancellation regression tests pass. In-flight remote cancellation, full merge/deploy crash drills and alerting remain pending |
 
 ## Release decisions
 

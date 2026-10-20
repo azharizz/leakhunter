@@ -11,6 +11,19 @@ import stat
 import tempfile
 
 
+class HandoffCanceled(RuntimeError):
+    pass
+
+
+class JournalAPI:
+    def __init__(self, api, journal):
+        self.api, self.journal = api, journal
+
+    def request(self, method, path, body=None):
+        self.journal.check_stop()
+        return self.api.request(method, path, body)
+
+
 class RunJournal:
     def __init__(self, directory, project, target, intent, configuration):
         self.directory = Path(directory)
@@ -61,7 +74,16 @@ class RunJournal:
                 or info.st_mode & 0o077 or info.st_nlink != 1):
             raise ValueError("Controller state and lock files must be private owned regular files without links")
 
+    def check_stop(self):
+        try:
+            (self.directory / "STOP").lstat()
+        except FileNotFoundError:
+            return
+        raise HandoffCanceled("Operator STOP flag is present; remote work may still continue")
+
     def save(self, state, **values):
+        if state in {"READY_FOR_REVIEW", "DEPLOYED_AND_VERIFIED"}:
+            self.check_stop()
         self.data.update(values)
         self.data.update(version=1, key=self.key, configuration_sha256=self.configuration,
                          state=state, updated_at=datetime.now(timezone.utc).isoformat())
@@ -85,7 +107,8 @@ class RunJournal:
     def __exit__(self, error_type, error, traceback):
         try:
             if error_type:
-                self.save("STOPPED", error_type=error_type.__name__)
+                canceled = issubclass(error_type, (HandoffCanceled, KeyboardInterrupt))
+                self.save("CANCELED" if canceled else "STOPPED", error_type=error_type.__name__)
         finally:
             os.close(self.lock_fd)
             self.lock_fd = None
@@ -93,6 +116,7 @@ class RunJournal:
 
 def trigger_issue(api, project, iid, body, journal):
     """Do not retry an ambiguous POST; reconcile its durable marker first."""
+    journal.check_stop()
     marker = f"<!-- unspool-intent:{journal.digest} -->"
     if journal.data.get("dispatch_started"):
         if journal.data.get("trigger_note_id"):
@@ -107,5 +131,6 @@ def trigger_issue(api, project, iid, body, journal):
                 break
         raise RuntimeError("Trigger delivery is uncertain. No duplicate was sent; reconcile the recorded intent with GitLab before recovery")
     journal.save("TRIGGER_INTENT", dispatch_started=True)
+    journal.check_stop()
     note = api.request("POST", f"projects/{project}/issues/{iid}/notes", {"body": body + "\n\n" + marker})
     journal.save("TRIGGERED", trigger_note_id=note["id"])
