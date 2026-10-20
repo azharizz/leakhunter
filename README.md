@@ -5,7 +5,7 @@ For a pinned local demonstration, read [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
 submission checks; it is not a production-readiness or eligibility claim.
 
 For installation on another GitLab.com repository, read [ADOPTION.md](ADOPTION.md).
-The 0.4.4 controller accepts operator-owned project configuration, defaults to
+The 0.4.5 controller accepts operator-owned project configuration, defaults to
 review-only behavior, and records private durable intent for safe resumption.
 Portable repair promotion currently allows explicitly configured Python application
 files only. JavaScript, TypeScript, Go and Rust analysis remains experimental;

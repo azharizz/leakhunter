@@ -46,6 +46,51 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — shared wheel and reusable HTTP verification, 21 October
+
+Classification: **progress**, production qualification incomplete. MR !20 passed
+pipeline `2968892353` and merged at `28b76baadf62f39fd0bc3e382cf040020ed212a4`.
+Build job `17326418809` produced wheel SHA-256
+`09190410380e87f8918c8726d37abe3057bb188b4b803de7a40c9fc8bd9d0965`.
+Python 3.10.22 job `17326418813` and Python 3.12.15 job `17326418814`
+qualified that same artifact outside the checkout, verified all 38 files and
+retained identical checksum/build metadata. Its source was `2406e510`, epoch
+`1792520080`, builder Python 3.12.15 and pinned pip/setuptools/wheel/packaging.
+This closes the separately-built-wheel ambiguity, not permanent release or all
+cross-platform reproducible builds.
+
+Implemented 0.4.5 with a reusable declarative JSON HTTP probe. Unlike the callable
+worker, it imports no target code; isolation/source binding must be supplied by
+trusted CI. Added an independently mounted VAmPI plan/benchmark adapter so the
+new packaged probe can be exercised against both pinned real revisions without
+changing the earlier benchmark or application. All 120 tests passed, including
+the retained original HTTP tests and new separate-client-process cases. The
+loader-specific FIFO check passes after interpreter startup; the initial host
+process launch with a preexisting FIFO argument timed out without interpreter
+diagnostics, so that observation is not a successful CLI-loader test.
+
+Froze probe/plan in commit `d3e801b` before new Cloud Build executions. Baseline
+build `cf3e8c15-8d7a-4ebb-af2b-becaa8e038e3` reproduced the canary in the debug
+HTTP response and forbidden password/admin keys: functional checks passed but
+the security gate remained false. Repaired build
+`7cde97e2-61cd-4b14-9e3b-6a2c1e2a2ec7` passed all five functional requests and
+security checks with the same frozen plan/probe, on a separate internal-network
+container. Both build jobs succeeded because their benchmark expectations were
+reproduced; the baseline did not become a passing security result. Full sanitized
+reports and source/app/probe identities are in benchmarks/vampi/results.generic.json.
+The five requests are one known-exposure application exercise, not five independent
+vulnerabilities. Logs were retrieved with `gcloud builds log` after one direct
+Cloud Logging observation timed out; neither build was restarted.
+
+A clean macOS Python 3.11.9 installation of 0.4.5 verified 39 files, three
+commands, STOP cancellation and synthetic exposure checks outside the checkout.
+Wheel SHA-256: `d5093e979fb275e1f28a17f9de573e3f6f034967ed2d455a1f2aa89e2f8c58d9`.
+Local source/dependency audit retained 14 LOW/6 MEDIUM warnings, no HIGH/errors
+and no reported advisories in selected pins. Linux qualification and integration
+of this new probe into portable handoff CI remain required.
+General callable evidence tampering, trusted dependency build, broader evaluation,
+full remote recovery and operating qualification remain open gates.
+
 ### Execution log — bounded repository source ingestion, 21 October
 
 Classification: **progress**, production qualification incomplete. MR !18 passed
