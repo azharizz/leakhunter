@@ -9,11 +9,12 @@ import re
 import subprocess
 import time
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, Request, build_opener
 from urllib.parse import quote
 
 from unspool.handoff_config import HandoffConfig, preflight, verify_contracts
 from unspool.handoff_state import HandoffCanceled, JournalAPI, RunJournal, trigger_issue
+from unspool.smoke import NoRedirect
 
 
 REQUIRED_JOBS = {"python-tests", "dashboard-tests", "verify-exposure"}
@@ -48,8 +49,11 @@ class GitLab:
             request = Request("https://gitlab.com/api/v4/" + path, data=data, method=method,
                               headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"})
             try:
-                with urlopen(request, timeout=30) as response:
-                    return json.load(response)
+                with build_opener(ProxyHandler({}), NoRedirect()).open(request, timeout=30) as response:
+                    raw = response.read(4 * 1024 * 1024 + 1)
+                if len(raw) > 4 * 1024 * 1024:
+                    raise ValueError("GitLab JSON response exceeded the controller limit")
+                return json.loads(raw)
             except HTTPError as error:
                 raise GitLabError(method, error.code, error.code == 429 or error.code >= 500) from None
             except (URLError, TimeoutError):
@@ -137,6 +141,7 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
             if (evidence.get("gate", {}).get("passed") is not True or runtime.get("status") != "COMPLETED"
                     or runtime.get("passed") is not True or not runtime.get("cases")
                     or any(case.get("passed") is not True for case in runtime["cases"])
+                    or not isinstance(health, dict) or health.get("verified") is not True
                     or health != {"status": "ok", "commit": mr["sha"], "verified": True}):
                 raise ValueError("Independent exposure evidence is missing, failed, or for another revision")
             if config:

@@ -7,10 +7,26 @@ import unittest
 from unittest.mock import Mock, patch
 
 from unspool.handoff import GitLab, GitLabError, main
+from unspool.smoke import NoRedirect
+from urllib.error import HTTPError
 from unspool.handoff_state import HandoffCanceled, JournalAPI, RunJournal, trigger_issue
 
 
 class CancellationTest(unittest.TestCase):
+    def test_token_transport_refuses_redirects_and_oversize_responses(self):
+        with patch.dict("os.environ", {"GITLAB_TOKEN": "UNSPOOL_SYNTHETIC_TEST_TOKEN"}), \
+                patch("unspool.handoff.build_opener") as build:
+            build.return_value.open.side_effect = HTTPError("https://gitlab.com/api/v4/projects/1", 302, "redirect", {}, None)
+            with self.assertRaises(GitLabError) as error:
+                GitLab().request("GET", "projects/1")
+            self.assertFalse(error.exception.transient)
+            self.assertIsInstance(build.call_args.args[1], NoRedirect)
+            build.return_value.open.side_effect = None
+            response = build.return_value.open.return_value.__enter__.return_value
+            response.read.return_value = b"x" * (4 * 1024 * 1024 + 1)
+            with self.assertRaises(ValueError):
+                GitLab().request("GET", "projects/1")
+
     def test_keyboard_interrupt_is_recorded_as_canceled(self):
         with tempfile.TemporaryDirectory() as directory:
             output = io.StringIO()

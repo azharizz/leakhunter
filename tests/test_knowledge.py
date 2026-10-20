@@ -7,6 +7,20 @@ from leakhunter.storage.knowledge import KnowledgeBank
 
 
 class KnowledgeIntegrityTest(unittest.TestCase):
+    def test_artifact_collection_names_cannot_inject_sql(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bank = KnowledgeBank(Path(directory))
+            for name in ("metrics; DROP TABLE snapshots;--", "metrics WHERE 1=1", "sqlite_master"):
+                with self.subTest(name=name), self.assertRaises(ValueError):
+                    bank.append(name, {"value": "synthetic"})
+                with self.subTest(name=name), self.assertRaises(ValueError):
+                    bank.records(name)
+            payload = {"value": "'); DROP TABLE snapshots;--"}
+            stored = bank.append("metrics", payload)
+            self.assertEqual(bank.records("metrics")[0], stored)
+            with bank.connect() as db:
+                self.assertEqual(db.execute("SELECT count(*) FROM snapshots").fetchone()[0], 0)
+
     def test_annotation_crud_cannot_change_snapshot_or_other_branch(self):
         with tempfile.TemporaryDirectory() as directory:
             bank = KnowledgeBank(Path(directory))
