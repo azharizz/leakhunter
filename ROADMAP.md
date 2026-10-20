@@ -70,7 +70,15 @@ READY_FOR_REVIEW at source `951960c9d85ea874a5f9e0248c42b83f9751d499`,
 pipeline `2968122599`, unchanged operator configuration digest
 `888b3d9f4b78d985b3cfde7bea3f9550f06119c0116af3779065b6a18dedae5b`.
 This is one live read-only replay, not a new repair or live race injection.
-Linux 0.4.3 matrix checks and the complete remaining roadmap are still required.
+MR !17 passed pipeline `2968830722` with 111 tests, dashboard/security/exposure
+checks and both Linux installed-wheel jobs, then merged at
+`faeb5010fb279018ecd208cec454894f1f25ab84`. Jobs `17325971078` (Python
+3.10.22) and `17325971079` (Python 3.12.15) each verified the same 37-file,
+three-command, cancellation/exposure contract outside the source checkout. Both
+built wheel SHA-256
+`c359959500b3f0f1cdac518905549a4c263f7934edf5d2df99252f78341e98f0`.
+The complete remaining roadmap is still required. Judge instructions now pin
+that reviewed 0.4.3 source; older 0.4.2 evaluation results remain labeled as such.
 
 ### Execution log — submission draft and public-access audit, 21 October
 
