@@ -41,6 +41,15 @@ merge/deployment interruption and production rollback require separate exercises
 
 ## Observations
 
+On 21 October the fresh installed 0.4.3 wheel repeated `--fault none` against the
+same existing issue/MR, using isolated imports from `/tmp` and a new private state
+directory. It returned READY_FOR_REVIEW for the same SHA, pipeline and config
+digest after 23 GET requests and zero writes. The added reads check the current
+MR/pipeline and target before returning readiness. Wheel SHA-256 was
+`1b6f162d6b2e76d1b3ea044780f10908cce9674252629e355a159aaae15eda70`.
+This replay qualifies the live read-only path for that version; it does not repeat
+the killed-process exercise or inject a live revision race.
+
 Initial `after-mr` run reached 14 real reads and exited 137/SIGKILL. Its journal
 remained `VERIFYING`, `merge_request: 2`, with configuration digest
 `888b3d9f4b78d985b3cfde7bea3f9550f06119c0116af3779065b6a18dedae5b`.

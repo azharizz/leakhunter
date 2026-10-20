@@ -146,14 +146,23 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
                 raise ValueError("Independent exposure evidence is missing, failed, or for another revision")
             if config:
                 verify_contracts(config, api, mr["sha"])
+                current = api.request("GET", mr_path)
+                validate_scope(current, changes, project, config)
+                current_pipeline = current.get("head_pipeline") or {}
+                if (current.get("state") != "opened"
+                        or current.get("diff_refs", {}).get("base_sha") != mr.get("diff_refs", {}).get("base_sha")
+                        or any(current_pipeline.get(key) != pipeline.get(key) for key in ("id", "sha", "status"))):
+                    raise ValueError("Candidate or pipeline changed during verification; rerun before review or promotion")
+                branch = api.request("GET", f"{prefix}/repository/branches/{quote(config.target_branch, safe='')}")
+                if branch["commit"]["id"] != mr.get("diff_refs", {}).get("base_sha"):
+                    raise ValueError("Target branch changed; rebase and reverify before review or promotion")
+                if config.mode == "auto" and branch.get("protected") is not True:
+                    raise ValueError("Automatic promotion requires a protected target branch")
                 if config.mode == "review":
                     if journal:
                         journal.save("READY_FOR_REVIEW", source_sha=mr["sha"], pipeline_id=pipeline["id"])
                     return {"status": "READY_FOR_REVIEW", "merge_request": iid, "sha": mr["sha"],
                             "configuration_sha256": config.digest, "pipeline_id": pipeline["id"]}
-                branch = api.request("GET", f"{prefix}/repository/branches/{quote(config.target_branch, safe='')}")
-                if branch["commit"]["id"] != mr.get("diff_refs", {}).get("base_sha"):
-                    raise ValueError("Target branch changed; rebase and reverify before promotion")
             mr = api.request("PUT", mr_path + "/merge", {"sha": mr["sha"]})
             if mr.get("state") != "merged":
                 raise RuntimeError("GitLab did not merge the verified revision")

@@ -46,6 +46,32 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — review revision freshness, 21 October
+
+Classification: **progress**, production qualification incomplete. MR !16 passed
+pipeline `2968817064` and merged at `bc9a965fbc21edef8b9a3fbf1d7f6a5d53809505`.
+Found that configured review mode could return READY_FOR_REVIEW after its target
+had advanced: only automatic mode rechecked the target. Version 0.4.3 now rereads
+the MR after contract/evidence checks and refuses changed source/base/pipeline
+identity or status. Both modes then require the current target to equal the
+verified base; automatic mode also rechecks protection. These are observations,
+not a branch reservation; GitLab's fast-forward/SHA enforcement remains required
+for automatic merge. The legacy synthetic path is unchanged.
+
+The 110-test suite passed before one additional protection-removal test; all nine
+configuration tests then passed, including fourteen revision-race subcases and
+protection removal after preflight. A fresh macOS Python 3.11.9 installation of
+0.4.3 verified 37 installed files, three commands, STOP cancellation and synthetic
+exposure checks outside the checkout. Wheel SHA-256:
+`1b6f162d6b2e76d1b3ea044780f10908cce9674252629e355a159aaae15eda70`.
+The installed controller then read the real existing VAmPI issue 2/MR 2 through
+the mutation-blocking observation wrapper: 23 real GET requests, zero writes,
+READY_FOR_REVIEW at source `951960c9d85ea874a5f9e0248c42b83f9751d499`,
+pipeline `2968122599`, unchanged operator configuration digest
+`888b3d9f4b78d985b3cfde7bea3f9550f06119c0116af3779065b6a18dedae5b`.
+This is one live read-only replay, not a new repair or live race injection.
+Linux 0.4.3 matrix checks and the complete remaining roadmap are still required.
+
 ### Execution log — submission draft and public-access audit, 21 October
 
 Classification: **progress**, submission/production readiness not established.

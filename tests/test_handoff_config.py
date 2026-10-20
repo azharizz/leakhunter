@@ -146,6 +146,7 @@ class ConfigTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             complete(42, 1, api=api, config=config)
         self.assertTrue(all(method == "GET" for method, _ in calls))
+
         api, calls = self.api()
         original = api.request
 
@@ -157,4 +158,61 @@ class ConfigTest(unittest.TestCase):
         api.request = changed_target
         with self.assertRaisesRegex(ValueError, "Target branch changed"):
             complete(42, 1, api=api, config=config)
+        self.assertTrue(all(method == "GET" for method, _ in calls))
+
+    def test_review_and_auto_refuse_changes_during_evidence_checks(self):
+        changes = ("source", "pipeline", "pipeline_status", "base", "target", "closed", "missing_base")
+        for mode, change in ((mode, change) for mode in ("review", "auto") for change in changes):
+            with self.subTest(mode=mode, change=change):
+                config = replace(self.load(self.data()), mode=mode)
+                api, calls = self.api()
+                original = api.request
+                observed_evidence = False
+
+                def changed(method, path, body=None):
+                    nonlocal observed_evidence
+                    result = original(method, path, body)
+                    if path.endswith("/artifacts/public/health.json"):
+                        observed_evidence = True
+                    if observed_evidence and path == "projects/42/merge_requests/1":
+                        if change == "source":
+                            result["sha"] = "c" * 40
+                        elif change == "pipeline":
+                            result["head_pipeline"]["id"] = 9
+                        elif change == "pipeline_status":
+                            result["head_pipeline"]["status"] = "running"
+                        elif change == "base":
+                            result["diff_refs"]["base_sha"] = "c" * 40
+                        elif change == "closed":
+                            result["state"] = "closed"
+                        elif change == "missing_base":
+                            result.pop("diff_refs")
+                    if observed_evidence and "/branches/" in path and change == "target":
+                        result["commit"]["id"] = "c" * 40
+                    return result
+
+                api.request = changed
+                with self.assertRaises(ValueError):
+                    complete(42, 1, api=api, config=config)
+                self.assertTrue(observed_evidence)
+                self.assertTrue(all(method == "GET" for method, _ in calls))
+
+    def test_auto_refuses_protection_removed_after_preflight(self):
+        config = replace(self.load(self.data()), mode="auto")
+        api, calls = self.api()
+        original = api.request
+        branch_reads = 0
+
+        def unprotected(method, path, body=None):
+            nonlocal branch_reads
+            result = original(method, path, body)
+            if "/branches/" in path:
+                branch_reads += 1
+                result["protected"] = branch_reads == 1
+            return result
+
+        api.request = unprotected
+        with self.assertRaisesRegex(ValueError, "protected target"):
+            complete(42, 1, api=api, config=config)
+        self.assertEqual(branch_reads, 2)
         self.assertTrue(all(method == "GET" for method, _ in calls))
