@@ -100,3 +100,43 @@ change only `api_views/users.py`. GitLab's hosted runner/Docker service and the
 probe's application process are not a verified sandbox for actively malicious
 repositories. This experiment does not close the hostile-code isolation gate.
 No raw application output, database or source archive is published as an artifact.
+
+## Separate-container HTTP verification
+
+`http_probe.py` uses only the standard library and imports no target code.
+`sidecar.sh` runs the app and probe in separate containers/filesystems on an
+internal-only network, without a public port, shared process namespace, passed
+credentials or Docker socket. Only the app receives the source mount; only the
+probe receives its read-only measurement code. Both have read-only roots,
+non-root users, dropped capabilities, process/memory/CPU limits and no privilege
+escalation. The app cannot monkeypatch the probe's Python interpreter. Redirects
+and oversized responses are rejected. Each execution registers a fresh random
+synthetic username/password and checks username/email preservation, rather than
+allowing an empty debug response to pass.
+
+| Execution | Source SHA | Observed HTTP result | Application image ID |
+| --- | --- | --- | --- |
+| [Baseline Cloud Build](https://console.cloud.google.com/cloud-build/builds;region=us-central1/be497e7b-d0d2-4c3d-b181-54fc4edfb220?project=398376578726) | `f16052dce83f05847133ec98f01c5193a41de7d8` | Public functionality passes; canary leaks; security fails as expected | `sha256:b786e7522cf11d4cab78104ad68a44a9e168b7b5a085fbee88fa019f12596cf0` |
+| [Repaired Cloud Build](https://console.cloud.google.com/cloud-build/builds;region=us-central1/3493cb5f-f753-4b19-8a0e-7e9c6ef538fe?project=398376578726) | `c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1` | Public functionality passes; canary absent; password/admin fields absent | `sha256:89e2a47f9c51c47bffcc1dcb507c5264c5a0acaae46742a9e730e31a6006814f` |
+
+Both used probe image
+`sha256:541096ae9b05d3b850341b78790e2ed31e94d5aa0ea086933c6ff0c09ffa2e63`.
+They fetched dependencies separately; mutable image tags/transitive package
+resolution mean these IDs identify the observed runs, not a reproducible build
+guarantee. Cloud console logs require authorized project access; the public
+GitLab candidate/post-merge CI links above are separate evidence for judges.
+No customer data or public vulnerable service was involved.
+
+Reproduce with the earlier `gcloud builds submit` command, replacing its config
+with `benchmarks/vampi/sidecar.cloudbuild.yaml`. Its defaults check the repaired
+SHA. For the baseline add
+`--substitutions=_SOURCE_SHA=f16052dce83f05847133ec98f01c5193a41de7d8,_EXPECT=--expect-vulnerable`.
+The script assumes Cloud Build's `/workspace` and a disposable dedicated Docker
+daemon per build; its container names are not for concurrent use on a shared
+daemon. Runtime output is bounded/sanitized in the probe; app logs are disabled.
+
+These runs improve the measurement boundary for this benchmark. They do not
+replace the general callable runtime, prove a container/daemon is secure against
+hostile code, or establish detection/repair accuracy across other applications.
+Active malicious-fixture, metadata/egress and dependency-build isolation tests
+remain outstanding; do not close those roadmap gates from Docker flags alone.
