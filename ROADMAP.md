@@ -54,7 +54,12 @@ using the opened descriptor; reads are nonblocking and bounded. State remains
 private and atomic. Added regression cases and an actual child-process kill test:
 while a child holds the project/target lock a competing intent is rejected;
 after SIGKILL the lock can be acquired and the saved trigger intent survives.
-All 21 handoff/config/state tests pass. This proves the local OS-lock/intent
+All 21 handoff/config/state tests and the full 93-test local suite pass.
+Remote pipeline `2968050565` passed the hardening revision
+`4e9fba9aedc19c2a5d6d4278501a934699f8c42b`; a subsequent two-line change
+also enforces the 64 KiB configuration limit before UTF-8 decoding, with its
+configuration tests passing locally and final remote CI still required.
+This proves the local OS-lock/intent
 case, not remote crash recovery or a distributed lock. Added THREAT_MODEL.md with
 explicit unresolved worker-evidence tampering, dependency execution and provider
 privacy risks. The full adversarial isolation and remote recovery gates remain open.
