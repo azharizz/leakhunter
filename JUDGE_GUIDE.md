@@ -29,7 +29,7 @@ Keep this submission guide open while following the steps: the frozen source
 snapshot contains earlier documentation, while these instructions select 0.4.6.
 
 ```sh
-git clone https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool.git
+git -c http.version=HTTP/1.1 clone https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool.git
 cd unspool
 git checkout --detach 05bbefc6e936d7efab8f0a7b10aeb04e77742ee3
 mkdir -p dist
