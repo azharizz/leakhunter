@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "classification": "solo-source-labeled-static-feasibility; not held-out or runtime-qualified",
+  "policy": {
+    "version": 1,
+    "classifications": {"PUBLIC": 0, "SECRET": 1},
+    "sources": [
+      {"selector": "*.password", "class": "SECRET"},
+      {"selector": "*.credit_card", "class": "SECRET"},
+      {"selector": "*.ssn", "class": "SECRET"},
+      {"selector": "*.api_key", "class": "SECRET"}
+    ],
+    "sinks": [
+      {"kind": "HTTP_RESPONSE", "allow": ["PUBLIC"]},
+      {"kind": "APPLICATION_LOG", "allow": ["PUBLIC"]}
+    ]
+  },
+  "repositories": [
+    {"id": "vampi", "url": "https://github.com/erev0s/VAmPI", "sha": "f16052dce83f05847133ec98f01c5193a41de7d8", "license": "MIT, copyright 2020 erev0s"},
+    {"id": "dvga", "url": "https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application", "sha": "a961308c02d1fb462b192681c336b0739e432da7", "license": "MIT, copyright 2020 Exposed Atoms"},
+    {"id": "pygoat", "url": "https://github.com/adeyosemanputra/pygoat", "sha": "19d17cc8874861142b330636d068bbde54e86b85", "license": "MIT, copyright 2020 pygoat"}
+  ],
+  "cases": [
+    {"id": "vampi-debug-http", "repository": "vampi", "file": "api_views/users.py", "function": "debug", "entrypoint": "api_views.users.debug", "sink": "HTTP_RESPONSE", "expected_violation": true, "basis": "Published excessive-exposure endpoint; independently reproduced by the recorded HTTP canary baseline."},
+    {"id": "vampi-public-json", "repository": "vampi", "file": "models/user_model.py", "function": "json", "entrypoint": "models.user_model.User.json", "sink": "HTTP_RESPONSE", "expected_violation": false, "basis": "Source serializer returns only username/email; bounded case, not whole-function security certification."},
+    {"id": "vampi-debug-json", "repository": "vampi", "file": "models/user_model.py", "function": "json_debug", "entrypoint": "models.user_model.User.json_debug", "sink": "HTTP_RESPONSE", "expected_violation": true, "basis": "Source serializer explicitly includes self.password; return is configured as an external boundary for this case."},
+    {"id": "dvga-public-username", "repository": "dvga", "file": "core/views.py", "function": "resolve_username", "entrypoint": "core.views.UserObject.resolve_username", "sink": "HTTP_RESPONSE", "expected_violation": false, "basis": "Resolver returns username or its capitalized value, no selected secret field in the source body."},
+    {"id": "dvga-password-policy", "repository": "dvga", "file": "core/views.py", "function": "resolve_password", "entrypoint": "core.views.UserObject.resolve_password", "sink": "HTTP_RESPONSE", "expected_violation": true, "basis": "One branch returns self.password. The declared evaluation policy forbids passwords even for admin; this is a policy-flow case, not a claim that upstream admin authorization is bypassed."},
+    {"id": "dvga-token-authorization", "repository": "dvga", "file": "core/views.py", "function": "resolve_me", "entrypoint": "core.views.Query.resolve_me", "sink": "HTTP_RESPONSE", "expected_violation": null, "basis": "Token identity and GraphQL ORM schema/authorization semantics are not statically labeled from this body; unsupported/unknown, never count as safe."},
+    {"id": "pygoat-user-data", "repository": "pygoat", "file": "dockerized_labs/sensitive_data_exposure/dataexposure/views.py", "function": "api_data_view", "entrypoint": "dockerized_labs.sensitive_data_exposure.dataexposure.views.api_data_view", "sink": "HTTP_RESPONSE", "expected_violation": true, "basis": "Upstream source explicitly labels intentional API disclosure of credit_card, ssn and api_key; policy forbids those fields regardless of authenticated ownership."},
+    {"id": "pygoat-all-users", "repository": "pygoat", "file": "dockerized_labs/sensitive_data_exposure/dataexposure/views.py", "function": "all_users_data_view", "entrypoint": "dockerized_labs.sensitive_data_exposure.dataexposure.views.all_users_data_view", "sink": "HTTP_RESPONSE", "expected_violation": true, "basis": "Upstream comments identify unauthenticated all-user sensitive-data exposure and the response includes the selected fields."},
+    {"id": "pygoat-index", "repository": "pygoat", "file": "dockerized_labs/sensitive_data_exposure/dataexposure/views.py", "function": "index", "entrypoint": "dockerized_labs.sensitive_data_exposure.dataexposure.views.index", "sink": "HTTP_RESPONSE", "expected_violation": false, "basis": "Source body renders static index template without supplying selected sensitive data; templates are not certified by this case."},
+    {"id": "pygoat-custom-log", "repository": "pygoat", "file": "introduction/playground/A9/api.py", "function": "log_function_target", "entrypoint": "introduction.playground.A9.api.log_function_target", "sink": "APPLICATION_LOG", "expected_violation": null, "basis": "Active imported Log.info is a no-op while archive.py has a file-writing variant; custom dispatch/request field semantics require runtime acceptance. Keep unknown rather than label from a password-looking string."}
+  ]
+}
