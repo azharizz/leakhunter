@@ -74,7 +74,8 @@ trusted synthetic fixture and a fresh data directory:
   --data-dir /tmp/unspool-judge-demo --port 8080
 ```
 
-Open `http://127.0.0.1:8080`. The graph and annotation CRUD are local; analysis
+Open `http://127.0.0.1:8080` and click **Analyze** to populate the graph in the
+fresh workspace. The graph and annotation CRUD are local; analysis
 snapshots are immutable. Use a different port/data directory if already in use.
 Stop with Ctrl-C. This is an explicitly trusted demo: `--runtime-backend local`
 provides no sandbox and must not be used for unfamiliar repository code.
