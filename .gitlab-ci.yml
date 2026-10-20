@@ -14,7 +14,7 @@ python-tests:
   stage: verify
   image: python:3.12
   script:
-    - pip install --disable-pip-version-check .
+    - pip install --disable-pip-version-check -c requirements.lock .
     - python -m unittest discover -s tests -v
 
 dashboard-tests:
@@ -28,7 +28,7 @@ verify-exposure:
   stage: evidence
   image: python:3.12-slim
   script:
-    - pip install --disable-pip-version-check .
+    - pip install --disable-pip-version-check -c requirements.lock .
     # Only the committed synthetic target is executed in this disposable CI container.
     - python -m unspool --repository demo/target --policy demo/policy.yaml --runtime-manifest demo/runtime.yaml --runtime-backend local --data-dir /tmp/unspool-demo --provider-url '' --once analyze --gate > evidence.json
     - python -m unspool.publish --evidence evidence.json --output public --commit "$CI_COMMIT_SHA"

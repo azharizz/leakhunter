@@ -1,0 +1,30 @@
+steps:
+  - name: gcr.io/cloud-builders/git
+    args: [clone, --no-checkout, 'https://gitlab.com/azharizz/unspool-vampi-validation.git', upstream]
+  - name: gcr.io/cloud-builders/git
+    dir: upstream
+    args: [checkout, --detach, f16052dce83f05847133ec98f01c5193a41de7d8]
+  - name: gcr.io/cloud-builders/docker
+    args: [build, -f, Dockerfile, -t, vampi-validation-dependencies, upstream]
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - run
+      - --rm
+      - --network=none
+      - --read-only
+      - --cap-drop=ALL
+      - --security-opt=no-new-privileges
+      - --memory=256m
+      - --cpus=1
+      - --pids-limit=64
+      - --tmpfs=/tmp:rw,nosuid,noexec,size=32m,uid=10001,gid=10001
+      - --tmpfs=/vampi/database:rw,nosuid,noexec,size=16m,uid=10001,gid=10001
+      - --mount=type=bind,source=/workspace/upstream,target=/vampi,readonly
+      - --mount=type=bind,source=/workspace/probe.py,target=/harness/probe.py,readonly
+      - vampi-validation-dependencies
+      - python
+      - /harness/probe.py
+      - --expect-vulnerable
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s

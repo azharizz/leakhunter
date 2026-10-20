@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "project_id": 87865091,
+  "project_path": "azharizz/unspool-vampi-validation",
+  "target_branch": "master",
+  "branch_prefix": "unspool/",
+  "trigger_username": "duo-developer-azharizz",
+  "allowed_paths": ["api_views/users.py"],
+  "verification_jobs": ["application-tests", "verify-exposure"],
+  "deployment_jobs": [],
+  "evidence_job": "verify-exposure",
+  "evidence_path": "evidence.json",
+  "health_path": "public/health.json",
+  "protected_files": {},
+  "mode": "review"
+}

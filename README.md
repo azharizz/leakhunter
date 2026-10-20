@@ -1,5 +1,14 @@
 # Unspool
 
+For installation on another GitLab.com repository, read [ADOPTION.md](ADOPTION.md).
+The 0.4.0 controller accepts operator-owned project configuration, defaults to
+review-only behavior, and records private durable intent for safe resumption.
+Portable repair promotion currently allows explicitly configured Python application
+files only. JavaScript, TypeScript, Go and Rust analysis remains experimental;
+language parsing alone does not establish reliable security detection or repairs.
+Use [ROADMAP.md](ROADMAP.md) for the current evidence gates and outstanding work;
+[SECURITY.md](SECURITY.md) defines the trust boundaries and reporting route.
+
 The [GitLab project](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool)
 contains the redesign, MIT history, actual GitLab Duo integration, and CI delivery.
 The [Cloud Run report](https://unspool-398376578726.us-central1.run.app) and
