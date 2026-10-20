@@ -1,5 +1,9 @@
 # Unspool
 
+For a pinned local demonstration, read [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
+[SUBMISSION.md](SUBMISSION.md) contains the draft claim/evidence map and unresolved
+submission checks; it is not a production-readiness or eligibility claim.
+
 For installation on another GitLab.com repository, read [ADOPTION.md](ADOPTION.md).
 The 0.4.2 controller accepts operator-owned project configuration, defaults to
 review-only behavior, and records private durable intent for safe resumption.

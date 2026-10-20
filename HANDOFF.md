@@ -65,6 +65,14 @@ Retain the session, MR, pipeline, and live revision links as evidence.
 
 ## Path B submission
 
+See [SUBMISSION.md](SUBMISSION.md) for the draft description, evidence map,
+provenance issues and video outline, and [JUDGE_GUIDE.md](JUDGE_GUIDE.md) for local
+reproduction. The [original GitHub repository](https://github.com/azharizz/leakhunter)
+was made public on 21 October after owner authorization and a full tracked-history
+credential review. Unauthenticated access and MIT licensing were verified.
+Path B classification remains unresolved. Do not infer eligibility from this
+document or from a commit message.
+
 The current event is [Life After Code](https://gitlab-transcend.devpost.com/).
 The earlier gitlab.devpost.com event has ended. The current deadline is
 27 October 2026, 13:00 UTC / 20:00 WIB. Check the event's current rules before

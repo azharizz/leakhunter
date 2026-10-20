@@ -46,6 +46,32 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — submission draft and public-access audit, 21 October
+
+Classification: **progress**, submission/production readiness not established.
+MR !15 passed pipeline `2968792097` and merged at
+`a93bbda29a480b66b9a43024f924d15ee66c634b`. Prepared SUBMISSION.md with the
+description, exact claim/evidence links, dependencies, honest provenance,
+supervised versus synthetic hands-off distinction, author video outline and
+remaining decisions. JUDGE_GUIDE.md provides pinned installed-wheel/local-demo
+steps without triggering remote automation.
+
+Unauthenticated HTTP checks returned public GitLab project/MR/pipeline/license
+data and a healthy Cloud Run revision `7d36585ff1c7d19872c119c131ba1577424b79bd`.
+GitHub's original `azharizz/leakhunter` initially returned 404 without credentials.
+After explicit owner authorization, mirrored all advertised refs: one main branch,
+two commits, no tags. Gitleaks 8.30.1 (official release checksum verified) scanned
+both commits with zero findings; manual review of credential-related code found
+environment-variable handling, detection patterns and synthetic fixtures. Both
+original commits are retained in GitLab main. Made the original public and
+verified unauthenticated GitHub API HTTP 200, `private: false` and MIT license.
+Its history starts 19 October, with MIT added 20 October. Path B classification
+remains unresolved; publication alone does not establish eligibility. No history
+was altered. Pages redirected to the local
+Jamf block page, so that request does not establish judge availability. The
+production/evaluation/security gates remain in force; the draft does not narrow
+the active goal. Official submission requirements were rechecked on 21 October.
+
 ### Execution log — initial frozen external static evaluation, 21 October
 
 Classification: **progress**, evaluation gate incomplete. MR !14 passed pipeline
@@ -348,7 +374,7 @@ entire gate complete from these partial checks.
   specified sinks and policy semantics, report/MR mode, no universal security claim.
 - [x] Label other language adapters experimental until each has its own execution,
   detection, and repair evidence. Parsing a language is not equivalent to securing it.
-- [ ] Preserve original source history, MIT notices and attribution. The original
+- [x] Preserve original source history, MIT notices and attribution. The original
   project commit was dated 19 October 2026; do not imply an older project history.
 - [ ] Review Path B against that actual history. If classification is ambiguous,
   obtain organizer clarification before making an eligibility claim; never alter
