@@ -57,10 +57,12 @@ def main(argv=None) -> None:
     parser.add_argument("--runtime-timeout", type=int, default=30)
     parser.add_argument("--once", choices=("analyze", "repair", "evaluate"),
                         help="Print JSON and exit instead of serving the UI")
-    parser.add_argument("--gate", action="store_true", help="CI: exit 1 unless configured static/runtime/policy gates pass")
+    parser.add_argument("--gate", action="store_true", help="CI release gate for --once analyze or repair only")
     parser.add_argument("--branch", default="main", help="Named snapshot pointer; non-main branches are isolated overlays")
     parser.add_argument("--base-snapshot-id", help="Incremental baseline for a branch/MR overlay")
     args = parser.parse_args(argv)
+    if args.gate and args.once not in {"analyze", "repair"}:
+        parser.error("--gate requires --once analyze or repair; evaluation accuracy is not release safety")
     try:
         configure(args)
         if args.once:
@@ -69,12 +71,9 @@ def main(argv=None) -> None:
             print(service.encoded(result), flush=True)
             if args.gate and not (
                 result.get("gate", {}).get("passed") if args.once == "analyze" else
-                result.get("passed") if args.once == "repair" else
-                result.get("status") == "COMPLETED" and result["runtime"]["fn"] == 0 and result["runtime"]["fp"] == 0):
+                result.get("passed")):
                 raise SystemExit(1)
             return
-        if args.gate:
-            parser.error("--gate requires --once")
     except (OSError, ValueError, RuntimeError) as exc:
         parser.error(str(exc))
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)

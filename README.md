@@ -368,12 +368,12 @@ Incomplete model proposals are stored as rejected/failed, not successful repairs
 ```sh
 # Add the same repository/policy/manifest/data-dir flags shown above:
 leakhunter ... --once analyze --gate
-leakhunter ... --once evaluate --gate
+leakhunter ... --once evaluate
 leakhunter ... --once repair --gate
 leakhunter ... --once analyze --branch mr-42 --base-snapshot-id "$SNAPSHOT_ID"
 ```
 
-Replace `...` with configuration flags; it is not a literal argument. One-shot commands print JSON. `analyze --gate` requires approved policy, supported analyzed Python, resolved candidates, and passing runtime security/functionality. `repair --gate` requires independent verification. `evaluate --gate` requires completed labeled execution with no runtime false positives/negatives; evaluation does not authorize release. Failing gates exit with status 1. Parse, execution, provider, and unsupported-analysis states remain inspectable.
+Replace `...` with configuration flags; it is not a literal argument. One-shot commands print JSON. `analyze --gate` requires approved policy, supported analyzed Python, resolved candidates, and passing runtime security/functionality. `repair --gate` requires independent verification. Evaluation reports detection accuracy and cannot authorize release: `evaluate --gate` is rejected with exit 2 before configuration or execution. Failing supported gates exit with status 1. Parse, execution, provider, and unsupported-analysis states remain inspectable.
 
 | Endpoint | Purpose |
 | --- | --- |

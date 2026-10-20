@@ -6,6 +6,23 @@ a test count increased, a cloud URL works, or an agent says it succeeded.
 
 ## Decision and intended first product
 
+### CLI safety correction — 21 October
+
+A wider branch audit found three old commits outside GitLab main. Their alternate
+integration is not needed by the current handoff. Ported the missing CLI safety
+fix: evaluation accuracy, even perfect detection of an exposed secret, must not
+authorize release. `evaluate --gate` and serving with `--gate` now exit 2 before
+configuration, state creation or target execution. Ungated evaluation remains.
+The regression failed on the old code and passed after the fix. All 127 local
+Python tests and dashboard checks passed. Installed-wheel verification now checks
+the rejection through both `unspool` and compatible `leakhunter` commands.
+Version 0.4.7 is the patch candidate; its final CI/artifact records and judge
+instructions must replace 0.4.6 before the new freeze is declared complete.
+
+The previously local checklist audit below is reconciled and included in this
+change. Production gaps remain unchecked; video, submission, personal eligibility
+declarations and continuing hosting ownership remain author responsibilities.
+
 ### Submission freeze — user scope amendment, 21 October
 
 The user explicitly narrowed the immediate work to the five submission essentials.
@@ -591,6 +608,44 @@ entire gate complete from these partial checks.
 | Product access | Local CLI/UI, local CRUD, public read-only report | Hosted multi-user CRUD or cross-tenant access controls |
 | Operations | Working deployment jobs and local polling controller | Durable recovery, concurrency guarantees, rollback drills, sustained service objectives |
 
+## Checklist audit — 21 October 2026
+
+Reconciled the checklist with the execution records, current source, adoption and
+security documents, retained benchmark results, and read-only GitLab/public URL
+checks. `[x]` means the stated scoped deliverable has evidence; it does not mean
+the entire gate or production qualification is complete. Compound items are split
+where implementation is finished but broader validation is still missing. Earlier
+execution logs retain the status at their execution time; use this checklist for
+current remaining work.
+
+Accepted baseline before the CLI safety patch: release 0.4.6, source
+`05bbefc6e936d7efab8f0a7b10aeb04e77742ee3`, qualified in Linux Python
+3.10/3.12 and macOS 3.11 with 40 installed files and the same retained wheel.
+Final documentation/report delivery at `2ae0687dbd78d1d145a42a4342ded90c94d96070`
+passed pipeline `2969146642`. The retained
+[0.4.6 submission checks](https://gitlab.com/api/v4/projects/87860005/packages/generic/unspool/0.4.6/submission-checks.json)
+record 18 successful anonymous checks, actual graph CRUD with unchanged snapshot,
+and an installed external-controller replay with 23 GETs / zero writes.
+The optional HTTP binding exists; migration of the historical external GitLab
+verifier remains future production work.
+
+These are point-in-time checks, not availability guarantees through judging.
+Path B / Supervised is recommended on the disclosed chronology and current rules;
+organizers decide eligibility. The session page and raw job-trace API are not
+anonymous evidence sources; public pipeline metadata and retained records are.
+
+| Area | Completed evidence | Still required |
+| --- | --- | --- |
+| Installation and portability | Retained versioned wheel, validated configuration/preflight, clean macOS/Linux installs, real external review-controller run, optional HTTP binding | Reusable adopter CI migration, complete permissions matrix, qualification across more frameworks/projects |
+| Security value | Real external Duo MR, HTTP baseline/fix, staging failure/recreation drill, ten-case static set across three repositories | Upstream regressions, inaccessible held-out checks, 20-positive/20-negative floor, ungated-agent comparison |
+| Trust boundaries | Pinned contracts, diff/SHA checks, source bounds, controlled isolation drill, separate HTTP probe | General callable tamper resistance, dependency-build containment, complete identity/privacy/adversarial qualification |
+| Recovery | Durable intent, local target lock, bounded reads, STOP/Ctrl-C, real MR/evidence-read crash recovery | Remaining remote crash points, full concurrency/failure matrix, remote cancellation and alerting |
+| Submission material | Public source/original, live static report, pinned judge guide, submission text/evidence map, public retained records and documented Path B basis | Current patch release verification; video, personal attestations, submission and ongoing hosting belong to the author |
+
+No complete production gate is inferred from this audit. Shared SaaS and Catalog
+publication remain optional; neither is required for a self-hosted integration or
+an honest submission.
+
 ## Gate 0 — confirm the claims and submission basis
 
 - [x] Write the supported-use statement: initially selected Python services,
@@ -599,11 +654,14 @@ entire gate complete from these partial checks.
   detection, and repair evidence. Parsing a language is not equivalent to securing it.
 - [x] Preserve original source history, MIT notices and attribution. The original
   project commit was dated 19 October 2026; do not imply an older project history.
-- [ ] Review Path B against that actual history. If classification is ambiguous,
-  obtain organizer clarification before making an eligibility claim; never alter
-  history to fit a category. This document is not an eligibility determination.
-- [ ] Record actual additions, dates, model/provider dependencies, local controller
+- [x] Review Path B against the actual history and current rules; disclose source,
+  MIT/import/automation and publication dates. Evidence: [SUBMISSION.md](SUBMISSION.md).
+  The rules do not require a source date before October 5. Path B / Supervised is
+  recommended; no organizer ruling or guaranteed eligibility is claimed.
+- [x] Record actual additions, dates, model/provider dependencies, local controller
   requirements, and what the live public URL does and does not run.
+  Evidence: [submission draft/evidence map](SUBMISSION.md), [handoff](HANDOFF.md)
+  and [adoption guide](ADOPTION.md); unknown underlying Duo model version is disclosed.
 
 Exit: every public claim maps to evidence or is marked planned/experimental.
 Owner: product maintainer. For solo qualification, retain the frozen inputs,
@@ -612,22 +670,40 @@ External human review is not yet obtained and must not be implied.
 
 ## Gate 1 — make a second repository work without source edits to Unspool
 
-- [ ] Replace demo-specific controller assumptions with a validated operator-owned
+- [x] Replace demo-specific controller assumptions with a validated operator-owned
   project configuration: project/namespace, protected target, branch convention,
   issue trigger identity, required jobs, allowed paths, policy/manifest identities,
-  time/cost limits, deployment and rollback settings.
-- [ ] Bind that configuration to a version and authorized project. An issue,
+  polling/time limits and required deployment jobs. Evidence: `HandoffConfig`,
+  read-only preflight, configuration tests and `config/handoff.*.json`.
+- [ ] Add the remaining operator cost budgets and explicit deployment/rollback
+  configuration; declaring required job names alone does not implement these.
+- [x] Bind that configuration to a version and authorized project. An issue,
   model output, repository file, or supplied URL must not enlarge permissions.
   Keep the current synthetic repair boundary until an explicitly reviewed change
   introduces the reusable mechanism; never relax it to make a repair pass.
-- [ ] Ship a versioned package/container, reproducible dependency installation,
-  sample configuration, CI template, permission matrix, uninstall instructions,
-  and an automated preflight that performs no mutation.
-- [ ] Verify the installed artifact from a clean environment, not PYTHONPATH into
+  Evidence: project ID/path checks, configuration digest, exact diff allowlist and
+  target/candidate contract pins; the external VAmPI configuration is separate.
+- [x] Build/install a versioned wheel with pinned runtime/bootstrap dependencies,
+  sample configuration, uninstall/upgrade instructions and non-mutating preflight.
+  Evidence: [ADOPTION.md](ADOPTION.md), lockfiles and successful installed-wheel CI.
+- [x] Retain the release wheel, checksums and verification records in the package
+  registry with a release link, independently of 90-day CI artifact expiry.
+  Evidence: [release record](RELEASE.md); hosting still needs maintainer ownership.
+- [ ] Finish reusable adopter CI templates/migration and the complete permission
+  matrix. The working project and benchmark CI do not establish this full deliverable.
+- [x] Verify the installed artifact from a clean environment, not PYTHONPATH into
   the development checkout. Record exact dependency and container identities.
-- [ ] A fresh isolated installation exercises a different authorized repository without
-  editing Unspool source. Test supported Python version boundaries and realistic
-  dependency/framework requirements.
+  Evidence: macOS Python 3.11 and Linux 3.10/3.12 installation records; MR !20/!21
+  qualify one checksummed wheel across both Linux versions and retain inventories.
+- [x] Exercise an installed controller on a different authorized repository without
+  editing Unspool source. Evidence: VAmPI MR !1 review acceptance with installed
+  0.4.0, and installed 0.4.3 MR !2 replay with 23 GETs / zero writes; see
+  [recovery records](benchmarks/recovery/README.md).
+- [x] Exercise declared Python interpreter boundaries in clean installations:
+  macOS 3.11, Linux 3.10/3.12. This establishes those installation checks only.
+- [ ] Qualify the final released artifact across the intended external framework/
+  dependency combinations and projects. Historical controller replays, interpreter
+  checks and a static three-repository set do not cover arbitrary applications.
 - [ ] Confirm a separate project's identity cannot trigger work, read private evidence or deploy changes
   in the original project. Do not copy the maintainer's credentials into their setup.
 
@@ -636,35 +712,59 @@ observed duration, permission checks, and a complete evidence bundle.
 
 ## Gate 2 — establish real security value independently
 
-- [ ] Select an authorized, realistically structured application with a confirmed
+- [x] Select an authorized, realistically structured application with a confirmed
   exposure defect and an independently defined expected safe behavior. Prefer a
   maintained MIT project or a consented internal application in an isolated copy.
   Record upstream revision, license, dependencies, vulnerability provenance and scope.
+  Evidence: [VAmPI records](benchmarks/vampi/README.md), upstream `f16052dc`,
+  MIT notices and published debug exposure. It is a security lab, not a maintained
+  production customer deployment or representative proof for every repository.
 - [x] Reproduce the defect before repair using a harmless canary and a real
   application boundary such as HTTP. Never probe unrelated live systems or use
   customer secrets. Disclose sensitive new findings privately to the owner.
-- [ ] Separate configured-source tests, detection of known vulnerabilities, and
+- [x] Separate configured-source tests, detection of known vulnerabilities, and
   discovery of previously unknown vulnerabilities. A supplied secret-field selector
   or explicit repair instruction is not evidence of independent discovery.
-- [ ] Freeze security and functional acceptance cases before the
-  agent runs. Keep held-out checks inaccessible to the repair agent. Do not tune
-  policy or labels after seeing a bad result and still call it a held-out test.
-- [ ] Run analysis, produce a bounded repair MR, independently reproduce the
-  baseline and rerun security checks plus the application's own regressions.
+  Evidence: [SUBMISSION.md](SUBMISSION.md) and benchmark limitations explicitly
+  distinguish the synthetic run, instructed VAmPI repair and selected static set.
+- [x] Freeze the original VAmPI security/functional acceptance contract before its
+  Duo repair. Candidate CI uses the pinned harness; baseline and repaired source
+  revisions and outcomes are retained. The later generic plan was frozen before
+  its own before/after replays, not before the earlier agent repair.
+- [ ] Add genuinely held-out checks inaccessible to the repair agent. A public
+  pinned probe protects write scope but does not prove test secrecy. Do not tune
+  policy/labels after failures and still call the result held-out.
+- [x] Produce the bounded real Duo repair MR and independently reproduce the
+  vulnerable/fixed HTTP behavior. Evidence: VAmPI session `9754951`, MR !1,
+  candidate/post-merge CI and separate-container results, including
+  [generic probe records](benchmarks/vampi/results.generic.json).
+- [x] Analyze the pinned external source revisions and retain static coverage and
+  findings. Evidence: [three-repository evaluation](benchmarks/external/README.md).
+  This later static analysis is not evidence that the analyzer discovered the
+  earlier instructed repair before the agent ran.
+- [ ] Run the application's own unmodified regression suite, in addition to the
+  independent HTTP cases, and retain baseline/candidate regression comparisons.
 - [x] Exercise a disposable staging deployment of the actual repaired application.
   Demonstrate the vulnerable request is now blocked/redacted and legitimate
   requests still work. The graph report is supporting evidence, not that application.
-- [ ] Build an initial evaluation across at least three unrelated repositories,
-  including safe behavior and unsupported cases. As a planning target, use at least
-  20 vulnerable and 20 safe cases across the declared scope; this is an initial
+- [x] Build an initial static evaluation across three independently authored MIT
+  repositories, including safe and unknown cases. Evidence: VAmPI/DVGA/PyGoat,
+  ten frozen cases, TP 5 / TN 3 / unknown 2 / FP 0 / FN 0 / errors 0.
+  This is a selected feasibility set, not representative runtime accuracy.
+- [ ] Reach at least 20 vulnerable and 20 safe cases across the declared scope;
+  retain unsupported/unknown cases separately. This is an initial
   evaluation floor, not a production certification or statistical guarantee.
-- [ ] Report case/repository counts, exact revisions, TP/FP/TN/FN, unknowns,
-  execution failures, accepted/rejected repairs, regressions, latency, model/compute
-  cost, and limitations. Report conditional executed-case metrics and coverage
-  separately so abstaining cannot artificially improve the headline result.
-- [ ] Keep case-level results and uncertainty visible. Correlated variants of one
+- [x] Report the static set's case/repository counts, exact revisions, TP/FP/TN/FN,
+  unknowns, execution errors, coverage diagnostics, analysis times and limitations.
+  Static model calls are zero; compute cost was not metered. Unknown labels are
+  retained and excluded explicitly from binary metrics, not converted to negatives.
+- [ ] Complete aggregate repair acceptance/rejection, upstream-regression,
+  end-to-end latency and model/compute cost measurements for the broader evaluation.
+  Report conditional executed-case metrics and coverage separately.
+- [x] Keep case-level results and uncertainty visible. Correlated variants of one
   fixture are not independent real-world samples; balanced test-set precision does
   not predict production precision at a different vulnerability prevalence.
+  Evidence: frozen case manifest, retained per-case JSON and benchmark README.
 - [ ] Compare the same cases with the project's existing checks and with a
   repair agent without Unspool's gate. Record additional correct detections and
   incorrect repairs prevented, along with cost and false blocks. Freeze inputs and
@@ -679,6 +779,10 @@ that arbitrary repositories are supported. If this gate fails, narrow the produc
 - [x] Write a threat model covering repository code/build scripts, dependencies,
   issue/MR prompt injection, CI artifacts, GitLab identities, model providers,
   credentials, public reports, and deployment privileges.
+- [x] Execute the controlled isolation drill in network-none and internal-network
+  modes, including a deliberately injected synthetic credential negative control.
+  Evidence: [16-check drill](benchmarks/isolation/README.md), Cloud Build
+  `b99654ca-27aa-4fa1-9411-d8b500637029`; this is scoped control evidence only.
 - [ ] Execute unfamiliar code in disposable isolated workers with no host Docker
   socket, no host credentials, no cloud metadata access, bounded CPU/memory/disk/
   processes/time, and controlled egress. Select stronger worker/VM isolation for
@@ -686,23 +790,41 @@ that arbitrary repositories are supported. If this gate fails, narrow the produc
   trust boundary. Test the isolation from inside a malicious fixture.
 - [ ] Treat dependency installation as code execution too. Separate dependency
   fetch/build steps from credentialed promotion and restrict dependency sources.
-- [ ] Run verification/promotion logic from a trusted pinned version. Repository
+- [x] Run the recorded configured workflows with installed/pinned controller and
+  verification logic. Repository
   tests can supply useful checks but cannot certify their own trustworthiness.
   Keep independent policy, tests and deployment logic outside the agent's write scope.
+  Evidence: installed controller replays, protected-file content pins and the
+  external CI's fixed harness revision. This does not fix runtime monkeypatching.
+- [x] Add a reusable HTTP probe that imports no target code, and exercise the same
+  frozen plan/probe against vulnerable and repaired VAmPI in separate containers.
+  Evidence: [0.4.5 reports](benchmarks/vampi/results.generic.json), MR !21.
+- [ ] Integrate that independent HTTP report into reusable handoff CI with trusted
+  source/image/plan/probe binding. The CLI does not attest which commit serves a URL.
 - [ ] Pin source/base/target SHAs, policy hash, manifest hash, runtime image digest,
   verifier version, test results, artifact hashes, model/version, actor and run ID.
   Bind evidence to the exact artifact promoted, not just a self-reported health SHA.
-- [ ] Revalidate or stop when the target branch changes. An MR tested on an old
+- [x] Revalidate or stop when the configured target branch changes. An MR tested on an old
   base does not prove its integration with a new target branch is correct.
-- [ ] Use identities scoped to one project and operation. Separate read/analyze,
-  propose, verify and deploy privileges; honor protected branches and required
-  approvals. Do not give Duo the user's identity to escape a permission boundary.
+  Evidence: MR !17's source/base/pipeline/target freshness tests in review/auto
+  modes and protection recheck. The legacy synthetic path has fewer guarantees;
+  the full live remote race/failure matrix remains open under Gate 4.
+- [x] Keep Duo's repair identity separate from the operator's promotion identity;
+  preserve protected-branch/approval refusals and never give Duo the operator login.
+  Evidence: the real Duo MR required the separately authorized operator to merge.
+- [ ] Complete least-privilege scoping of every read/analyze/propose/verify/deploy
+  identity to its project and operation, including live cross-project refusal tests.
+  An operator's existing broad `glab` login is not proof of least privilege.
 - [ ] Specify what code/context leaves the worker for model inference, and make
   provider choice, redaction, retention and opt-out explicit. Test canary secrets
   against logs, artifacts, prompts and public reports.
-- [ ] Test malicious instructions in issues, source comments and tool outputs;
-  attempted policy/test/CI edits; path escapes; stale/forged artifacts; untrusted
-  configuration; unauthorized triggers; and wrong-project deployment.
+- [x] Test exact diff allowlists, forbidden test/CI paths, project/config confusion,
+  path escapes, linked/special files, stale SHA/pipeline/health evidence and forged
+  verification booleans. Evidence: handoff/config/state/smoke/source-boundary tests
+  and passing CI; these are implemented negative checks, not a full attack audit.
+- [ ] Execute the remaining prompt-injection cases through issues, source comments
+  and tool outputs; complete unauthorized-trigger and wrong-project-deployment
+  drills, plus forged-artifact/adversarial workflow coverage beyond unit tests.
 
 Exit: a recorded security review of the trust boundaries using automated checks
 and adversarial execution tests, no unresolved critical/high
@@ -711,22 +833,47 @@ promotion. A clean review is evidence within scope, not a guarantee of no flaws.
 
 ## Gate 4 — survive interruptions and concurrent work
 
-- [ ] Persist a run identity and state transitions: requested, analyzing, proposed,
-  verifying, blocked, merged, deploying, healthy, failed, recovery required.
-  Reuse GitLab's durable pipeline/job state where possible before adding services.
-- [ ] Use a stable identity based on project + intent/source revision + policy
-  version. Record the trigger before dispatch so restarting before an MR exists
-  cannot start duplicate Duo work. Lock promotion per target/environment.
-- [ ] Bound retries for transient failures; preserve the distinction between failed,
-  unknown, timed-out, canceled and passed. Never turn missing checks into success.
-- [ ] Demonstrate restart after trigger, after push, after MR creation, after merge,
-  during deploy and after successful deploy but before the completion note.
-- [ ] Demonstrate two concurrent issues, duplicate delivery, a stale MR, a changed
-  target branch, 429/5xx responses, revoked credentials and provider unavailability.
-- [ ] Preserve the last healthy deployment when a candidate fails. Prove rollback
-  with an intentional staging failure and retain the artifact to roll back to.
-- [ ] Define cancellation, a kill switch and escalation ownership. Alert on stuck
-  runs and post a final outcome with evidence to the originating issue/MR.
+- [x] Persist private atomic versioned run records, intent/configuration identity,
+  observed MR/source/pipeline identities and controller stages/outcomes. Evidence:
+  `RunJournal`, installed cancellation checks and real recovery journals. GitLab
+  remains authoritative for remote agent/pipeline state.
+- [ ] Complete the run-wide transition/recovery model across requested, analyzing,
+  proposed, verifying, blocked, merged, deploying, healthy, failed and recovery-required
+  phases. A local STOPPED/error-type record is not a fully qualified remote lifecycle.
+- [x] Use stable project/target/intent plus configuration identity; durably record
+  trigger intent before dispatch, reconcile its marker on retry, reuse the existing
+  MR and lock the target against concurrent local controllers. Evidence:
+  [ADOPTION.md](ADOPTION.md), journal tests and real MR !2 replay with zero writes.
+  This is one operator state directory's OS lock, not a distributed lock.
+- [x] Bound transient GET retries, refuse blind mutation replay, retain stop/error
+  details and distinguish cancellation from success. Missing/failed/unknown checks
+  stop the workflow. Evidence: 429/503/403 regression cases, STOP/Ctrl-C tests and
+  exact required-job/health checks. Full remote fault drills remain below.
+- [x] Demonstrate local lock recovery after SIGKILL and real existing-MR recovery
+  after MR reads and evidence reads. Evidence: [recovery record](benchmarks/recovery/README.md),
+  exits 137, preserved journal, same MR/SHA/pipeline and successful read-only resume.
+- [ ] Demonstrate the remaining remote restart points: trigger dispatch, push,
+  merge, deployment and successful deployment before the completion note.
+- [x] Exercise duplicate local delivery/competing intent locks and unit checks for
+  stale candidates/targets and transient/permanent API errors. Do not describe
+  these as the complete live concurrency matrix.
+- [ ] Complete live two-issue concurrency, duplicate delivery, stale MR/changed
+  target, 429/5xx, revoked-credential and unavailable-provider workflow drills.
+- [x] Preserve the healthy disposable VAmPI staging container when a candidate
+  fails, then separately recreate the healthy app from its retained image digest.
+  Evidence: build `ff4898a1-6efe-427d-85ba-b91747d35202`, rejected exit-17
+  candidate, unchanged healthy container, retained image digest and restored app
+  passing HTTP checks. This proves candidate rejection and artifact recreation,
+  not production traffic rollback or persistent data restoration.
+- [x] Implement/document local STOP and Ctrl-C cancellation, persist CANCELED/exit
+  130, assign reconciliation/escalation to the operator and retain resume guidance.
+  Evidence: [operator instructions](ADOPTION.md) and installed cancellation checks.
+- [x] Post the successful verified synthetic workflow's outcome/evidence to its MR.
+  Evidence: the recorded complete handoff; this does not prove every failure path
+  posts a final notification.
+- [ ] Add stuck-run alerts, remote cancellation and complete success/failure/unknown
+  outcome notification coverage; qualify controller-coordinated production rollback
+  and any required persistent-data backup/restore.
 
 Exit: fault-injection records show no duplicate promotion, unauthorized merge or
 false success; interrupted runs can be safely resumed from a fresh operator
@@ -735,11 +882,19 @@ remains unverified until someone else tries it.
 
 ## Gate 5 — solo release qualification and future supervised adoption
 
+- [x] Qualify packaged installations in fresh macOS/Linux environments, including
+  one exact wheel across the Linux Python matrix. Evidence: Gate 1 installation
+  records and 0.4.5 jobs above; this is solo evidence, not independent adoption.
 - [ ] Exercise the released artifact in two clean environments and separate
   projects, without source-checkout imports or inherited development state.
   Start with report/MR-only mode and tested rollback instructions. Record this
   as solo qualification, not adoption by independent teams.
-- [ ] Declare the qualification's repository sizes, concurrent jobs, acceptable latency/cost,
+- [x] Declare/enforce source-ingestion budgets and test their actual installed
+  boundaries: 1 MiB/file, 32 MiB total, 2,000 source files, 20,000 visited entries,
+  depth 64. Over-budget input errors instead of producing a truncated success.
+  Evidence: 0.4.4 source scanner tests and installed quota exercises above.
+- [ ] Declare the remaining qualification's repository/framework workload sizes,
+  concurrent jobs, acceptable latency/cost,
   support hours, data retention and service objectives before testing them.
   Choose thresholds from the declared supported use before execution, not from
   whichever results pass. External customer needs remain unvalidated.
@@ -747,12 +902,21 @@ remains unverified until someone else tries it.
   Reject/defer work beyond quotas with an explicit status, not silent truncation.
 - [ ] Keep tenant/project state and credentials isolated; define deletion/export
   and verify public reports never disclose private code or repository metadata.
-- [ ] Provide SECURITY.md, a private reporting route, dependency inventory and
-  license review, supported versions, upgrade/migration and rollback instructions,
-  diagnostic redaction, billing alerts, and a responsible operator.
+- [x] Provide security scope/reporting guidance, supported interpreter versions,
+  dependency inventories/source audit, upgrade/removal/state-preservation guidance
+  and operator ownership. Evidence: [SECURITY.md](SECURITY.md),
+  [SECURITY_REVIEW.md](SECURITY_REVIEW.md), [ADOPTION.md](ADOPTION.md) and CI artifacts.
+- [ ] Verify the confidential/private reporting route works for intended reporters;
+  complete dependency/license review, operational migration/rollback rehearsal,
+  comprehensive diagnostic redaction, billing alerts and availability ownership.
+  Documenting a confidential-issue option does not verify access or configure alerts.
 - [ ] Run a recorded soak/repeated-workflow exercise for a declared observation window; track every failure and
   required intervention. Publish the denominator and unresolved limitations.
-- [ ] Expand autonomy only for approved low-risk change classes with explicit
+- [x] Restrict current external configurations to human review by default and
+  require explicit auto mode, protected fast-forward target, pinned contracts and
+  exact diff/jobs/revision checks. The recorded hands-off demo is a bounded
+  synthetic display-name change, not general autonomous security repair.
+- [ ] Qualify any further autonomy expansion only for approved low-risk change classes with explicit
   policy and independent acceptance checks. Unknown/high-impact cases remain
   human-reviewed. Never advertise general automatic security repair from this pilot.
 
@@ -797,10 +961,10 @@ Parallel engineering cannot substitute for independent evaluation or a pilot.
 
 | Date (WIB) | Highest-value work | Decision at the end |
 | --- | --- | --- |
-| 20–21 October | Gate 0, narrow scope, choose authorized real target and independent reviewer, start portable configuration | Confirm truthful story and feasible target |
+| 20–21 October | Supported scope, VAmPI repair, portable configuration, clean installs, retained release and disclosed Path B basis completed | Finish CLI safety patch; preserve explicit prototype scope and organizer authority |
 | 21–22 October | Clean installation on a second repository; reproduce confirmed defect and pin acceptance cases | If unsuccessful, keep explicit prototype status |
 | 22–24 October | Real repair/staging demonstration, safe cases, baseline comparison, highest-risk isolation and negative tests | Report measured results; reduce unsupported claims |
-| 24–25 October | Restart/duplicate/concurrency and failed-deployment drills; independent installer/reviewer | Freeze supported behavior; disable unvalidated autonomy |
+| 24–25 October | Remaining restart/concurrency/failed-deployment drills and fresh solo installation rehearsal | Freeze supported behavior; disable unvalidated autonomy |
 | 25–26 October | Release candidate, clean-room reproduction, public evidence bundle and demo recording | Fix blockers only; no late architecture or marketplace expansion |
 | 26 October | Prepare and validate submission fields, public links and video | Aim to submit with a day's buffer |
 | 27 October, before 20:00 | Final availability/visibility checks and submission | Do not submit inflated claims to compensate for unfinished work |
@@ -813,24 +977,60 @@ independent verification or required submission material.
 
 ## Submission go/no-go checklist
 
-- [ ] Public MIT GitLab repository, original project URL and honest provenance.
-- [ ] Actual Duo session, source diff, CI evidence, deployment identity and outcome
-  links; demonstrate one successful run and one deliberately blocked failure.
-- [ ] Public live GCP URL and deployment code in the public repository for the
-  optional Google Cloud bonus; preserve fallback availability.
-- [ ] Confirm what the live project actually executes. If it remains a static
+- [x] Public MIT GitLab repository, public original project URL and honest provenance.
+  Evidence: preserved original history/licensing, credential review before its
+  authorized publication and current unauthenticated HTTP 200 checks. This does
+  not resolve Path B eligibility.
+- [x] Retain actual Duo/session/diff/CI/deployment/outcome references for the
+  successful synthetic handoff and supervised external repair; retain deliberate
+  failing HTTP/credential-control evidence. Evidence: [SUBMISSION.md](SUBMISSION.md),
+  VAmPI generic baseline `gate.passed: false` and the isolation negative control.
+- [x] Validate the installed trusted demo, graph/annotation CRUD and persisted STOP
+  cancellation; retain vulnerable/repaired HTTP results and public MR/pipeline
+  metadata. Evidence: [judge guide](JUDGE_GUIDE.md), [release records](RELEASE.md).
+  This is not an end-to-end failed remote promotion; session pages and raw
+  job-trace APIs require authorized access and are not required reproduction links.
+- [x] Deploy a public live GCP static report and keep its deployment code public;
+  publish the Pages fallback. Current Cloud Run health is verified above.
+- [x] Check Pages from remote GitLab CI with an exact-revision smoke test; check
+  Cloud Run directly and retain the served revision. See release verification.
+  Local Jamf redirects are not counted as health evidence.
+- [ ] Maintain both delivery targets through judging; this is the maintainer's
+  ongoing obligation, not a completed point-in-time availability test.
+- [x] Confirm what the live project actually executes. If it remains a static
   report, say so; demonstrate any repaired target separately and explain the
   deployment boundary rather than implying a full hosted service.
-- [ ] Working clean installation instructions and all required assets/configuration.
+  Evidence: [HANDOFF.md](HANDOFF.md), [SUBMISSION.md](SUBMISSION.md), judge guide
+  and separate repaired-app staging records. Hosted report is read-only; controller
+  and annotation CRUD remain local.
+- [x] Provide pinned clean-install/demo instructions and their committed
+  inputs/configuration. Evidence: [JUDGE_GUIDE.md](JUDGE_GUIDE.md) and the
+  exact source, checksum and installation records in [RELEASE.md](RELEASE.md).
+- [x] Retain a frozen release wheel, checksums and verification records separately
+  from expiring CI artifacts; identify its exact source in the judge guide.
+  Code changes require a new patch release and renewed verification, not a moved tag.
 - [ ] Public YouTube video under three minutes showing actual operation; explain
   time cuts and local-controller requirements without staging fake outcomes.
-- [ ] Text description states the problem, additions, actual autonomy, measured
+  **Author action**, excluded from the delegated engineering/preparation work;
+  Devpost submission itself also belongs to the author. The outline is prepared.
+- [x] Prepare submission text stating the problem, additions, actual autonomy, measured
   benefits, failure behavior, limitations and model/service dependencies.
-- [ ] No customer data, credentials, unpublished vulnerability details or material
-  lacking required permissions in source, logs, report or video.
-- [ ] Keep the project available through judging/winner announcement, on or around
-  16 November; ensure trial/billing validity and designate an availability owner.
-- [ ] Check every final claim and link from a judge's unauthenticated perspective.
+  Evidence: [SUBMISSION.md](SUBMISSION.md); no invented adoption, time-saved,
+  unknown-vulnerability or production-certification claim.
+- [x] Align the description with the pinned release and disclosed Path B basis.
+  Organizer eligibility decisions and the author's personal attestations remain external.
+- [x] Review source/history and retained artifacts for credentials and private
+  material; preserve licenses and the synthetic/lab scope. Evidence: release
+  audit records and original GitHub review; scanner findings are disclosed.
+- [ ] Review the author's final video for credentials/private material and asset
+  permissions before upload. The video is not created by this engineering workflow.
+- [x] Designate the maintainer as availability owner and verify billing is enabled.
+- [ ] Keep billing/trial availability valid through judging/winner announcement,
+  expected around 16 November. A current enabled-billing check does not establish
+  future credit balance, expiry or uptime, and no automatic billing monitor is claimed.
+- [x] Check the public source, MIT detection, release downloads, evidence metadata,
+  judge instructions and Cloud Run without credentials; record access limitations.
+  Pages is verified through remote CI. See retained submission checks in the release.
 
 Shipping as a prototype or evaluated beta is acceptable if described accurately.
 Do not declare production readiness because the submission deadline arrived.
