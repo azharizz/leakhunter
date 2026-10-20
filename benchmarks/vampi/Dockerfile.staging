@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+WORKDIR /vampi
+COPY . /vampi
+ARG SOURCE_SHA
+LABEL org.opencontainers.image.revision=$SOURCE_SHA
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/vampi
+USER 10001:10001

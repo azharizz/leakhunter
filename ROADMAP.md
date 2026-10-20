@@ -46,6 +46,31 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — disposable application staging and rollback
+
+Classification: **progress**. MR !9 passed pipeline
+`2968097344` and merged at `2d8c784200fe68c5777d657934c5b8d61a35e89b`.
+Added a staging drill that builds the repaired VAmPI source into an immutable
+application image (rather than mounting a checkout), retains it in the private
+Artifact Registry, and runs only on an internal Docker network without public
+ports or passed credentials. It verifies the healthy app, rejects an intentionally
+broken startup configuration before touching the healthy container, rechecks that
+healthy container, then deliberately removes it and recreates it from the retained
+digest before repeating HTTP acceptance. Database state is synthetic/ephemeral;
+this does not claim data backup/restore or a production Cloud Run rollback.
+Cloud Build `ff4898a1-6efe-427d-85ba-b91747d35202` completed successfully.
+All three independent HTTP checks passed: initial healthy deployment, healthy
+deployment after candidate rejection, and recreation after intentional removal.
+The failed candidate exited 17; the original healthy container ID stayed unchanged
+until the deliberate outage, and the restored container had a new ID. The retained
+application artifact is
+`unspool/vampi-staging@sha256:2b779dff0e4ff46af33966c4ae8372c9d8cbe7f440145cdf846cb6d8be3267dd`
+in the authorized GCP project's private us-central1 Artifact Registry. Its source
+label is the repaired `c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1`; its digest
+was separately confirmed through the registry API. See benchmarks/vampi/README.md.
+This closes the real target's disposable staging exercise, not the controller's
+full remote fault/recovery or production data restoration requirements.
+
 ### Execution log — controlled isolation drill
 
 Classification: **progress**. MR !8 passed pipeline `2968079417` and merged at
@@ -249,7 +274,7 @@ observed duration, permission checks, and a complete evidence bundle.
   exposure defect and an independently defined expected safe behavior. Prefer a
   maintained MIT project or a consented internal application in an isolated copy.
   Record upstream revision, license, dependencies, vulnerability provenance and scope.
-- [ ] Reproduce the defect before repair using a harmless canary and a real
+- [x] Reproduce the defect before repair using a harmless canary and a real
   application boundary such as HTTP. Never probe unrelated live systems or use
   customer secrets. Disclose sensitive new findings privately to the owner.
 - [ ] Separate configured-source tests, detection of known vulnerabilities, and
@@ -260,7 +285,7 @@ observed duration, permission checks, and a complete evidence bundle.
   policy or labels after seeing a bad result and still call it a held-out test.
 - [ ] Run analysis, produce a bounded repair MR, independently reproduce the
   baseline and rerun security checks plus the application's own regressions.
-- [ ] Exercise a disposable staging deployment of the actual repaired application.
+- [x] Exercise a disposable staging deployment of the actual repaired application.
   Demonstrate the vulnerable request is now blocked/redacted and legitimate
   requests still work. The graph report is supporting evidence, not that application.
 - [ ] Build an initial evaluation across at least three unrelated repositories,

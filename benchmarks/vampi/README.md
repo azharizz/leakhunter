@@ -140,3 +140,47 @@ replace the general callable runtime, prove a container/daemon is secure against
 hostile code, or establish detection/repair accuracy across other applications.
 Active malicious-fixture, metadata/egress and dependency-build isolation tests
 remain outstanding; do not close those roadmap gates from Docker flags alone.
+
+## Disposable staging and rollback evidence
+
+[Cloud Build ff4898a1-6efe-427d-85ba-b91747d35202](https://console.cloud.google.com/cloud-build/builds;region=us-central1/ff4898a1-6efe-427d-85ba-b91747d35202?project=398376578726)
+successfully exercised `staging.cloudbuild.yaml` and `staging.sh`:
+
+1. Export the exact repaired source without Git metadata and build it into an
+   application image containing its MIT notice and source revision label.
+2. Push/retain the image in the private registry and resolve its immutable digest.
+3. Start a deployment on an internal-only Docker network and pass the separate
+   HTTP probe with a fresh synthetic user and canary.
+4. Start an intentionally broken candidate configuration that exits 17. Verify
+   it has stopped, the original healthy container is unchanged/running, and the
+   original deployment still passes HTTP acceptance.
+5. Intentionally remove that healthy deployment, restore a new container from
+   the retained digest, and repeat HTTP acceptance successfully.
+
+Retained artifact (also confirmed by the Artifact Registry API):
+
+```text
+us-central1-docker.pkg.dev/project-df38a01c-6abb-4bc3-9c1/unspool/vampi-staging@sha256:2b779dff0e4ff46af33966c4ae8372c9d8cbe7f440145cdf846cb6d8be3267dd
+```
+
+Source label: `c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1`.
+Probe image: `sha256:541096ae9b05d3b850341b78790e2ed31e94d5aa0ea086933c6ff0c09ffa2e63`.
+The three HTTP checks each passed public identity and secret-exposure acceptance.
+The build's final record reports failed-candidate rejection, healthy preservation
+and rollback verification. No public vulnerable application was deployed; cleanup
+removed all workload containers/network. The private image remains retained for
+reproduction/rollback, accessible only through authorized registry permissions.
+
+Reproduce with the earlier Cloud Build command using config
+`benchmarks/vampi/staging.cloudbuild.yaml`. The fixed source SHA is explicit in
+that file; a new release requires an intentionally reviewed source/label update.
+Use a dedicated disposable worker, not a shared daemon. The current script is
+specific to this validation application and is not a generic production deployer.
+
+This tests rollback of a startup configuration failure and recreation of the
+application artifact. It does **not** test database restoration/migrations,
+zero-downtime routing, distributed rollback, Cloud Run application traffic shifts
+or the local handoff controller crashing during deployment. The synthetic
+database is intentionally ephemeral and recreated by the acceptance probe.
+Do not use `/createdb` on any non-disposable storage. Dependency build isolation,
+broader regression coverage and general runtime tamper resistance remain open.
