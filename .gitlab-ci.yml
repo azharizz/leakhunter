@@ -1,0 +1,67 @@
+stages: [verify, evidence, deploy, monitor]
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
+default:
+  interruptible: true
+
+python-tests:
+  stage: verify
+  image: python:3.12
+  script:
+    - pip install --disable-pip-version-check .
+    - python -m unittest discover -s tests -v
+
+dashboard-tests:
+  stage: verify
+  image: node:22-slim
+  script:
+    - node --check leakhunter/static/app.js
+    - node tests/test_dashboard.cjs
+
+verify-exposure:
+  stage: evidence
+  image: python:3.12-slim
+  script:
+    - pip install --disable-pip-version-check .
+    # Only the committed synthetic target is executed in this disposable CI container.
+    - python -m unspool --repository demo/target --policy demo/policy.yaml --runtime-manifest demo/runtime.yaml --runtime-backend local --data-dir /tmp/unspool-demo --provider-url '' --once analyze --gate > evidence.json
+    - python -m unspool.publish --evidence evidence.json --output public --commit "$CI_COMMIT_SHA"
+  artifacts:
+    when: always
+    paths: [evidence.json, public/]
+    expire_in: 90 days
+
+deploy-pages:
+  stage: deploy
+  image: alpine:3.22
+  interruptible: false
+  resource_group: production
+  needs:
+    - job: verify-exposure
+      artifacts: true
+  script:
+    - test -s public/index.html
+    - test -s public/health.json
+  pages:
+    publish: public
+    expire_in: never
+  environment:
+    name: production
+    url: $CI_PAGES_URL
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+production-smoke:
+  stage: monitor
+  image: python:3.12-slim
+  needs: [deploy-pages]
+  script:
+    - python -m unspool.smoke --url "$CI_PAGES_URL" --commit "$CI_COMMIT_SHA"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

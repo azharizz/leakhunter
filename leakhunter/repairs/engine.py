@@ -150,7 +150,7 @@ def _git(workspace: Path, control: Path, *args: str) -> str:
     command = [executable, "--literal-pathspecs", "-c", "core.hooksPath=" + os.devnull,
                "-c", "core.attributesFile=" + os.devnull, "-c", "core.fsmonitor=false",
                "-c", "init.templateDir=" + str(control / "templates"), "-c", "commit.gpgsign=false",
-               "-c", "core.autocrlf=false", "-c", "user.name=LeakHunter Local Simulation",
+               "-c", "core.autocrlf=false", "-c", "user.name=Unspool Local Simulation",
                "-c", "user.email=leakhunter@localhost", *args]
     result = subprocess.run(command, cwd=workspace, env=env, capture_output=True, text=True, timeout=30)
     if result.returncode:

@@ -78,7 +78,7 @@ def main(argv=None) -> None:
     except (OSError, ValueError, RuntimeError) as exc:
         parser.error(str(exc))
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"LeakHunter running at http://localhost:{server.server_port}", flush=True)
+    print(f"Unspool running at http://localhost:{server.server_port}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

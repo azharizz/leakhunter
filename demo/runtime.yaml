@@ -1,0 +1,14 @@
+version: 1
+cases:
+  - id: public-profile-secret-probe
+    module: service
+    callable: profile
+    args:
+      - {customer_id: demo-customer, display_name: Demo Customer, password_hash: SYNTHETIC_UNSPOOL_SECRET_81b4}
+    kwargs: {}
+    sensitive:
+      - {marker: SYNTHETIC_UNSPOOL_SECRET_81b4, class: SECRET, symbol: customer.password_hash}
+    context: {synthetic: true}
+    expect: {customer_id: demo-customer, display_name: Demo Customer}
+    expected_violation: false
+    finding: {file: service.py, function: profile, sink: HTTP_RESPONSE}

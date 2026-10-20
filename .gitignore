@@ -7,3 +7,5 @@ example/sample.json
 build/
 dist/
 *.egg-info/
+public/
+evidence.json

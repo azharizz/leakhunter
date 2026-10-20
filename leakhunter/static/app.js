@@ -1,6 +1,8 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
 const NS = "http://www.w3.org/2000/svg";
+const published = document.documentElement?.dataset.mode === "published";
+let publishedWorkspace;
 let live = { nodes: [], edges: [], findings: [] },
   view = live,
   snapshot = null;
@@ -11,6 +13,7 @@ let metrics = [],
   configuration = {};
 let busy = false,
   latestEvaluation = null;
+let inspectorMode = "node", graphZoom = 1;
 const text = (value) => (value == null ? "" : String(value));
 const json = (value) => JSON.stringify(value, null, 2);
 const array = (value) => (Array.isArray(value) ? value : []);
@@ -25,6 +28,16 @@ function message(content, error = false) {
   if (error) $("error").focus();
 }
 async function api(path, method = "GET", body) {
+  if (published) {
+    if (method !== "GET") throw new Error("Published reports are read-only. Run Unspool locally to edit annotations.");
+    if (!publishedWorkspace) {
+      const response = await fetch("./workspace.json");
+      if (!response.ok) throw new Error("The published analysis could not be loaded.");
+      publishedWorkspace = await response.json();
+    }
+    if (!(path in publishedWorkspace)) throw new Error("This record is not part of the published report.");
+    return publishedWorkspace[path];
+  }
   const options = { method, headers: { Accept: "application/json" } };
   if (body !== undefined) {
     options.headers["Content-Type"] = "application/json";
@@ -54,9 +67,7 @@ async function action(label, operation) {
   controls();
   try {
     await operation();
-    message(
-      `${label} completed. Review the recorded status and evidence; completion alone does not mean verification passed.`,
-    );
+    message(label === "Loading workspace" ? "" : `${label} completed.${["Analysis", "Independent repair", "Labeled-case evaluation"].includes(label) ? " Review results for verification status." : ""}`);
   } catch (error) {
     message(`${label}: ${error.message}`, true);
     message(`${label} did not complete successfully.`);
@@ -66,7 +77,7 @@ async function action(label, operation) {
   }
 }
 function controls() {
-  const locked = busy || snapshot !== null;
+  const locked = busy || snapshot !== null || published;
   for (const id of [
     "run",
     "runRepair",
@@ -74,6 +85,9 @@ function controls() {
     "nodeFields",
     "edgeFields",
     "approvalFields",
+    "addRecord",
+    "newNode",
+    "newEdge",
   ])
     $(id).disabled = locked;
   for (const id of [
@@ -187,6 +201,40 @@ function updateTypeOptions(select, values) {
   }
 }
 const kindOf = (node) => text(node.kind || node.type || "unknown");
+function showInspector(mode) {
+  inspectorMode = mode;
+  $("nodeInspector").hidden = mode !== "node";
+  $("edgeInspector").hidden = mode !== "edge";
+  $("nodesMode").setAttribute("aria-pressed", mode === "node");
+  $("edgesMode").setAttribute("aria-pressed", mode === "edge");
+  $("addRecord").textContent = mode === "node" ? "Add node" : "Add edge";
+  highlightSelection();
+}
+function highlightSelection() {
+  const nodeId = inspectorMode === "node" ? $("nodeSelect").value : "";
+  const edgeId = inspectorMode === "edge" ? $("edgeSelect").value : "";
+  const selectedEdge = view.edges.find((edge) => text(edge.id) === edgeId);
+  for (const node of $("graphSvg").querySelectorAll(".node")) {
+    const selected = node.dataset.id === nodeId || (selectedEdge && [text(selectedEdge.source), text(selectedEdge.target)].includes(node.dataset.id));
+    node.classList.toggle("selected", !!selected);
+    node.setAttribute("aria-pressed", !!selected);
+  }
+  for (const path of $("graphSvg").querySelectorAll(".edge")) {
+    path.classList.toggle("selected", path.dataset.id === edgeId);
+    path.classList.toggle("connected", !!nodeId && [path.dataset.source, path.dataset.target].includes(nodeId));
+    path.setAttribute("aria-pressed", path.dataset.id === edgeId);
+  }
+}
+function setGraphZoom(value) {
+  graphZoom = Math.max(.25, Math.min(2, value));
+  const svg = $("graphSvg");
+  const [, , width, height] = svg.getAttribute("viewBox").split(" ").map(Number);
+  svg.setAttribute("width", width * graphZoom);
+  svg.setAttribute("height", height * graphZoom);
+  $("zoomLevel").textContent = `${Math.round(graphZoom * 100)}%`;
+  $("zoomOut").disabled = graphZoom <= .25;
+  $("zoomIn").disabled = graphZoom >= 2;
+}
 function renderGraph() {
   const svg = $("graphSvg");
   svg.replaceChildren();
@@ -219,6 +267,7 @@ function renderGraph() {
     svg.setAttribute("height", "120");
     return;
   }
+  const priority = (node) => ["source", "transform", "sink"].includes(kindOf(node)) ? 0 : kindOf(node) === "FunctionDef" ? 1 : kindOf(node) === "Call" ? 2 : 3;
   const filtered = view.nodes.filter(
     (node) =>
       (!kinds.size || kinds.has(kindOf(node))) &&
@@ -227,8 +276,12 @@ function renderGraph() {
         .join(" ")
         .toLocaleLowerCase()
         .includes(query),
-  );
-  const nodes = filtered.slice(0, limit);
+  ).sort((a, b) => priority(a) - priority(b));
+  let nodes = filtered.slice(0, limit);
+  const selectedEdge = inspectorMode === "edge" && view.edges.find((edge) => text(edge.id) === $("edgeSelect").value);
+  const selectedIds = new Set(selectedEdge ? [text(selectedEdge.source), text(selectedEdge.target)] : [$("nodeSelect").value]);
+  const missingSelection = filtered.filter((node) => selectedIds.has(text(node.id)) && !nodes.includes(node));
+  nodes = [...missingSelection, ...nodes].slice(0, limit);
   const ids = new Set(nodes.map((node) => node.id));
   const edges = view.edges.filter(
     (edge) =>
@@ -236,26 +289,19 @@ function renderGraph() {
       ids.has(edge.target) &&
       (!types.size || types.has(text(edge.type))),
   );
-  const groups = [...new Set(nodes.map(kindOf))].sort();
-  const positions = new Map(),
-    rows = new Map();
-  for (const node of nodes) {
-    const kind = kindOf(node),
-      row = rows.get(kind) || 0;
+  const flowLayout = nodes.length > 0 && nodes.every((node) => ["source", "transform", "sink"].includes(kindOf(node)));
+  const positions = new Map(), rows = [0, 0, 0];
+  for (const [index, node] of nodes.entries()) {
+    const lane = flowLayout ? (kindOf(node) === "source" ? 0 : kindOf(node) === "sink" ? 2 : 1) : index % 3;
+    const row = rows[lane]++;
     positions.set(node.id, {
-      x: 35 + groups.indexOf(kind) * 260,
-      y: 50 + row * 92,
+      x: 35 + lane * 300,
+      y: 50 + row * 118,
     });
-    rows.set(kind, row + 1);
   }
-  const width = Math.max(900, groups.length * 260 + 50),
-    height = Math.max(
-      150,
-      ...[...rows.values()].map((count) => count * 92 + 65),
-    );
+  const width = 900, height = Math.max(400, ...rows.map((count) => count * 118 + 65));
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-  svg.setAttribute("width", width);
-  svg.setAttribute("height", height);
+  setGraphZoom(graphZoom);
   const defs = addSvg("defs", {});
   const marker = addSvg(
     "marker",
@@ -270,11 +316,11 @@ function renderGraph() {
     null,
     defs,
   );
-  addSvg("path", { d: "M0,0 L8,3 L0,6z", fill: "#6385b2" }, null, marker);
-  for (const [index, kind] of groups.entries())
+  addSvg("path", { d: "M0,0 L8,3 L0,6z", fill: "#7c8b73" }, null, marker);
+  for (const [index, kind] of (flowLayout ? ["Sources", "Code & transforms", "Sinks"] : ["Code", "", ""]).entries())
     addSvg(
       "text",
-      { x: 35 + index * 260, y: 24, fill: "#b3c3db", "font-size": 12 },
+      { x: 35 + index * 300, y: 24, class: "column-label" },
       kind,
     );
   for (const edge of edges) {
@@ -286,11 +332,18 @@ function renderGraph() {
       d = `M ${a.x + 220} ${a.y + 20} C ${a.x + 255} ${a.y - 20}, ${a.x + 255} ${a.y + 75}, ${a.x + 220} ${a.y + 42}`;
     else if (a.x === b.x)
       d = `M ${a.x + 220} ${a.y + 30} C ${a.x + 245} ${a.y + 30}, ${b.x + 245} ${b.y + 30}, ${b.x + 220} ${b.y + 30}`;
-    else
-      d = `M ${a.x + (b.x > a.x ? 220 : 0)} ${a.y + 30} L ${b.x + (b.x > a.x ? 0 : 220)} ${b.y + 30}`;
+    else {
+      const start = a.x + (b.x > a.x ? 220 : 0), end = b.x + (b.x > a.x ? 0 : 220), middle = (start + end) / 2;
+      d = `M ${start} ${a.y + 30} C ${middle} ${a.y + 30}, ${middle} ${b.y + 30}, ${end} ${b.y + 30}`;
+    }
+    const hit = addSvg("path", { d, class: "edge-hit", "aria-hidden": "true" });
+    hit.addEventListener("click", () => selectEdge(edge.id));
     const path = addSvg("path", {
       d,
       class: "edge",
+      "data-id": edge.id,
+      "data-source": edge.source,
+      "data-target": edge.target,
       "marker-end": "url(#arrow)",
       tabindex: 0,
       role: "button",
@@ -312,25 +365,27 @@ function renderGraph() {
     const description = `${node.label || node.id} · ${kind} · ${node.classification || "unclassified"} · ${node.file || "no location"}${node.line ? ":" + node.line : ""} · ID ${node.id}`;
     const group = addSvg("g", {
       class: `node ${["source", "sink"].includes(kind) ? kind : ""}`,
+      "data-id": node.id,
       transform: `translate(${p.x} ${p.y})`,
       tabindex: 0,
       role: "button",
       "aria-label": description,
     });
     addSvg("title", {}, description, group);
-    addSvg("rect", { width: 220, height: 62, rx: 8 }, null, group);
+    addSvg("rect", { width: 220, height: 82, rx: 8 }, null, group);
+    addSvg("text", { x: 12, y: 19, class: "category" }, kind, group);
     const label = text(node.label || node.id);
     addSvg(
       "text",
-      { x: 10, y: 24 },
-      label.length > 29 ? label.slice(0, 28) + "…" : label,
+      { x: 12, y: 42 },
+      label.length > 24 ? label.slice(0, 23) + "…" : label,
       group,
     );
     const subtitle = text(node.file || node.classification || kind);
     addSvg(
       "text",
-      { x: 10, y: 45, class: "subtitle" },
-      subtitle.length > 35 ? subtitle.slice(0, 34) + "…" : subtitle,
+      { x: 12, y: 65, class: "subtitle" },
+      subtitle.length > 27 ? subtitle.slice(0, 26) + "…" : subtitle,
       group,
     );
     group.addEventListener("click", () => selectNode(node.id));
@@ -345,11 +400,12 @@ function renderGraph() {
   if (!nodes.length)
     addSvg(
       "text",
-      { x: 25, y: 65, fill: "#b3c3db" },
-      "No nodes match these filters.",
+      { x: 35, y: 90, class: "graph-empty" },
+      view.nodes.length ? "No matches. Clear search or reset filters." : "Your graph starts here. Add a node or run analysis.",
     );
   $("graphStatus").textContent =
-    `Showing ${nodes.length} of ${filtered.length} matching / ${view.nodes.length} total nodes · ${edges.length} of ${view.edges.length} total edges`;
+    `${nodes.length} / ${filtered.length} matching nodes · ${edges.length} edges shown`;
+  highlightSelection();
 }
 function renderEditors() {
   options(
@@ -392,10 +448,11 @@ function renderEditors() {
       .sort()
       .map((value) => new Option(value, value)),
   );
-  selectNode($("nodeSelect").value);
-  selectEdge($("edgeSelect").value);
+  selectNode($("nodeSelect").value, false);
+  selectEdge($("edgeSelect").value, false);
+  showInspector(inspectorMode);
 }
-function selectNode(id) {
+function selectNode(id, reveal = true) {
   $("nodeSelect").value = text(id);
   const node = view.nodes.find((item) => text(item.id) === text(id));
   const form = $("nodeForm");
@@ -414,11 +471,15 @@ function selectNode(id) {
   $("saveNode").textContent = node ? "Save node changes" : "Create node";
   $("nodeRecord").textContent = node ? json(node) : "No node selected.";
   $("graphSelection").textContent = node
-    ? `${snapshot ? "Snapshot" : "Live"} node selected: ${node.id}. Complete record available in the node editor.`
-    : "Select a node to read its complete record below.";
+    ? `${node.label || node.id} · ${kindOf(node)}${snapshot ? " · read-only snapshot" : ""}`
+    : "Select a node or connection to inspect it.";
+  if (reveal) {
+    showInspector("node");
+    renderGraph();
+  }
   controls();
 }
-function selectEdge(id) {
+function selectEdge(id, reveal = true) {
   $("edgeSelect").value = text(id);
   const edge = view.edges.find((item) => text(item.id) === text(id));
   const form = $("edgeForm");
@@ -436,6 +497,11 @@ function selectEdge(id) {
     : "Create edge";
   $("saveEdge").textContent = edge ? "Save edge changes" : "Create edge";
   $("edgeRecord").textContent = edge ? json(edge) : "No edge selected.";
+  if (reveal) {
+    $("graphSelection").textContent = edge ? `${edge.type} · ${edge.source} → ${edge.target}${snapshot ? " · read-only snapshot" : ""}` : "Select a connection or create a new edge.";
+    showInspector("edge");
+    renderGraph();
+  }
   controls();
 }
 function renderFindings() {
@@ -776,10 +842,14 @@ function renderRegistries() {
   renderPolicyRecord();
 }
 function renderView() {
-  const label = snapshot
-    ? `Immutable snapshot ${snapshot} · read-only. Live annotations, scans, repairs, evaluation and approval are disabled until you return to live knowledge.`
-    : `Live knowledge · user annotations survive analysis.${view.last_run ? " Last analysis: " + view.last_run : ""}`;
+  const label = published
+    ? `Published analysis · read-only · ${view.nodes.length} nodes`
+    : snapshot
+    ? "Snapshot · read-only · return to live in Workspace"
+    : `Live knowledge · ${view.nodes.length} nodes · ${view.edges.length} edges`;
   $("viewStatus").textContent = label;
+  $("viewStatus").classList.toggle("snapshot", snapshot !== null);
+  $("viewStatus").title = snapshot ? `Immutable snapshot ${snapshot}` : (view.last_run ? `Last analysis: ${view.last_run}` : "Annotations survive analysis.");
   $("historyPanel").classList.toggle("snapshot", snapshot !== null);
   const provenance = { ...view };
   for (const key of [
@@ -839,6 +909,7 @@ async function refresh() {
   if (failures.length) throw new Error(failures.join("\n"));
 }
 function requireLive() {
+  if (published) throw new Error("Published reports are read-only. Run Unspool locally to edit annotations.");
   if (snapshot !== null)
     throw new Error(
       "Snapshots are immutable. Return to live knowledge before making changes.",
@@ -902,6 +973,36 @@ $("liveView").addEventListener("click", () =>
     await refresh();
   }),
 );
+$("workspaceToggle").addEventListener("click", () => {
+  $("workspaceSettings").open = !$("workspaceSettings").open;
+});
+$("workspaceSettings").addEventListener("toggle", () => {
+  $("workspaceToggle").setAttribute("aria-expanded", $("workspaceSettings").open);
+});
+$("filtersToggle").addEventListener("click", () => {
+  $("graphFilters").hidden = !$("graphFilters").hidden;
+  $("filtersToggle").setAttribute("aria-expanded", !$("graphFilters").hidden);
+});
+$("resetFilters").addEventListener("click", () => {
+  for (const id of ["nodeKinds", "edgeTypes"])
+    for (const option of $(id).options) option.selected = false;
+  $("graphSearch").value = "";
+  $("nodeLimit").value = "30";
+  renderGraph();
+});
+$("nodesMode").addEventListener("click", () => showInspector("node"));
+$("edgesMode").addEventListener("click", () => showInspector("edge"));
+$("addRecord").addEventListener("click", () => {
+  $(inspectorMode === "node" ? "newNode" : "newEdge").click();
+});
+$("zoomIn").addEventListener("click", () => setGraphZoom(graphZoom + .15));
+$("zoomOut").addEventListener("click", () => setGraphZoom(graphZoom - .15));
+$("fitGraph").addEventListener("click", () => {
+  const svg = $("graphSvg");
+  setGraphZoom(Math.min(1, svg.parentElement.clientWidth / Number(svg.getAttribute("viewBox").split(" ")[2])));
+  svg.parentElement.scrollTop = 0;
+  svg.parentElement.scrollLeft = 0;
+});
 for (const id of ["nodeKinds", "edgeTypes"])
   $(id).addEventListener("change", renderGraph);
 for (const id of ["graphSearch", "nodeLimit"])
@@ -986,4 +1087,4 @@ $("approvalForm").addEventListener("submit", (event) => {
     await refresh();
   });
 });
-action("Loading dashboard", refresh);
+action("Loading workspace", refresh);

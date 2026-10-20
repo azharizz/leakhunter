@@ -1,4 +1,13 @@
-# LeakHunter
+# Unspool
+
+Unspool is the new product name for the original LeakHunter project. Install with
+`pip install .` and run `unspool --help` or `python -m unspool --help`. The
+`leakhunter` Python imports and command remain compatible with existing callers.
+
+The GitLab pipeline verifies the Python suite, dashboard, and a committed
+synthetic exposure case before publishing an immutable, read-only graph with
+GitLab Pages. The full local app retains annotation CRUD. A published report
+does not expose repository execution or repair endpoints to the public.
 
 Policy-aware exposure analysis for Python, JavaScript, TypeScript, Go, and Rust, executed synthetic evidence, and independently verified local repairs.
 
@@ -187,7 +196,7 @@ trace: true
 
 ### Dependencies and isolation
 
-The default image must already exist locally; execution uses `--pull=never`. For dependencies, build a trusted Python image with those dependencies installed, then set `docker_image` in the manifest. LeakHunter does not run package installation from target instructions. Each execution resolves and records an immutable image ID; repair before/after runs must use the same image ID.
+The default image must already exist locally; execution uses `--pull=never`. For dependencies, build a trusted Python image with those dependencies installed, then set `docker_image` in the manifest. Unspool does not run package installation from target instructions. Each execution resolves and records an immutable image ID; repair before/after runs must use the same image ID.
 
 Docker execution disables networking, mounts sanitized target/harness/input read-only, drops capabilities, prohibits privilege escalation, runs as a non-root host UID where available, and limits memory, CPU, processes, and temporary storage. Common credential files are excluded and host credentials are not inherited. Docker is a dependency: unavailable daemon/image or execution failure is reported, never silently replaced with host execution.
 
