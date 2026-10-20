@@ -77,7 +77,7 @@ class HandoffTest(unittest.TestCase):
                 if "/pipelines?" in path:
                     return [{"id": 3, "source": "push", "status": "success", "web_url": "https://gitlab.com/pipeline/3"}]
                 if "/pipelines/" in path:
-                    names = ("deploy-pages", "production-smoke") if "/3/" in path else ("python-tests", "dashboard-tests", "verify-exposure")
+                    names = ("deploy-pages", "production-smoke", "deploy-cloud-run") if "/3/" in path else ("python-tests", "dashboard-tests", "verify-exposure")
                     return [{"id": 4, "name": name, "status": "success"} for name in names]
                 if "/notes" in path:
                     return []
