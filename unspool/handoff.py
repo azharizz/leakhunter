@@ -106,9 +106,9 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10):
                 jobs = api.request("GET", f"{prefix}/pipelines/{deployed['id']}/jobs?per_page=100")
                 jobs += api.request("GET", f"{prefix}/pipelines/{deployed['id']}/bridges?per_page=100")
                 passed = {job["name"] for job in jobs if job.get("status") == "success"}
-                if not {"deploy-pages", "production-smoke"} <= passed:
+                if not {"deploy-pages", "production-smoke", "deploy-cloud-run"} <= passed:
                     raise ValueError("The deployment and live revision smoke check must both pass")
-                summary = f"Unspool completed the verified demo repair.\n\nMerged revision: `{merged_sha}`\n\nProduction deployment and exact-revision smoke check passed.\n\nPipeline: {deployed['web_url']}"
+                summary = f"Unspool completed the verified demo repair.\n\nMerged revision: `{merged_sha}`\n\nPages fallback and Cloud Run deployment with exact-revision smoke checks passed.\n\nPipeline: {deployed['web_url']}"
                 notes = api.request("GET", mr_path + "/notes?per_page=100")
                 if not any(note.get("body") == summary for note in notes):
                     api.request("POST", mr_path + "/notes", {"body": summary})

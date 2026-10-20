@@ -64,3 +64,22 @@ production-smoke:
     - python -m unspool.smoke --url https://unspool-site-1032c3.gitlab.io --commit "$CI_COMMIT_SHA"
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+deploy-cloud-run:
+  stage: deploy
+  image: google/cloud-sdk:slim
+  interruptible: false
+  resource_group: cloud-run-production
+  id_tokens:
+    GCP_ID_TOKEN:
+      aud: https://gitlab.com
+  needs:
+    - job: verify-exposure
+      artifacts: true
+  script:
+    - bash deploy/cloudrun/deploy.sh
+  environment:
+    name: production-gcp
+    url: https://unspool-398376578726.us-central1.run.app
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
