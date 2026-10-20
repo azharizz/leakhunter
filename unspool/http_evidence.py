@@ -23,7 +23,7 @@ def validate_bound_evidence(evidence, source, contract):
         raise ValueError("Independent HTTP provenance is required")
     if provenance.get("source_sha") != source:
         raise ValueError("HTTP evidence belongs to another source revision")
-    for key in ("plan_sha256", "probe_sha256", "probe_image_id"):
+    for key in ("plan_sha256", "probe_sha256", "probe_image_id", "application_image_id", "host_filter_image_id"):
         if provenance.get(key) != contract[key]:
             raise ValueError("HTTP evidence does not match the operator contract")
     if provenance.get("host_isolation_verified") is not True:
@@ -64,6 +64,7 @@ def bind(report, plan, source, *, probe_sha256, app_image, probe_image,
         raise ValueError("Exact source commit is required")
     contract = {"plan_sha256": sha256(json.dumps(plan, allow_nan=False).encode()).hexdigest(),
                 "probe_sha256": probe_sha256, "probe_image_id": probe_image,
+                "application_image_id": app_image, "host_filter_image_id": filter_image,
                 "case_ids": tuple(c["id"] for c in plan["cases"])}
     if (not isinstance(report, dict) or report.get("kind") != "external-json-http-acceptance"
             or report.get("plan_sha256") != contract["plan_sha256"]

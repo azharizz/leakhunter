@@ -131,11 +131,12 @@ class HandoffConfig:
         if "http_contract" in data:
             contract = data["http_contract"]
             if (not isinstance(contract, dict)
-                    or set(contract) != {"plan_sha256", "probe_sha256", "probe_image_id", "case_ids"}
+                    or set(contract) != {"plan_sha256", "probe_sha256", "probe_image_id", "case_ids",
+                                         "application_image_id", "host_filter_image_id"}
                     or any(not isinstance(contract[name], str) or not re.fullmatch(r"[0-9a-f]{64}", contract[name])
                            for name in ("plan_sha256", "probe_sha256"))
-                    or not isinstance(contract["probe_image_id"], str)
-                    or not re.fullmatch(r"sha256:[0-9a-f]{64}", contract["probe_image_id"])):
+                    or any(not isinstance(contract[name], str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", contract[name])
+                           for name in ("probe_image_id", "application_image_id", "host_filter_image_id"))):
                 raise ValueError("HTTP contract requires exact plan/probe/image pins and case IDs")
             contract["case_ids"] = _strings(contract["case_ids"], "HTTP case IDs", maximum=64)
             data["http_contract"] = tuple(sorted(contract.items()))
