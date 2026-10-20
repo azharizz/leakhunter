@@ -1,7 +1,8 @@
 # Install Unspool for another GitLab project
 
-Version 0.4.2 includes the operator-configured controller for GitLab.com, file
+Version 0.4.3 includes the operator-configured controller for GitLab.com, file
 boundary hardening and an operator STOP flag (introduced after 0.4.0).
+It also rechecks candidate/pipeline/target freshness before review readiness.
 The current execution hosts are Linux/macOS with Python 3.10+ and authenticated
 `glab`. These are supported interfaces, not a claim of production certification.
 Other language analyzers remain experimental; this controller initially accepts
@@ -18,7 +19,7 @@ the controller from an agent-writable or third-party repository checkout.
 ```sh
 python3 -m venv ~/.venvs/unspool
 ~/.venvs/unspool/bin/python -m pip install --upgrade -r /path/to/reviewed/requirements.build.lock
-~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.2-py3-none-any.whl
+~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.3-py3-none-any.whl
 ~/.venvs/unspool/bin/unspool-handoff --help
 glab auth status --hostname gitlab.com
 ```
@@ -82,6 +83,10 @@ deployment permissions; those need a complete execution test.
 Omitting `mode` selects `review`. A passing candidate returns `READY_FOR_REVIEW`
 and never merges. An already merged MR returns `ALREADY_MERGED`, which is an
 observation, not a new verification result. Review mode is the default for adopters.
+Before returning readiness, the controller rereads the MR and target branch. A
+changed source, pipeline, base or target stops verification; rebase/retest and
+rerun rather than treating the earlier result as current. Readiness describes
+the observed revision only and cannot reserve a branch against later changes.
 
 The controller can trigger an issue with `--issue <iid>`. It uses the configured
 trigger username and stable `<branch_prefix>repair-<iid>` branch. The operator must
