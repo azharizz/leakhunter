@@ -1,6 +1,6 @@
 # Install Unspool for another GitLab project
 
-Version 0.4.3 includes the operator-configured controller for GitLab.com, file
+Version 0.4.4 includes the operator-configured controller for GitLab.com, file
 boundary hardening and an operator STOP flag (introduced after 0.4.0).
 It also rechecks candidate/pipeline/target freshness before review readiness.
 The current execution hosts are Linux/macOS with Python 3.10+ and authenticated
@@ -11,6 +11,29 @@ Qualification targets CPython 3.10, 3.11 and 3.12; newer interpreters are unveri
 The CI installation matrix is evidence for the checked revisions, not every
 framework/dependency combination or a production-certification claim.
 
+## Local analysis input limits
+
+Version 0.4.4 bounds source ingestion before parsing or recording an analysis:
+at most 1 MiB per source file, 32 MiB of source bytes in total, 2,000 selected
+source files, 20,000 visited directory entries and 64 nested directories. These
+are enforced input budgets, not measured throughput or CPU/memory guarantees.
+An over-budget repository raises an error; no truncated successful result is
+returned. Use a deliberately scoped regular-file snapshot for larger inputs.
+
+Internal symlinks, hardlinked source files and special source files are refused.
+Directory and file opens use anchored directory descriptors and no-follow flags;
+special-file reads are nonblocking and byte limits also apply after opening.
+The scanner prunes `.git`, `__pycache__`, `.venv`, `venv` and `node_modules`.
+Python also excludes `data`; other adapters exclude `vendor` and `target`.
+Excluded content is outside the analysis scope. Revision hashing now uses the
+same exclusions, so an old snapshot that included ignored dependency files may
+have a different revision identifier after upgrading; rerun analysis and retain
+old snapshots as historical records.
+
+This does not sandbox runtime execution, bound all parser/AST computation, or
+prevent same-process callable evidence tampering. Keep the worker and reviewed
+source snapshot immutable and preserve the runtime restrictions below.
+
 ## Install outside the analyzed repository
 
 Install the reviewed wheel in a dedicated virtual environment. Do not execute
@@ -19,7 +42,7 @@ the controller from an agent-writable or third-party repository checkout.
 ```sh
 python3 -m venv ~/.venvs/unspool
 ~/.venvs/unspool/bin/python -m pip install --upgrade -r /path/to/reviewed/requirements.build.lock
-~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.3-py3-none-any.whl
+~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.4-py3-none-any.whl
 ~/.venvs/unspool/bin/unspool-handoff --help
 glab auth status --hostname gitlab.com
 ```

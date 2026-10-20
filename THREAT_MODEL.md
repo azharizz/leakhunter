@@ -36,6 +36,16 @@ output are untrusted inputs and never grant authorization.
 
 ## Release decisions
 
+Static source ingestion in 0.4.4 uses no-follow, directory-relative opens,
+single-link regular files and bounded reads; excluded trees are pruned before
+descent. Limits are 1 MiB/file, 32 MiB source total, 2,000 source files, 20,000
+visited entries and depth 64. Reproduced pre-fix FIFO hangs in Python and
+JavaScript; timeout-bounded regression checks now refuse FIFOs in all five
+adapters and revision hashing. Other tests cover source/directory symlink swaps,
+hardlinks, post-stat growth and quota refusal. This closes those ingestion paths,
+not arbitrary parser CPU/memory denial of service or concurrently hostile host
+control. A trusted immutable source snapshot and isolated worker remain required.
+
 Keep external repositories in review mode. A reviewer must inspect both the
 application diff and the evidence-producing CI before merge, and recheck the
 target/source if time has passed. Existing tests do not establish safety for

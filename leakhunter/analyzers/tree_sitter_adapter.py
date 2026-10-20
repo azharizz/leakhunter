@@ -6,9 +6,10 @@ from pathlib import Path
 
 from leakhunter.languages import DISPLAY_NAMES, extensions
 from leakhunter.policy.engine import Policy
+from leakhunter.analyzers.sources import exclusions, source_files
 
 ANALYZER_VERSION = "tree-sitter-flow-2"
-_EXCLUDED = {".git", "__pycache__", "node_modules", "vendor", "target", ".venv", "venv"}
+_EXCLUDED = exclusions("javascript")
 _FUNCTIONS = {"function_declaration", "function_definition", "function_expression", "function_item",
               "method_declaration", "method_definition", "closure_expression", "arrow_function",
               "generator_function_declaration", "generator_function"}
@@ -366,15 +367,8 @@ def analyze_project(root: Path, policy: Policy, previous: dict | None = None, *,
     entrypoints = sorted(set(entrypoints or []))
     project = _Flow(policy, language, entrypoints)
     parsers, files, parse_errors = {}, {}, []
-    for file in sorted(root.rglob("*")):
-        if file.suffix not in extensions(language) or file.is_symlink() or any(part in _EXCLUDED for part in file.relative_to(root).parts):
-            continue
+    for file, source in source_files(root, extensions(language), _EXCLUDED):
         relative = file.relative_to(root).as_posix()
-        try:
-            source = file.read_bytes()
-        except OSError as error:
-            parse_errors.append({"file": relative, "line": 1, "error": type(error).__name__})
-            continue
         tsx = file.suffix == ".tsx"
         if tsx not in parsers:
             parsers[tsx] = Parser(_language(language, tsx=tsx))
