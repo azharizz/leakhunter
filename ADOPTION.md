@@ -1,6 +1,6 @@
 # Install Unspool for another GitLab project
 
-Version 0.4.5 includes the operator-configured controller for GitLab.com, file
+Version 0.4.6 includes the operator-configured controller for GitLab.com, file
 boundary hardening and an operator STOP flag (introduced after 0.4.0).
 It also rechecks candidate/pipeline/target freshness before review readiness.
 The current execution hosts are Linux/macOS with Python 3.10+ and authenticated
@@ -76,6 +76,67 @@ shares an interpreter with target code; this command does not silently replace i
 or make hostile callable execution trustworthy. Logs and outbound application
 requests need separate independent observers.
 
+## Bind HTTP reports for handoff (0.4.6)
+
+Enable `http_contract` in the operator handoff JSON to require the independent
+HTTP evidence format. For the frozen VAmPI plan, the additional object is:
+
+```json
+"http_contract": {
+  "plan_sha256": "7defd18b6503b7b33fc73dc0030b506229541d6ce4667011acba863145ca2a24",
+  "probe_sha256": "38128a56c844797acf646bca912057f718dd21a4f6521381e5b4a840bac0ea50",
+  "probe_image_id": "sha256:541096ae9b05d3b850341b78790e2ed31e94d5aa0ea086933c6ff0c09ffa2e63",
+  "application_image_id": "sha256:d4202d21bf6d511c0bdccc180b437c33f2e4db28092435d6e503a23f9ce82a18",
+  "host_filter_image_id": "sha256:d2dc198f7d839eae26b5a9cb0e7cdc4e2c97d9cb4ea66dbeb0a4c0c7f0b165f8",
+  "case_ids": ["initialize-disposable-db", "register-canary", "public-list", "lookup", "debug"]
+}
+```
+
+This is a fragment to add to an existing configuration, not a standalone JSON
+file. Use the hashes, ordered case IDs and Linux image ID for your reviewed plan
+and probe. The plan hash uses `json.dumps(plan, allow_nan=False)` before random
+placeholder replacement, not the raw JSON file's bytes. The controller requires
+the exact source SHA, expected plan/probe/image pins, all cases passing, separate
+container IDs, snapshot identity and a recorded host-isolation check. A true
+health flag alone is insufficient. Old configurations without this object retain
+their existing journal digest and behavior; they do not gain this protection.
+Adding/changing it deliberately creates a new configuration identity. Retain and
+reconcile prior runs instead of editing their journals to force a match.
+
+The trusted CI job runs `python -m unspool.http_evidence --help` for the binding
+interface. It verifies the report against the plan and projects only known safe
+metadata, then atomically writes `evidence.json` and `health.json`. It removes
+previous successful artifacts before validation. Its image/source/isolation
+arguments must come from trusted orchestration, not application output or an
+issue. These records are trusted-job evidence, not cryptographic attestations.
+
+`benchmarks/vampi/ci-independent.sh` is a VAmPI orchestration example for a
+**dedicated disposable Docker daemon**. It exports the exact checked-out Git SHA,
+uses pre-provisioned immutable local image IDs in `UNSPOOL_APP_IMAGE`,
+`UNSPOOL_PROBE_IMAGE` and `UNSPOOL_FILTER_IMAGE`, and performs no target dependency
+installation. Provision/review those images separately. The trusted filter image
+must provide `iptables`; the trusted probe image must provide Python 3.11+.
+Both application and probe run without host credentials/socket, source in the
+probe, public ports, writable roots or capabilities. Only the operator-controlled
+filter helper gets host networking and NET_ADMIN/NET_RAW to install a temporary
+host INPUT rule. Do not run that example on a shared or production Docker daemon.
+
+Before application startup, a synthetic host listener is reachable from a trusted
+host-network control, unreachable from the workload network after filtering, and
+still reachable from the control. Internal DNS aliases remain available while
+external forwarding is pointed at container loopback. This tests a host-service
+boundary, not every egress mechanism or kernel escape. Failed verification or
+cleanup removes successful artifacts and stops the job. A cleanup-failure unit
+test exercises the real shell script with a stub Docker client; real Cloud Build
+runs separately qualify the network/HTTP behavior.
+
+For another application, provide operator-owned startup/storage/image settings,
+an appropriate frozen HTTP plan and pinned CI orchestration. The generic probe,
+adapter and controller require no Unspool source edits. Protect that CI code,
+plan and dependency contracts outside the agent's write allowlist. The existing
+GitLab VAmPI project still requires migration from its earlier CI harness; the
+Cloud Build qualification alone does not claim that migration is complete.
+
 ## Install outside the analyzed repository
 
 Install the reviewed wheel in a dedicated virtual environment. Do not execute
@@ -84,7 +145,7 @@ the controller from an agent-writable or third-party repository checkout.
 ```sh
 python3 -m venv ~/.venvs/unspool
 ~/.venvs/unspool/bin/python -m pip install --upgrade -r /path/to/reviewed/requirements.build.lock
-~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.5-py3-none-any.whl
+~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.6-py3-none-any.whl
 ~/.venvs/unspool/bin/unspool-handoff --help
 glab auth status --hostname gitlab.com
 ```

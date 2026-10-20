@@ -21,8 +21,8 @@ def repository_path(value):
     return value
 
 
-def _strings(value, name, *, empty=False):
-    if (not isinstance(value, list) or (not value and not empty) or len(value) > 32
+def _strings(value, name, *, empty=False, maximum=32):
+    if (not isinstance(value, list) or (not value and not empty) or len(value) > maximum
             or any(not isinstance(item, str) or not item.strip() or len(item) > 200
                    or any(c in item for c in "\x00\r\n") for item in value)
             or len(set(value)) != len(value)):
@@ -48,10 +48,14 @@ class HandoffConfig:
     timeout: int = 1200
     poll_interval: int = 10
     version: int = 1
+    http_contract: tuple = ()
 
     @property
     def digest(self):
-        return hashlib.sha256(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()
+        value = asdict(self)
+        if not self.http_contract:
+            value.pop("http_contract")
+        return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
     @classmethod
     def load(cls, path):
@@ -84,7 +88,7 @@ class HandoffConfig:
         if not isinstance(data, dict):
             raise ValueError("Configuration must be a JSON object")
         allowed = set(cls.__dataclass_fields__)
-        required = allowed - {"mode", "timeout", "poll_interval"}
+        required = allowed - {"mode", "timeout", "poll_interval", "http_contract"}
         if set(data) - allowed or required - set(data):
             raise ValueError("Configuration has missing or unknown fields")
         if type(data["version"]) is not int or data["version"] != 1:
@@ -124,6 +128,18 @@ class HandoffConfig:
             if file in data["allowed_paths"] or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
                 raise ValueError("Protected contracts must be immutable and have SHA-256 pins")
         data["protected_files"] = tuple(sorted(pins.items()))
+        if "http_contract" in data:
+            contract = data["http_contract"]
+            if (not isinstance(contract, dict)
+                    or set(contract) != {"plan_sha256", "probe_sha256", "probe_image_id", "case_ids",
+                                         "application_image_id", "host_filter_image_id"}
+                    or any(not isinstance(contract[name], str) or not re.fullmatch(r"[0-9a-f]{64}", contract[name])
+                           for name in ("plan_sha256", "probe_sha256"))
+                    or any(not isinstance(contract[name], str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", contract[name])
+                           for name in ("probe_image_id", "application_image_id", "host_filter_image_id"))):
+                raise ValueError("HTTP contract requires exact plan/probe/image pins and case IDs")
+            contract["case_ids"] = _strings(contract["case_ids"], "HTTP case IDs", maximum=64)
+            data["http_contract"] = tuple(sorted(contract.items()))
         if not isinstance(data.get("mode", "review"), str) or data.get("mode", "review") not in {"review", "auto"}:
             raise ValueError("mode must be review or auto")
         for name, default, minimum, maximum in (("timeout", 1200, 1, 3600), ("poll_interval", 10, 1, 60)):

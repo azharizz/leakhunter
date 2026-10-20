@@ -1,0 +1,46 @@
+{
+  "kind": "source-bound-independent-http-worker-qualification",
+  "date": "2026-10-21",
+  "framework_commit": "894be471334d05851b4b75c755ba08bf22060e26",
+  "runner_sha256": "d34f2cdf309434d4e1777dc897abde6fdae53a5f045b8cd8a9a617562f2c13f0",
+  "adapter_sha256": "c9752fce36f42cb949e64641617039fe51cca65b2b9bb821f68fea7dfc7e2f03",
+  "positive_build": "8c5a61ad-eb7d-4c57-a726-e196f5ec05a8",
+  "positive_build_status": "SUCCESS",
+  "earlier_positive_builds": ["54f7ca79-0867-4540-ae2d-48f1016f4328", "77a73b22-adb4-4a38-913e-35fb7b6102c5"],
+  "earlier_build_note": "Both succeeded; reruns followed cleanup enforcement and explicit image-pin validation changes, not observation timeouts.",
+  "limitations": "One known lab. A trusted CI host supplies orchestration metadata; this is not cryptographic attestation, every egress-channel qualification, hostile dependency build or kernel escape proof. Existing GitLab handoff CI migration is not claimed.",
+  "evidence": {
+    "gate": {"passed": true},
+    "runtime": {
+      "status": "COMPLETED", "passed": true, "functional_passed": true, "security_passed": true,
+      "cases": [
+        {"id": "initialize-disposable-db", "passed": true, "status": "COMPLETED", "security_passed": true, "observations": [], "violations": [], "http_status": 200},
+        {"id": "register-canary", "passed": true, "status": "COMPLETED", "security_passed": true, "observations": [], "violations": [], "http_status": 200},
+        {"id": "public-list", "passed": true, "status": "COMPLETED", "security_passed": true, "observations": [], "violations": [], "http_status": 200},
+        {"id": "lookup", "passed": true, "status": "COMPLETED", "security_passed": true, "observations": [], "violations": [], "http_status": 200},
+        {"id": "debug", "passed": true, "status": "COMPLETED", "security_passed": true, "observations": [], "violations": [], "http_status": 200}
+      ]
+    },
+    "provenance": {
+      "kind": "independent-http-acceptance-v1",
+      "source_sha": "c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1",
+      "plan_sha256": "7defd18b6503b7b33fc73dc0030b506229541d6ce4667011acba863145ca2a24",
+      "probe_sha256": "38128a56c844797acf646bca912057f718dd21a4f6521381e5b4a840bac0ea50",
+      "probe_image_id": "sha256:541096ae9b05d3b850341b78790e2ed31e94d5aa0ea086933c6ff0c09ffa2e63",
+      "application_image_id": "sha256:d4202d21bf6d511c0bdccc180b437c33f2e4db28092435d6e503a23f9ce82a18",
+      "host_filter_image_id": "sha256:d2dc198f7d839eae26b5a9cb0e7cdc4e2c97d9cb4ea66dbeb0a4c0c7f0b165f8",
+      "host_isolation_verified": true,
+      "source_snapshot_sha256": "f82c60e0193dd9b79ca6f7d06d7a847aab73a19f26257b29bb2130dc2491ac57",
+      "application_container_id": "0624c2fe9575e39cb384d6d0424bb61458619f376ae3fe4d3b5e12d13cd0f961",
+      "probe_container_id": "d160eadbf697ac509202ad50bd2b0cc7fe5c874b7f48d81c535f79172f6e1c6f"
+    }
+  },
+  "health": {"status": "ok", "commit": "c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1", "verified": true},
+  "negative_run": {
+    "framework_commit": "34e81ad3592c5c0470642f2b7f58898ca4a5de25",
+    "build": "7d80c7cf-19ee-4629-a329-8b1ce12bd7af",
+    "source_sha": "f16052dce83f05847133ec98f01c5193a41de7d8",
+    "build_status": "FAILURE",
+    "diagnostic": {"status": "STOPPED", "runtime_status": "COMPLETED", "functional_passed": true, "security_passed": false, "secret_observed": true}
+  }
+}

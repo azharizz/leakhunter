@@ -42,7 +42,7 @@ def source_files(root: Path, suffixes, excluded):
                         visit(child, path, depth + 1)
                     finally:
                         os.close(child)
-                elif path.suffix in suffixes:
+                elif suffixes is None or path.suffix in suffixes:
                     if len(files) >= MAX_SOURCE_FILES:
                         raise ValueError("Repository source file count limit exceeded")
                     descriptor = os.open(entry.name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW,
