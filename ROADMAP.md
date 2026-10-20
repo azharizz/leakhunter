@@ -6,6 +6,39 @@ a test count increased, a cloud URL works, or an agent says it succeeded.
 
 ## Decision and intended first product
 
+### Submission freeze — user scope amendment, 21 October
+
+The user explicitly narrowed the immediate work to the five submission essentials.
+The unfinished production gates below remain future qualification work; they are
+not prerequisites for presenting this release as an evaluated prototype.
+
+- MR !22 was reviewed and merged at `05bbefc6e936d7efab8f0a7b10aeb04e77742ee3`.
+  Release pipeline `2969101179` passed all checks and report delivery.
+- Package 0.4.6 is frozen at that source with its canonical CI wheel, retained
+  package-registry downloads, verification bundle and release tag. The same wheel
+  passed clean Linux 3.10/3.12 and macOS 3.11 installation checks, including
+  40 file matches, three commands, persisted STOP cancellation and the synthetic
+  exposure gate. The fresh local regression run passed 126 tests.
+- README, the judge guide, submission text and [release record](RELEASE.md) identify
+  that package and separate it from historical evidence. The historical external
+  GitLab verifier has not silently gained the new opt-in HTTP contract.
+- Public GitLab/GitHub originals and MIT detection were checked without credentials.
+  Cloud Run served the release SHA; remote CI job `17328074132` verified Pages for
+  that SHA. Local Jamf redirection is not counted as fallback health.
+- Path B was reviewed against Section 4 of the current official rules: an original
+  project date before October 5 is not required. The actual October 19 source,
+  October 20 MIT/import/automation and October 21 publication chronology are
+  disclosed in [SUBMISSION.md](SUBMISSION.md). Path B / Supervised is the
+  recommended classification, not a claimed organizer ruling.
+
+The author owns the public video, personal attestations and Devpost submission.
+The maintainer owns ongoing availability through the expected November 16
+announcement. Billing is enabled now; future trial credits/expiry and uptime are
+not guaranteed, and no automated billing monitor is claimed. Catalog, more
+hosting, broad accuracy evaluation and production qualification are deferred.
+Older execution logs/checklists below describe their recorded revision and date;
+this amendment records the current submission scope and handoff.
+
 Current verdict: working prototype with real GitLab Duo, CI, bounded automatic
 promotion, and public static-report delivery. Not established as a production
 security product or a general repair service. The synthetic delivery runs

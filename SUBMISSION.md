@@ -1,9 +1,13 @@
-# Unspool — submission draft and evidence handoff
+# Unspool — submission text and evidence handoff
 
-Prepared 21 October 2026, Asia/Jakarta. **Draft, not submission-ready yet.**
-The author will record/upload the video and submit on Devpost. This document
-does not claim production readiness or event eligibility. Current blocking items
-and evidence limits are listed at the end; update them before copying this text.
+Prepared 21 October 2026, Asia/Jakarta, for frozen release **0.4.6**.
+Engineering/reproduction records are in [RELEASE.md](RELEASE.md). The author
+records/uploads the video, completes personal eligibility declarations and
+submits on Devpost. Production qualification remains future work.
+
+Recommended entry: **Path B / Supervised**. This matches the external repair's
+operator approval boundary. Present the bounded hands-off synthetic run as
+separate evidence. Neither this document nor a working demo grants event approval.
 
 ## Suggested title and tagline
 
@@ -12,9 +16,11 @@ and evidence limits are listed at the end; update them before copying this text.
 A GitLab Duo handoff that turns bounded Python repair intent into a reviewable
 MR, executed exposure checks and revision-linked delivery evidence.
 
-## Project description draft
+## Project description — copy-ready
 
-An agent's proposed fix is only the beginning of a release decision. Someone
+Unspool is for maintainers of selected Python services who want agent-written
+changes to pass explicit project-owned checks before release. An agent's
+proposed fix is only the beginning of a release decision. Someone
 still has to check its scope, preserve the public API, verify the exact revision,
 and determine whether deployment actually passed. Unspool makes those boundaries
 explicit and leaves a record when a check fails or cannot execute.
@@ -25,6 +31,8 @@ check the complete diff, required CI jobs, pinned verification contracts and
 exact-revision evidence. External repositories default to review mode: the
 controller returns `READY_FOR_REVIEW` and a person decides whether to merge.
 The agent does not receive the operator's merge credentials or expanded access.
+The local graph presents source/sink evidence and supports annotation CRUD;
+snapshots retain the evidence for a specific analysis.
 
 For the original synthetic demonstration, a fresh issue-to-MR-to-merge-to-report
 run completed without intermediate edits or approvals. That run changed display
@@ -52,12 +60,31 @@ remote recovery and operating limits remain open work.
 
 Original project: LeakHunter, renamed Unspool with compatible Python imports.
 Its original Git history starts on 19 October 2026; MIT licensing was committed
-on 20 October. Do not describe it as a long-established pre-hackathon project.
+on 20 October. It is not a long-established pre-hackathon project.
 The [GitHub original](https://github.com/azharizz/leakhunter) is public under MIT.
 Its two-commit history was scanned with Gitleaks 8.30.1 and reviewed before the
 authorized visibility change on 21 October; no credentials were found. Both
-commits remain in GitLab history. Path B classification still requires an honest
-reading of that actual history. Do not change history to fit a path.
+commits remain in GitLab history. Publication happened after the GitLab import;
+that chronology is disclosed rather than rewritten.
+
+### Path B basis and provenance
+
+| Event | Exact evidence |
+| --- | --- |
+| Original source, 19 October | GitHub/GitLab commit `3e8c0afffabe2388a1d87db582b3ad641f19cf92` |
+| MIT license, 20 October | Commit `c6ab65f251576790255902c70f2ead497168fb1d` |
+| GitLab automation/delivery additions, 20 October onward | First delivery commit `d327259`; issue/MR/pipeline evidence below |
+| Original made public after credential review, 21 October | Public original URL and preserved two-commit history |
+| Frozen package, 21 October WIB | `05bbefc6e936d7efab8f0a7b10aeb04e77742ee3`, release `v0.4.6` |
+
+Section 4 of the [official rules](https://gitlab-transcend.devpost.com/rules)
+permits Path B projects that may predate the submission period; it does not
+require an original project date before October 5. The
+[event overview](https://gitlab-transcend.devpost.com/)
+requires an original MIT project, new automation/deployment and a live URL.
+On that reading, Path B is the recommended classification for this preserved
+original and its new GitLab lifecycle integration. The private-to-public timing
+is disclosed above; no organizer ruling or guaranteed eligibility is claimed.
 
 The GitLab additions include real Duo issue/MR orchestration, independently pinned
 verification, mandatory pipeline checks, exact-revision delivery on Cloud Run,
@@ -75,12 +102,12 @@ can be inspected. Do not invent baseline productivity numbers.
 
 | Claim | Inspectable evidence | What it does not establish |
 | --- | --- | --- |
-| Real bounded hands-off synthetic delivery | [Issue #3](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/work_items/3), [Duo session 9749019](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/automate/agent-sessions/9749019), [MR !5](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/5), [delivery pipeline](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2967584891) | General hands-off security remediation or a hosted mutable backend; session details may require GitLab membership |
+| Real bounded hands-off synthetic delivery | [Issue #3](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/work_items/3), Duo session ID `9749019`, [MR !5](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/5), [delivery pipeline](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2967584891) | General hands-off security remediation or a hosted mutable backend; the session page is unavailable anonymously, so use the public MR/pipeline |
 | Real external instructed repair with operator promotion | [VAmPI issue #1](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/work_items/1), [MR !1](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/merge_requests/1), [candidate pipeline](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/pipelines/2968003131), [post-merge pipeline](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/pipelines/2968031105) | Autonomous discovery, arbitrary application safety or independent customer acceptance |
 | Before/after HTTP and retained-artifact staging rollback | [Reproduction and exact source/image records](benchmarks/vampi/README.md) | Publicly hosted repaired VAmPI or database restoration; Cloud Build logs/private image require GCP access |
 | Real review-controller interruption/resumption | [Recovery procedure and results](benchmarks/recovery/README.md), [controlled MR !2](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/merge_requests/2) | Recovery around all trigger/merge/deployment crash points or distributed locking |
 | Tested container controls with negative control | [Isolation drill](benchmarks/isolation/README.md) | Kernel escape resistance, all egress channels or hostile multi-tenant qualification |
-| Clean packaged 0.4.3 execution and revision freshness checks | [Pipeline 2968830722](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2968830722), installed-wheel jobs/artifacts; [live read-only replay](benchmarks/recovery/README.md) | Compatibility with arbitrary dependencies/frameworks, live race injection or independent-team installation |
+| Frozen 0.4.6 package, 126 regressions and clean installation | [Release pipeline 2969101179](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2969101179), [retained wheel and records](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/releases/v0.4.6), [reproduction guide](JUDGE_GUIDE.md) | Compatibility with arbitrary dependencies/frameworks, live race injection or independent-team installation |
 | Small frozen external static feasibility set | [All case labels/results and limitations](benchmarks/external/README.md) | Representative production precision/recall, runtime proof or ungated-agent comparison |
 | Source/dependency audit with concrete fixes | [Review record](SECURITY_REVIEW.md), security-audit CI artifacts | Certification or absence of vulnerabilities; LOW/MEDIUM warnings remain visible |
 
@@ -88,9 +115,9 @@ can be inspected. Do not invent baseline productivity numbers.
 
 - Public code: [Unspool GitLab](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool).
 - Live GCP report: [Cloud Run](https://unspool-398376578726.us-central1.run.app).
-- Fallback report: [GitLab Pages](https://unspool-site-1032c3.gitlab.io). Local
-  network policy redirects Pages to a Jamf block page, so this host's request
-  cannot establish judge accessibility; verify through an independent route.
+- Fallback report: [GitLab Pages](https://unspool-site-1032c3.gitlab.io). Remote
+  CI job 17328074132 verified the release SHA. The local network redirects this
+  domain to a Jamf block page; that redirect is not a successful health check.
 - Original URL: [LeakHunter GitHub](https://github.com/azharizz/leakhunter), public
   under MIT; unauthenticated access verified on 21 October 2026.
 - Local execution: CPython 3.10–3.12 qualification, authenticated `glab` for GitLab
@@ -121,19 +148,21 @@ waiting times. Mark cuts/time compression. Do not show account tokens, private
 cloud logs, customer code, copyrighted music or unlicensed assets. The author
 records/uploads the public YouTube video and submits; this workflow does neither.
 
-## Remaining submission decisions and checks
+## Author handoff
 
-1. Resolve Path B classification against the actual original-project history.
-   The original MIT GitHub repository is now public and was verified without
-   credentials; organizer decisions still govern eligibility.
-2. Finish remaining engineering/evaluation requirements in ROADMAP.md. This draft
-   does not replace the production-grade goal with a smaller submission scope.
-3. Freeze the final release SHA/wheel, verify every public evidence URL and artifact
-   without credentials, and retain non-expiring release evidence where required.
-4. Confirm trial/billing availability through judging; the author is the responsible
-   availability owner. Do not claim an automated billing alert unless configured.
-5. Add the author's actual public video URL, review the final text against the
-   recorded functionality, and complete Devpost manually before the deadline.
+1. Record the actual functionality using the outline above; upload a public
+   YouTube video under three minutes and paste its actual URL into Devpost.
+2. Copy the title, description, public code, original and Cloud Run URLs. Select
+   Path B / Supervised on the stated basis; personally review the event's entrant
+   eligibility and attestations. The organizers retain the final decision.
+3. Keep both reports and their billing/accounts available through judging and
+   the expected announcement around 16 November. Billing is currently enabled;
+   future trial-credit balance/expiry is not established by that check. The
+   maintainer owns this ongoing obligation; no automatic billing monitor is claimed.
+4. Check that the recorded video matches this scope, contains no credentials or
+   private material, then submit before the deadline. The production roadmap,
+   additional hosting and Catalog listing are not prerequisites for this
+   evaluated-prototype submission.
 
 Rules rechecked 21 October 2026: [official rules](https://gitlab-transcend.devpost.com/rules).
 Submission deadline is 27 October 2026, 13:00 UTC / 20:00 WIB; video should be
