@@ -63,3 +63,20 @@ Next work: wire this real HTTP observation into Unspool's independently pinned
 runtime evidence, produce a bounded real repair MR, test the candidate with the
 fixed expectation, retain negative controls, and compare with the ungated agent.
 Keep this baseline distinct from those later outcomes in all metrics.
+
+## Pinned repair acceptance harness
+
+`ci-verify.sh` exports the exact candidate revision without Git metadata, builds
+dependencies separately, and runs the frozen fixed-behavior HTTP probe with the
+same container restrictions. It passes no CI variables or credentials into the
+application container. `report.py` runs outside that container and only adapts
+an exact positive result into the handoff evidence contract, recording the source
+SHA and resolved image ID. This is HTTP acceptance of a known exposure; it does
+not represent an Unspool analyzer discovery.
+
+The validation repository must fetch these files from a pinned Unspool commit,
+and pin its CI/agent instructions in the operator configuration. Its repair may
+change only `api_views/users.py`. GitLab's hosted runner/Docker service and the
+probe's application process are not a verified sandbox for actively malicious
+repositories. This experiment does not close the hostile-code isolation gate.
+No raw application output, database or source archive is published as an artifact.

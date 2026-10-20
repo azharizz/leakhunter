@@ -46,6 +46,19 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — external acceptance integration
+
+Classification: **progress**, incomplete qualification. Created a second isolated
+validation project, `87865932` (`unspool-vampi-delivery`), with original VAmPI
+history at `f16052dce83f05847133ec98f01c5193a41de7d8`, a protected `master`,
+and fast-forward merges. The existing group foundational flows are visible;
+actual execution on this project is not yet proven. Added a pinned HTTP acceptance
+CI harness and strict evidence adapter with a regression test. It exports source
+without Git credentials, runs the application without passed CI credentials or
+external network, and keeps verification outside the permitted repair diff.
+The real repair and candidate CI execution remain pending. This is not an
+analyzer discovery or completed isolation audit.
+
 ### Execution log — 20 October, first implementation goal turn
 
 Classification: **progress**. The goal remains active; production readiness is
