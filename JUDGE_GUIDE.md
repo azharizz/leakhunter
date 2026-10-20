@@ -22,16 +22,16 @@ Linux/macOS. Docker is not needed for this deliberately trusted synthetic case.
 ## Install a pinned reviewed source revision
 
 Choose a new empty working directory. The following revision contains version
-0.4.2; this guide's later documentation changes do not affect that package.
+0.4.3; this guide's later documentation changes do not affect that package.
 
 ```sh
 git clone https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool.git
 cd unspool
-git checkout --detach a93bbda29a480b66b9a43024f924d15ee66c634b
+git checkout --detach faeb5010fb279018ecd208cec454894f1f25ab84
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade -r requirements.build.lock
 .venv/bin/python -m pip wheel --no-deps --wheel-dir dist .
-.venv/bin/python -m pip install -c requirements.lock dist/unspool-0.4.2-py3-none-any.whl
+.venv/bin/python -m pip install -c requirements.lock dist/unspool-0.4.3-py3-none-any.whl
 .venv/bin/python -m pip check
 ```
 
@@ -46,7 +46,7 @@ cd /tmp
   --source "$UNSPOOL_SOURCE_DIR" --output /tmp/unspool-judge-installation.json
 ```
 
-Expected output: `status: PASSED`, version 0.4.2, 37 installed files verified,
+Expected output: `status: PASSED`, version 0.4.3, 37 installed files verified,
 three console commands passed, no source-checkout imports, persisted STOP
 cancellation and a passing synthetic exposure gate. The JSON also records the
 installed dependency inventory. This command was separately exercised in fresh
