@@ -10,6 +10,11 @@ existing, explicitly allowlisted Python application files only.
 Qualification targets CPython 3.10, 3.11 and 3.12; newer interpreters are unverified.
 The CI installation matrix is evidence for the checked revisions, not every
 framework/dependency combination or a production-certification claim.
+The pipeline builds one wheel with pinned tools and a source-commit timestamp,
+then passes that exact artifact and checksum to both Python installation jobs.
+Each job checks its checksum before and after qualification. `wheel-build.json`
+records the source SHA, timestamp, builder interpreter and build tool versions.
+These are CI artifacts with 90-day retention, not a permanent package release.
 
 ## Local analysis input limits
 
