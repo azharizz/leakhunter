@@ -12,14 +12,26 @@ probe="unspool-http-probe-$CI_JOB_ID"
 listener="unspool-http-listener-$CI_JOB_ID"
 subnet=''
 filter_image=''
+network_created=0
+filter_installed=0
 cleanup() {
+  result=$?
+  cleanup_failed=0
   docker rm -f "$app" "$probe" "$listener" >/dev/null 2>&1 || true
-  if [ -n "$subnet" ] && [ -n "$filter_image" ]; then
+  if [ "$filter_installed" = 1 ]; then
     docker run --rm --pull=never --network=host --cap-drop=ALL --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint=iptables \
-      "$filter_image" -D INPUT -s "$subnet" -j DROP >/dev/null 2>&1 || true
+      "$filter_image" -D INPUT -s "$subnet" -j DROP >/dev/null 2>&1 || cleanup_failed=1
   fi
-  docker network rm "$network" >/dev/null 2>&1 || true
+  if [ "$network_created" = 1 ]; then
+    docker network rm "$network" >/dev/null 2>&1 || cleanup_failed=1
+  fi
+  if [ "$cleanup_failed" != 0 ] || [ "$result" != 0 ]; then
+    rm -f "$root/acceptance/evidence.json" "$root/acceptance/health.json"
+  fi
   rm -f "$work/report.json"
+  [ "$cleanup_failed" = 0 ] || result=1
+  trap - EXIT
+  exit "$result"
 }
 mkdir -p "$root/acceptance"
 rm -f "$root/acceptance/evidence.json" "$root/acceptance/health.json"
@@ -30,7 +42,9 @@ mkdir -p "$work/source"
 git archive "$actual" > "$work/source.tar"
 tar -xf "$work/source.tar" -C "$work/source"
 rm "$work/source.tar"
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 # Provision/pull reviewed images separately. Candidate verification installs no dependencies.
 for image in "$UNSPOOL_APP_IMAGE" "$UNSPOOL_PROBE_IMAGE" "$UNSPOOL_FILTER_IMAGE"; do
   python3 -I -c 'import re,sys;sys.exit(0 if re.fullmatch(r"sha256:[0-9a-f]{64}",sys.argv[1]) else 1)' "$image"
@@ -40,6 +54,7 @@ app_image=$UNSPOOL_APP_IMAGE
 probe_image=$UNSPOOL_PROBE_IMAGE
 filter_image=$UNSPOOL_FILTER_IMAGE
 docker network create --internal "$network" >/dev/null
+network_created=1
 subnet=$(docker network inspect --format '{{(index .IPAM.Config 0).Subnet}}' "$network")
 gateway=$(docker network inspect --format '{{(index .IPAM.Config 0).Gateway}}' "$network")
 docker run -d --name "$listener" --pull=never --network=host --user=10001:10001 \
@@ -63,6 +78,7 @@ check_host host 127.0.0.1 reachable
 [ "$(docker inspect --format '{{.State.Running}}' "$listener")" = true ] || exit 1
 docker run --rm --pull=never --network=host --cap-drop=ALL --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint=iptables \
   "$filter_image" -I INPUT -s "$subnet" -j DROP
+filter_installed=1
 check_host "$network" "$gateway" blocked
 check_host host 127.0.0.1 reachable
 [ "$(docker inspect --format '{{.State.Running}}' "$listener")" = true ] || exit 1
