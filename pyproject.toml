@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools==83.0.0", "wheel==0.48.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "unspool"
-version = "0.4.1"
+version = "0.4.2"
 license = {text = "MIT"}
 description = "Policy-aware exposure analysis and independent synthetic repair verification"
 requires-python = ">=3.10"

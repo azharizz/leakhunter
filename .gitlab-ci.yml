@@ -10,7 +10,12 @@ workflow:
 default:
   interruptible: true
 
+.python-bootstrap:
+  before_script:
+    - python -m pip install --disable-pip-version-check --upgrade -r requirements.build.lock
+
 python-tests:
+  extends: .python-bootstrap
   stage: verify
   image: python:3.12
   script:
@@ -24,7 +29,20 @@ dashboard-tests:
     - node --check leakhunter/static/app.js
     - node tests/test_dashboard.cjs
 
+security-audit:
+  extends: .python-bootstrap
+  stage: verify
+  image: python:3.12-slim
+  script:
+    - python -m pip install --disable-pip-version-check -c requirements.build.lock -r requirements.audit.lock
+    - python ci/security_audit.py
+  artifacts:
+    when: always
+    paths: [security-reports/]
+    expire_in: 90 days
+
 installed-wheel:
+  extends: .python-bootstrap
   stage: verify
   image: python:${PYTHON_VERSION}-slim
   parallel:
@@ -44,6 +62,7 @@ installed-wheel:
     expire_in: 90 days
 
 verify-exposure:
+  extends: .python-bootstrap
   stage: evidence
   image: python:3.12-slim
   script:

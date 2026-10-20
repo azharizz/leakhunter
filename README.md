@@ -1,7 +1,7 @@
 # Unspool
 
 For installation on another GitLab.com repository, read [ADOPTION.md](ADOPTION.md).
-The 0.4.1 controller accepts operator-owned project configuration, defaults to
+The 0.4.2 controller accepts operator-owned project configuration, defaults to
 review-only behavior, and records private durable intent for safe resumption.
 Portable repair promotion currently allows explicitly configured Python application
 files only. JavaScript, TypeScript, Go and Rust analysis remains experimental;

@@ -46,6 +46,39 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — source/dependency security audit and fixes
+
+Classification: **progress**, further qualification required. MR !13 passed
+pipeline `2968216148` and merged at `637ccae42d7d869ad14514a81ca5a62105354cc9`.
+Both installed 0.4.1 Linux checks passed outside the checkout: Python 3.10.22
+job `17321131582`, wheel hash `52a1e63b4390dc8bcfa410c6c03a2fd400ed46ddecbff67177bb8738238fedb1`;
+Python 3.12.15 job `17321131583`, wheel hash
+`3046e839c220ff839b8a0d0a5083f56f71b1c9dba2743060b64f25eecb2f3c9f`.
+Each verified 37 installed files, all console commands, cancellation and exposure.
+
+Pinned pip-audit 2.10.1 and Bandit 1.9.4 found no reported advisories in six
+runtime pins, but auditing the actual installed environment found vulnerable
+bootstrap pip/setuptools versions. Added reviewed bootstrap/build pins and
+installation/CI upgrade steps; all ten selected runtime/build versions then
+audited without reported advisories. The upgraded installed environment had no
+reported advisories among registry packages, while Unspool itself was explicitly
+not found on PyPI and unassessed by that tool.
+
+Bandit initially reported 14 LOW/8 MEDIUM/0 HIGH, with no scan errors. Fixed
+arbitrary URL/redirect acceptance in smoke checks, bounded health/API JSON reads,
+refused token-backed GitLab redirects, and required a real boolean verification
+flag before accepting health evidence. Retained/triaged 14 LOW and 6 MEDIUM
+warnings with no source suppression. Added CI security auditing that blocks
+advisories, scan errors and HIGH/unknown-severity results while retaining complete
+JSON reports. Version 0.4.2 captures these fixes. The 106-test suite passed,
+and the subsequently added SQL allowlist/parameterization regression also passed
+with all four knowledge tests. A fresh Python 3.11.9 environment installed the
+0.4.2 wheel outside the checkout and passed all 37-file/CLI/cancellation/exposure
+checks. Wheel hash:
+`bdcfa568a40932883fa2101baba27653a985d9d3ea3c0ec837d22cd2ea8c7a15`.
+Linux matrix/CI qualification for 0.4.2 is still required.
+See SECURITY_REVIEW.md for findings, limitations and reproduction.
+
 ### Execution log — installed wheel version and Python boundaries
 
 Classification: **progress**, qualification pending. MR !12 passed pipeline
@@ -56,8 +89,8 @@ Python 3.10/3.12 slim Linux images. Each builds/installs a wheel, checks depende
 consistency, runs outside the checkout with isolated imports, compares installed
 Python/UI assets byte-for-byte, exercises all console commands, verifies durable
 STOP cancellation and executes the trusted synthetic exposure workflow. Jobs
-retain the wheel/hash, dependency inventory and installation result. These jobs
-have not passed yet. A fresh macOS Python 3.11.9 virtual environment passed the
+retain the wheel/hash, dependency inventory and installation result. Both jobs
+later passed pipeline `2968216148`, as recorded above. A fresh macOS Python 3.11.9 virtual environment passed the
 same installed check from `/tmp`: 37 Python/UI files matched, all three console
 commands worked, STOP cancellation persisted and the synthetic exposure gate
 passed. Local wheel SHA-256:

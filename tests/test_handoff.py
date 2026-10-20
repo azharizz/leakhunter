@@ -54,10 +54,13 @@ class HandoffTest(unittest.TestCase):
         self.assertNotIn("PUT", calls)
 
     def test_smoke_rejects_a_stale_deployment(self):
-        with patch("unspool.smoke.urlopen") as request:
-            request.return_value.__enter__.return_value.read.return_value = b'{"status":"ok","commit":"old","verified":true}'
+        with patch("unspool.smoke.build_opener") as build:
+            request = build.return_value.open
+            request.return_value.__enter__.return_value.read.return_value = (
+                '{"status":"ok","commit":"' + "b" * 40 + '","verified":true}').encode()
             with self.assertRaises(SystemExit):
-                check("https://example.invalid", "new", attempts=1)
+                check("https://example.invalid", "a" * 40, attempts=1)
+            request.assert_called_once()
 
     def test_verified_repair_merges_exact_sha_and_waits_for_delivery(self):
         mr, changes, calls = self.mr(), self.changes(), []
@@ -65,6 +68,7 @@ class HandoffTest(unittest.TestCase):
 
         class API:
             include_cloud = True
+            health_verified = True
 
             def request(self, method, path, body=None):
                 calls.append((method, path, body))
@@ -75,7 +79,7 @@ class HandoffTest(unittest.TestCase):
                 if path.endswith("/artifacts/evidence.json"):
                     return {"gate": {"passed": True}, "runtime": {"status": "COMPLETED", "passed": True, "cases": [{"passed": True}]}}
                 if path.endswith("/artifacts/public/health.json"):
-                    return {"status": "ok", "commit": "a" * 40, "verified": True}
+                    return {"status": "ok", "commit": "a" * 40, "verified": self.health_verified}
                 if "/pipelines?" in path:
                     return [{"id": 3, "source": "push", "status": "success", "web_url": "https://gitlab.com/pipeline/3"}]
                 if "/pipelines/" in path:
@@ -96,6 +100,13 @@ class HandoffTest(unittest.TestCase):
         missing_cloud.include_cloud = False
         with self.assertRaises(ValueError):
             complete(1, 1, api=missing_cloud, interval=0)
+        for value in (1, "true", None, False):
+            calls.clear()
+            forged = API()
+            forged.health_verified = value
+            with self.assertRaises(ValueError):
+                complete(1, 1, api=forged, interval=0)
+            self.assertFalse(any(method == "PUT" for method, _, _ in calls))
 
     def test_issue_retry_reuses_the_existing_mr_without_retriggering_duo(self):
         calls = []
