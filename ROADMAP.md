@@ -46,6 +46,24 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — operator kill switch and distinct cancellation
+
+Classification: **progress**. MR !11 passed pipeline `2968150405` and merged at
+`77c6c3126c56980a419d98800949b611eabc8f21`.
+Added the operator-controlled `STOP` entry in the private state directory. The
+default CLI checks it before API requests/retries and successful terminal state
+writes, prevents new trigger/merge/completion requests, records `CANCELED` and
+exits 130. Ctrl-C is recorded as cancellation rather than a generic stopped
+failure. Tests verify zero requests at startup, stop between read and mutation,
+blocked trigger/success writes, stop between retry attempts, and a broken-symlink
+flag without following its target. The full 101-test suite passed; the final
+additional Ctrl-C regression also passed with all five cancellation tests.
+A real CLI invocation with the STOP flag returned CANCELED/exit 130 and
+persisted CANCELED in its private journal without entering remote observation.
+ADOPTION.md documents operator ownership, reconciliation and deliberate resumption.
+This cannot recall an in-flight operation or cancel remote work; remote
+cancellation/alerting and the remaining failure drills are still open.
+
 ### Execution log — real GitLab controller interruption
 
 Classification: **progress**. MR !10 passed pipeline `2968113480`

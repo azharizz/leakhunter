@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 from urllib.parse import quote
 
 from unspool.handoff_config import HandoffConfig, preflight, verify_contracts
-from unspool.handoff_state import RunJournal, trigger_issue
+from unspool.handoff_state import HandoffCanceled, JournalAPI, RunJournal, trigger_issue
 
 
 REQUIRED_JOBS = {"python-tests", "dashboard-tests", "verify-exposure"}
@@ -27,8 +27,13 @@ class GitLabError(RuntimeError):
 
 
 class GitLab:
+    def __init__(self, journal=None):
+        self.journal = journal
+
     def request(self, method, path, body=None):
         for attempt in range(3):
+            if self.journal:
+                self.journal.check_stop()
             try:
                 return self._request(method, path, body)
             except GitLabError as error:
@@ -94,7 +99,9 @@ def validate_pipeline(pipeline, jobs, sha, config=None):
 
 
 def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, journal=None):
-    api = api or GitLab()
+    api = api or GitLab(journal)
+    if journal:
+        api = JournalAPI(api, journal)
     if config:
         if project != config.project_id:
             raise ValueError("Project does not match the operator configuration")
@@ -183,7 +190,9 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
 
 def from_issue(project, iid, *, api=None, timeout=1200, interval=10, config=None, journal=None):
     """Use local glab authentication to orchestrate Duo without expanding its token."""
-    api = api or GitLab()
+    api = api or GitLab(journal)
+    if journal:
+        api = JournalAPI(api, journal)
     if config:
         if project != config.project_id:
             raise ValueError("Project does not match the operator configuration")
@@ -248,9 +257,13 @@ def main():
     options = {"config": config, "timeout": config.timeout, "interval": config.poll_interval} if config else {}
     run = from_issue if args.issue is not None else complete
     intent = f"issue:{iid}" if args.issue is not None else f"mr:{iid}"
-    with RunJournal(args.state_dir, project, config.target_branch if config else "main", intent,
-                    config.digest if config else "legacy-synthetic-demo-v1") as journal:
-        print(json.dumps(run(project, iid, journal=journal, **options)))
+    try:
+        with RunJournal(args.state_dir, project, config.target_branch if config else "main", intent,
+                        config.digest if config else "legacy-synthetic-demo-v1") as journal:
+            print(json.dumps(run(project, iid, journal=journal, **options)))
+    except (HandoffCanceled, KeyboardInterrupt):
+        print(json.dumps({"status": "CANCELED", "remote_work_may_continue": True}))
+        raise SystemExit(130) from None
 
 
 if __name__ == "__main__":

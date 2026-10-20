@@ -128,6 +128,34 @@ process does not cancel a Duo session or remote deployment already running.
 Remote cancellation, rollback drills, full crash/concurrency validation and
 operational alerting remain tracked in ROADMAP.md.
 
+## Operator stop and cancellation
+
+Create an entry named `STOP` in the controller's private state directory to stop
+all handoff controllers using that directory:
+
+```sh
+touch ~/.local/state/unspool/handoff/STOP
+```
+
+Use your configured `--state-dir`/`XDG_STATE_HOME` location when different. Any
+entry with that name, including a broken symlink, means stop; no content is read.
+The controller checks before API calls and read retries, and before recording a
+successful outcome. It records `CANCELED` and exits 130. Ctrl-C also records
+cancellation when it reaches the CLI's handler. Cancellation preserves the intent,
+source and configuration records; it never deletes state or creates permission.
+Read-only `--preflight` does not use run state and is not affected by this flag.
+
+An already dispatched API request, Duo session, merge or deployment may complete.
+The flag cannot undo it, cancel a remote pipeline, or stop controllers on other
+machines/state directories. Inspect GitLab and cloud state, cancel remote work
+through their authorized controls if necessary, and keep the flag until you have
+reconciled the result. The operator owns escalation; no automatic alert service
+is configured. In-flight requests and current polling sleeps can delay observation.
+
+To resume, deliberately remove only that `STOP` entry after review, then run the
+original command with the original state directory/configuration. The controller
+re-observes GitLab and reuses existing work. Do not delete its journal to restart.
+
 ## Upgrade, removal, and credentials
 
 Upgrade by installing a reviewed wheel into a new virtual environment and checking
