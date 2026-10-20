@@ -46,6 +46,25 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — installed wheel version and Python boundaries
+
+Classification: **progress**, qualification pending. MR !12 passed pipeline
+`2968181565` and merged at `b100d7cc74cbc2a7b726924aed9ce99eebea1db0`.
+Prepared version 0.4.1 to distinguish file-boundary/cancellation hardening from
+the earlier installed 0.4.0 artifact. Added blocking CI matrix jobs for
+Python 3.10/3.12 slim Linux images. Each builds/installs a wheel, checks dependency
+consistency, runs outside the checkout with isolated imports, compares installed
+Python/UI assets byte-for-byte, exercises all console commands, verifies durable
+STOP cancellation and executes the trusted synthetic exposure workflow. Jobs
+retain the wheel/hash, dependency inventory and installation result. These jobs
+have not passed yet. A fresh macOS Python 3.11.9 virtual environment passed the
+same installed check from `/tmp`: 37 Python/UI files matched, all three console
+commands worked, STOP cancellation persisted and the synthetic exposure gate
+passed. Local wheel SHA-256:
+`eb9f22aef32ff0e9c1e1a1d7a63c218843a8ab5402e50d24957b09d4979c2a23`.
+This is solo installation evidence, not independent adoption or external
+application accuracy. CI-built wheel identities may differ and must be recorded.
+
 ### Execution log — operator kill switch and distinct cancellation
 
 Classification: **progress**. MR !11 passed pipeline `2968150405` and merged at
