@@ -1,8 +1,13 @@
 # Unspool
 
-For a pinned local demonstration, read [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
-[SUBMISSION.md](SUBMISSION.md) contains the draft claim/evidence map and unresolved
-submission checks; it is not a production-readiness or eligibility claim.
+Evidence before agent promotion: bounded GitLab Duo repairs, explicit release
+gates, and a graph that shows what was verified.
+
+Start with [JUDGE_GUIDE.md](JUDGE_GUIDE.md) for the pinned local demonstration.
+[Release 0.4.6](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/releases/v0.4.6)
+retains the CI-built wheel and verification bundle; [RELEASE.md](RELEASE.md)
+records its source and checksum. [SUBMISSION.md](SUBMISSION.md) contains the
+submission text, evidence map, Path B basis and author handoff.
 
 For installation on another GitLab.com repository, read [ADOPTION.md](ADOPTION.md).
 The 0.4.6 controller accepts operator-owned project configuration, defaults to
@@ -37,9 +42,9 @@ retries, or approvals:
 
 1. The local controller triggered the real GitLab Duo Developer flow from
    [issue #3](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/work_items/3).
-2. [Duo session 9749019](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/automate/agent-sessions/9749019)
-   changed only the allowlisted synthetic service and created
+2. Duo session `9749019` changed only the allowlisted synthetic service and created
    [MR !5](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/5).
+   The session page is unavailable anonymously; the MR and pipeline are public.
 3. The controller checked the complete diff, exact source revision, required CI
    jobs, and independent runtime evidence before merging through the user's
    existing authorized `glab` login. The Duo runtime's permissions were unchanged.
@@ -83,7 +88,7 @@ session, MR, CI jobs, merge, cloud deployment, and HTTP smoke checks were real.
 
 | Evidence | What it establishes | What it does not establish |
 | --- | --- | --- |
-| 77 passing Python tests and dashboard checks | The checked behavior passed the regression suite at the linked revision | Absence of bugs, production load capacity, or compatibility with every repository |
+| 126 Python regression tests, dashboard checks and installed-wheel CI for 0.4.6 | The checked behavior passed at the frozen release; see [release records](RELEASE.md) | Absence of bugs, production load capacity, or compatibility with every repository |
 | Fixed synthetic exposure probe | The exercised response preserved its public contract and did not return the configured secret marker | Safety of unexecuted inputs, paths, sinks, dependencies, or business rules |
 | Fresh Duo-to-production run | The bounded workflow completed on actual GitLab and GCP infrastructure without an intermediate human action | Reliability across arbitrary tasks, adversarial repositories, permission models, or service outages |
 | Deployed revision smoke checks | Public HTTP endpoints served the exact verified report revision | A deployed customer backend, online scanning service, or hosted CRUD application |
@@ -141,7 +146,7 @@ Pattern boundaries are intentional: `application.decorators.exclusive` decorates
 | Duo repair branch/MR | Implemented; real local Git artifacts verified | `leakhunter/repairs/engine.py` applies allowlisted edits in an isolated copied repository and creates a real branch/commit plus `merge-request.json` only after passing gates. Artifacts explicitly declare `simulation: true`; no remote push, MR publication, merge, or deployment occurs. |
 | Independent differential verification | Implemented; passing and blocked outcomes exercised | Independently reproduces the baseline, reruns static/runtime/functional checks, pins policy/manifest/runtime image, protects original source and test scope, and blocks unresolved findings. Context-only discharge requires exact passing runtime evidence. A generated-target repair passed; leaking complex-example proposals failed without an MR. |
 
-Earlier verification included 41 passing regression tests, dashboard CRUD/history/approval interactions, and installed-wheel execution against external safe and unsafe targets. The latest linked GitLab pipeline passed 77 Python tests. These counts describe different revisions, not independent real-world benchmark cases. See [verification and limits](#verification-and-limits) and the [example's observed integration results](example/README.md#observed-integration-results) for scope and caveats.
+Earlier verification included 41 passing regression tests, dashboard CRUD/history/approval interactions, and installed-wheel execution against external safe and unsafe targets. The original delivery pipeline passed 77 Python tests; the frozen 0.4.6 release has 126. These counts describe different revisions, not independent real-world benchmark cases. See [verification and limits](#verification-and-limits) and the [example's observed integration results](example/README.md#observed-integration-results) for scope and caveats.
 
 ## Install and run against another repository
 
