@@ -43,6 +43,15 @@ def main():
                                     cwd=work, env=env, capture_output=True, timeout=30)
             if result.returncode:
                 raise RuntimeError("Installed console command failed: " + command)
+        rejected_state = work / "rejected-evaluation"
+        for command in ("unspool", "leakhunter"):
+            rejected = subprocess.run([str(Path(sysconfig.get_path("scripts")) / command),
+                                       "--repository", str(source / "demo/target"),
+                                       "--policy", str(source / "demo/policy.yaml"),
+                                       "--data-dir", str(rejected_state), "--once", "evaluate", "--gate"],
+                                      cwd=work, env=env, capture_output=True, timeout=10)
+            if rejected.returncode != 2 or rejected_state.exists():
+                raise RuntimeError("Installed evaluation was allowed to act as a release gate")
         state = work / "state"
         state.mkdir(mode=0o700)
         (state / "STOP").touch()
@@ -67,6 +76,7 @@ def main():
     record = {"status": "PASSED", "version": version("unspool"), "python": platform.python_version(),
               "platform": platform.system(), "installed_files_verified": checked,
               "source_checkout_imported": False, "console_commands_passed": 3,
+              "evaluation_release_gate_rejected": True,
               "stop_flag_canceled": True,
               "synthetic_exposure_gate_passed": True,
               "dependencies": sorted(f"{d.metadata['Name']}=={d.version}" for d in distributions())}

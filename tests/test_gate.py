@@ -1,9 +1,27 @@
 import unittest
+from unittest.mock import patch
 
-from leakhunter.app import attach_evidence, release_gate
+from leakhunter.app import attach_evidence, main, release_gate
 
 
 class ReleaseGateTest(unittest.TestCase):
+    def test_evaluation_accuracy_cannot_authorize_a_release(self):
+        arguments = ["--repository", ".", "--policy", "policy.yaml", "--data-dir", "/tmp/evidence"]
+        # Perfect detection can include a real leak; accuracy cannot approve release.
+        metrics = {"status": "COMPLETED", "runtime": {"tp": 1, "tn": 0, "fp": 0, "fn": 0}}
+        for mode in (["--once", "evaluate"], []):
+            with self.subTest(mode=mode):
+                with patch("leakhunter.app.configure") as configure, \
+                        patch("leakhunter.app.evaluate", return_value=metrics), patch("sys.stderr"), \
+                        patch("builtins.print"), self.assertRaises(SystemExit) as error:
+                    main(arguments + mode + ["--gate"])
+                self.assertEqual(error.exception.code, 2)
+                configure.assert_not_called()
+        with patch("leakhunter.app.configure"), patch("leakhunter.app.evaluate", return_value=metrics) as evaluate, \
+                patch("builtins.print"):
+            main(arguments + ["--once", "evaluate"])
+        evaluate.assert_called_once_with()
+
     def test_advice_and_unexecuted_evidence_cannot_open_gate(self):
         approved = {"status": "approved"}
         self.assertFalse(release_gate([], {"status": "NOT_RUN", "passed": False}, approved)["passed"])

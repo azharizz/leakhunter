@@ -19,26 +19,26 @@ Linux/macOS. Docker is not needed for this deliberately trusted synthetic case.
 - [Submission claim/evidence map](SUBMISSION.md), [security review](SECURITY_REVIEW.md)
   and [roadmap](ROADMAP.md) distinguish completed evidence from remaining work.
 
-## Install the frozen 0.4.6 release
+## Install the frozen 0.4.7 release
 
 Choose a new empty working directory. The release source is
-`05bbefc6e936d7efab8f0a7b10aeb04e77742ee3`. Use the retained CI-built wheel;
+`722f3955bb44c270b24f248b9046f0f26df93a76`. Use the retained CI-built wheel;
 building another wheel locally is not necessary. See [RELEASE.md](RELEASE.md)
 for its checksum, provenance and retained verification records.
 Keep this submission guide open while following the steps: the frozen source
-snapshot contains earlier documentation, while these instructions select 0.4.6.
+snapshot contains earlier documentation, while these instructions select 0.4.7.
 
 ```sh
 git -c http.version=HTTP/1.1 clone https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool.git
 cd unspool
-git checkout --detach 05bbefc6e936d7efab8f0a7b10aeb04e77742ee3
+git checkout --detach 722f3955bb44c270b24f248b9046f0f26df93a76
 mkdir -p dist
-curl --fail --location --output dist/unspool-0.4.6-py3-none-any.whl \
-  https://gitlab.com/api/v4/projects/87860005/packages/generic/unspool/0.4.6/unspool-0.4.6-py3-none-any.whl
-python3 -c 'import hashlib,pathlib; assert hashlib.sha256(pathlib.Path("dist/unspool-0.4.6-py3-none-any.whl").read_bytes()).hexdigest() == "9be68ac05bfb256a63d9bb6fe55a8fe1f3d69eb591f13aa9e280a3fb756b9d87", "Wheel checksum mismatch"'
+curl --fail --location --output dist/unspool-0.4.7-py3-none-any.whl \
+  https://gitlab.com/api/v4/projects/87860005/packages/generic/unspool/0.4.7/unspool-0.4.7-py3-none-any.whl
+python3 -c 'import hashlib,pathlib; assert hashlib.sha256(pathlib.Path("dist/unspool-0.4.7-py3-none-any.whl").read_bytes()).hexdigest() == "7ebd8f69f93679ff7b4f2c095c528f76d79609e9d6da39fac9cb30fd21ae5963", "Wheel checksum mismatch"'
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade -r requirements.build.lock
-.venv/bin/python -m pip install -c requirements.lock dist/unspool-0.4.6-py3-none-any.whl
+.venv/bin/python -m pip install -c requirements.lock dist/unspool-0.4.7-py3-none-any.whl
 .venv/bin/python -m pip check
 ```
 
@@ -53,9 +53,10 @@ cd /tmp
   --source "$UNSPOOL_SOURCE_DIR" --output /tmp/unspool-judge-installation.json
 ```
 
-Expected output: `status: PASSED`, version 0.4.6, 40 installed files verified,
+Expected output: `status: PASSED`, version 0.4.7, 40 installed files verified,
 three console commands passed, no source-checkout imports, persisted STOP
-cancellation and a passing synthetic exposure gate. The JSON also records the
+cancellation, rejected evaluation-as-release commands and a passing synthetic
+exposure gate. The JSON also records the
 installed dependency inventory. This command was separately exercised in fresh
 macOS Python 3.11 and Linux CI Python 3.10/3.12 environments; judge environment
 differences can still expose untested issues.
@@ -83,6 +84,12 @@ No real credentials or customer secrets are needed. Do not expose this local
 mutable API publicly or connect it to arbitrary repository URLs.
 
 ## Verify failure handling and external evidence
+
+The installed-wheel check invokes both `unspool` and `leakhunter` with
+`--once evaluate --gate`. Both must exit 2 without creating their state directory.
+Detection accuracy, including perfect recognition of an actual leak, cannot
+authorize release. Use `--once evaluate` for metrics; only analysis and independent
+repair verification support `--gate`.
 
 The installation check above also creates an operator STOP flag and checks that
 the real installed controller exits 130 with persisted `CANCELED` status before

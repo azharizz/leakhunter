@@ -1,6 +1,6 @@
 # Unspool — submission text and evidence handoff
 
-Prepared 21 October 2026, Asia/Jakarta, for frozen release **0.4.6**.
+Prepared 21 October 2026, Asia/Jakarta, for frozen release **0.4.7**.
 Engineering/reproduction records are in [RELEASE.md](RELEASE.md). The author
 records/uploads the video, completes personal eligibility declarations and
 submits on Devpost. Production qualification remains future work.
@@ -75,7 +75,7 @@ that chronology is disclosed rather than rewritten.
 | MIT license, 20 October | Commit `c6ab65f251576790255902c70f2ead497168fb1d` |
 | GitLab automation/delivery additions, 20 October onward | First delivery commit `d327259`; issue/MR/pipeline evidence below |
 | Original made public after credential review, 21 October | Public original URL and preserved two-commit history |
-| Frozen package, 21 October WIB | `05bbefc6e936d7efab8f0a7b10aeb04e77742ee3`, release `v0.4.6` |
+| Frozen package, 21 October WIB | `722f3955bb44c270b24f248b9046f0f26df93a76`, release `v0.4.7` |
 
 Section 4 of the [official rules](https://gitlab-transcend.devpost.com/rules)
 permits Path B projects that may predate the submission period; it does not
@@ -107,7 +107,7 @@ can be inspected. Do not invent baseline productivity numbers.
 | Before/after HTTP and retained-artifact staging rollback | [Reproduction and exact source/image records](benchmarks/vampi/README.md) | Publicly hosted repaired VAmPI or database restoration; Cloud Build logs/private image require GCP access |
 | Real review-controller interruption/resumption | [Recovery procedure and results](benchmarks/recovery/README.md), [controlled MR !2](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/merge_requests/2) | Recovery around all trigger/merge/deployment crash points or distributed locking |
 | Tested container controls with negative control | [Isolation drill](benchmarks/isolation/README.md) | Kernel escape resistance, all egress channels or hostile multi-tenant qualification |
-| Frozen 0.4.6 package, 126 regressions and clean installation | [Release pipeline 2969101179](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2969101179), [retained wheel and records](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/releases/v0.4.6), [reproduction guide](JUDGE_GUIDE.md) | Compatibility with arbitrary dependencies/frameworks, live race injection or independent-team installation |
+| Frozen 0.4.7 package, 127 regressions and clean installation | [Package verification pipeline 2969187062](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2969187062), [retained wheel and records](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/releases/v0.4.7), [reproduction guide](JUDGE_GUIDE.md) | Compatibility with arbitrary dependencies/frameworks, live race injection or independent-team installation |
 | Small frozen external static feasibility set | [All case labels/results and limitations](benchmarks/external/README.md) | Representative production precision/recall, runtime proof or ungated-agent comparison |
 | Source/dependency audit with concrete fixes | [Review record](SECURITY_REVIEW.md), security-audit CI artifacts | Certification or absence of vulnerabilities; LOW/MEDIUM warnings remain visible |
 
@@ -116,8 +116,10 @@ can be inspected. Do not invent baseline productivity numbers.
 - Public code: [Unspool GitLab](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool).
 - Live GCP report: [Cloud Run](https://unspool-398376578726.us-central1.run.app).
 - Fallback report: [GitLab Pages](https://unspool-site-1032c3.gitlab.io). Remote
-  CI job 17328074132 verified the release SHA. The local network redirects this
-  domain to a Jamf block page; that redirect is not a successful health check.
+  CI verifies the served SHA; [release records](RELEASE.md) identify the delivery
+  revision. The local network redirects this domain to a Jamf block page;
+  that redirect is not a successful health check. Raw job-trace APIs require
+  login; public pipeline metadata and retained verification records are provided.
 - Original URL: [LeakHunter GitHub](https://github.com/azharizz/leakhunter), public
   under MIT; unauthenticated access verified on 21 October 2026.
 - Local execution: CPython 3.10–3.12 qualification, authenticated `glab` for GitLab
