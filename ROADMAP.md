@@ -46,6 +46,32 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — initial frozen external static evaluation, 21 October
+
+Classification: **progress**, evaluation gate incomplete. MR !14 passed pipeline
+`2968297644` (including security audit and installed 0.4.2 Python 3.10/3.12 jobs)
+and merged at `7d36585ff1c7d19872c119c131ba1577424b79bd`. Main delivery
+pipeline `2968309102` also passed. The installed Linux artifacts each verified
+37 files, three commands, durable cancellation and synthetic exposure checks.
+
+Froze ten source-labeled cases across three independently authored MIT security
+labs (VAmPI, DVGA, PyGoat) in commit `f0ed588`, before the first analyzer run.
+Eight cases have binary policy-flow labels; two are explicitly unknown. The first
+run and the repeated installed-wheel 0.4.2 run both yielded TP 5 / FP 0 / TN 3 /
+FN 0 / unknown 2 / execution errors 0. No target code was executed or imported.
+All 126 Python files parsed, but unresolved calls were 129/362/869 respectively;
+DVGA/PyGoat also had 7/1 unsupported constructs. Those limits remain visible.
+The labels are solo/source-derived and selected with knowledge of the analyzer;
+this is not held-out, customer-representative, runtime vulnerability proof or a
+production precision/recall estimate. No repairs or model calls occurred here.
+Full case records, exact upstream revisions, file hashes, analysis times and
+reproduction are in benchmarks/external/. A further installed repeat after
+qualified-callable existence validation retained the same outcomes without label
+changes; typo/missing callables cannot become false safe results. The full suite
+passed 108 tests, then both evaluation-specific tests passed after that additional
+target-validation test. The 20-positive/20-negative floor,
+runtime/repair/ungated-agent comparisons and broad accuracy gate remain open.
+
 ### Execution log — source/dependency security audit and fixes
 
 Classification: **progress**, further qualification required. MR !13 passed
