@@ -10,6 +10,8 @@ or repair requests. Never expose the mutable local API as a shared public servic
 
 See [THREAT_MODEL.md](THREAT_MODEL.md) for the control/evidence matrix and known
 gaps, including same-process runtime tampering and dependency-build privilege.
+The [controlled isolation drill](benchmarks/isolation/README.md) records tested
+container settings and a credential-exposure negative control, with its limits.
 
 - Operators own and review configuration, policy, runtime manifests, verification
   logic, credentials and promotion authorization. Repository/issue/model content

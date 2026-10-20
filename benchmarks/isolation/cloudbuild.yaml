@@ -1,0 +1,9 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: [pull, 'python:3.11-slim']
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: sh
+    args: [/workspace/run.sh]
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 180s

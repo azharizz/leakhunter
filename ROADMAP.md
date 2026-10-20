@@ -46,6 +46,25 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — controlled isolation drill
+
+Classification: **progress**. MR !8 passed pipeline `2968079417` and merged at
+`9dce9999d423885d9940ad2fc72316ac86ba1cb5`.
+Cloud Build `07483223-985b-423b-805c-c6892f0c17d6` ran a controlled attack
+script inside disposable workload containers with network-none and internal-only
+networking. All 15 initial checks passed in both cases: non-root/capability/
+privilege settings, write denial, hidden host canary/credential paths/socket and
+environment, blocked tested metadata/external TCP, and observed cgroup limits.
+Follow-up Cloud Build `b99654ca-27aa-4fa1-9411-d8b500637029` passed all 16
+checks in both modes, including bounded temporary disk. A deliberately passed
+synthetic credential caused failure specifically on credential environment
+exposure, and an external inspector confirmed the expected rejection and other
+positive checks. Runtime image ID:
+`sha256:541096ae9b05d3b850341b78790e2ed31e94d5aa0ea086933c6ff0c09ffa2e63`.
+See benchmarks/isolation/README.md. The hostile-code isolation gate remains open:
+this is no kernel escape audit or exhaustive egress/dependency-build test, and
+does not fix the general callable runtime's same-process measurement risk.
+
 ### Execution log — separate HTTP observation boundary
 
 Classification: **progress**, incomplete isolation qualification. MR !7 passed
