@@ -59,14 +59,35 @@ retained identical checksum/build metadata. Its source was `2406e510`, epoch
 This closes the separately-built-wheel ambiguity, not permanent release or all
 cross-platform reproducible builds.
 
-Preparing 0.4.5 with a reusable declarative JSON HTTP probe. Unlike the callable
+Implemented 0.4.5 with a reusable declarative JSON HTTP probe. Unlike the callable
 worker, it imports no target code; isolation/source binding must be supplied by
 trusted CI. Added an independently mounted VAmPI plan/benchmark adapter so the
 new packaged probe can be exercised against both pinned real revisions without
-changing the earlier benchmark or application. The initial full suite passed
-119 tests (original HTTP tests retained); subsequent added header/escaped-canary
-and special-plan checks require final verification. Freeze the plan/code before
-its first new Cloud Build runs; record all failures, unknowns and image hashes.
+changing the earlier benchmark or application. All 120 tests passed, including
+the retained original HTTP tests and new separate-client-process cases. The
+loader-specific FIFO check passes after interpreter startup; the initial host
+process launch with a preexisting FIFO argument timed out without interpreter
+diagnostics, so that observation is not a successful CLI-loader test.
+
+Froze probe/plan in commit `d3e801b` before new Cloud Build executions. Baseline
+build `cf3e8c15-8d7a-4ebb-af2b-becaa8e038e3` reproduced the canary in the debug
+HTTP response and forbidden password/admin keys: functional checks passed but
+the security gate remained false. Repaired build
+`7cde97e2-61cd-4b14-9e3b-6a2c1e2a2ec7` passed all five functional requests and
+security checks with the same frozen plan/probe, on a separate internal-network
+container. Both build jobs succeeded because their benchmark expectations were
+reproduced; the baseline did not become a passing security result. Full sanitized
+reports and source/app/probe identities are in benchmarks/vampi/results.generic.json.
+The five requests are one known-exposure application exercise, not five independent
+vulnerabilities. Logs were retrieved with `gcloud builds log` after one direct
+Cloud Logging observation timed out; neither build was restarted.
+
+A clean macOS Python 3.11.9 installation of 0.4.5 verified 39 files, three
+commands, STOP cancellation and synthetic exposure checks outside the checkout.
+Wheel SHA-256: `d5093e979fb275e1f28a17f9de573e3f6f034967ed2d455a1f2aa89e2f8c58d9`.
+Local source/dependency audit retained 14 LOW/6 MEDIUM warnings, no HIGH/errors
+and no reported advisories in selected pins. Linux qualification and integration
+of this new probe into portable handoff CI remain required.
 General callable evidence tampering, trusted dependency build, broader evaluation,
 full remote recovery and operating qualification remain open gates.
 

@@ -103,6 +103,50 @@ No raw application output, database or source archive is published as an artifac
 
 ## Separate-container HTTP verification
 
+The original standalone probe remains unchanged below. Version 0.4.5 adds a
+packaged reusable probe, `python -m unspool.http_acceptance`, plus the frozen
+`http-plan.json` for this application. `generic_probe.py` is a benchmark adapter
+that checks the expected vulnerable/fixed outcome; it never rewrites a failed
+baseline gate to true. `results.generic.json` retains exact reports from both
+new runs and was compared directly with the completed build logs.
+
+| Generic-probe run | Application revision | Result |
+| --- | --- | --- |
+| [Baseline build](https://console.cloud.google.com/cloud-build/builds;region=us-central1/cf3e8c15-8d7a-4ebb-af2b-becaa8e038e3?project=398376578726) | `f16052dce83f05847133ec98f01c5193a41de7d8` | Five HTTP requests functionally pass; debug leaks the canary/password/admin; security gate is false |
+| [Repaired build](https://console.cloud.google.com/cloud-build/builds;region=us-central1/7cde97e2-61cd-4b14-9e3b-6a2c1e2a2ec7?project=398376578726) | `c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1` | Same five functional requests and security assertions pass |
+
+These are one known-exposure lab's before/after checks, not five vulnerabilities,
+another agent repair or broad accuracy evidence. Cloud logs require authorized
+GCP access; the retained sanitized JSON and source are public. Probe SHA-256:
+`38128a56c844797acf646bca912057f718dd21a4f6521381e5b4a840bac0ea50`;
+raw plan SHA-256:
+`78857c2283281879c0fe605bbc1783834121b720e9bbdd7ea07efbd9441b2a87`.
+The report's `plan_sha256` hashes the normalized JSON, so it differs from the raw
+file hash. Both runs used probe image
+`sha256:541096ae9b05d3b850341b78790e2ed31e94d5aa0ea086933c6ff0c09ffa2e63`.
+
+To reproduce, from the Unspool repository root create a clean upload context
+containing only these six trusted public files:
+
+```sh
+UNSPOOL_HTTP_CONTEXT="$(mktemp -d)"
+cp unspool/http_acceptance.py "$UNSPOOL_HTTP_CONTEXT/acceptance.py"
+cp benchmarks/vampi/Dockerfile benchmarks/vampi/generic.sh \
+  benchmarks/vampi/generic_probe.py benchmarks/vampi/http-plan.json \
+  benchmarks/vampi/generic.cloudbuild.yaml "$UNSPOOL_HTTP_CONTEXT/"
+```
+
+Use the earlier documented `gcloud builds submit` project/region/service-account
+and staging-bucket settings, but submit that directory with its
+`generic.cloudbuild.yaml`. Defaults check the fixed revision. For the baseline
+add `--substitutions=_SOURCE_SHA=f16052dce83f05847133ec98f01c5193a41de7d8,_EXPECT=--expect-vulnerable`.
+The dedicated disposable worker runs app and probe in separate containers, with
+only the application receiving its source. The application has no public port,
+passed credentials or Docker socket. Dependency-image construction still uses
+network and builder privileges; this is not a qualification of hostile dependency
+installation. A generic HTTP report alone cannot attest which commit serves a URL;
+retain the trusted orchestration/image/source binding as this benchmark does.
+
 `http_probe.py` uses only the standard library and imports no target code.
 `sidecar.sh` runs the app and probe in separate containers/filesystems on an
 internal-only network, without a public port, shared process namespace, passed

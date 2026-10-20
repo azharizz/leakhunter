@@ -36,6 +36,16 @@ output are untrusted inputs and never grant authorization.
 
 ## Release decisions
 
+The separate 0.4.5 JSON HTTP probe observes requests/responses without importing
+target code and can run in a separately provisioned probe container. Its canary,
+field and functional assertions are declarative and bounded. Actual VAmPI
+before/after runs with the same frozen plan/probe are retained in
+`benchmarks/vampi/results.generic.json`. This protects that measurement process
+from application monkeypatching, given the trusted probe image, host and isolation
+configuration. It is not an application launcher, artifact attestation, log/egress
+observer or a fix to same-process callable instrumentation. Portable handoff use
+still requires a pinned CI adapter binding source/image identity to its report.
+
 Static source ingestion in 0.4.4 uses no-follow, directory-relative opens,
 single-link regular files and bounded reads; excluded trees are pruned before
 descent. Limits are 1 MiB/file, 32 MiB source total, 2,000 source files, 20,000

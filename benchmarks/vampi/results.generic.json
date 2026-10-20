@@ -1,0 +1,54 @@
+{
+  "kind": "retained-generic-http-benchmark",
+  "date": "2026-10-21",
+  "probe_sha256": "38128a56c844797acf646bca912057f718dd21a4f6521381e5b4a840bac0ea50",
+  "plan_file_sha256": "78857c2283281879c0fe605bbc1783834121b720e9bbdd7ea07efbd9441b2a87",
+  "probe_image": "sha256:541096ae9b05d3b850341b78790e2ed31e94d5aa0ea086933c6ff0c09ffa2e63",
+  "limitations": "One known-exposure security lab, five HTTP requests per revision; not five vulnerabilities or generic callable tamper resistance. Dependency build still uses network.",
+  "runs": [
+    {
+      "build_id": "cf3e8c15-8d7a-4ebb-af2b-becaa8e038e3",
+      "source_sha": "f16052dce83f05847133ec98f01c5193a41de7d8",
+      "application_image": "sha256:9af60803f8eac5fa98e33fdf78ee1ff78b54296625d34bcfc8745f238344cc68",
+      "report": {
+        "kind": "external-json-http-acceptance",
+        "plan_sha256": "7defd18b6503b7b33fc73dc0030b506229541d6ce4667011acba863145ca2a24",
+        "marker_sha256": ["e14649a288d4ebf86966b9c5aece9bc02989119ce788ba8ee514a65626e699e1"],
+        "gate": {"passed": false, "scope": "Configured HTTP responses only; not logs or arbitrary code safety"},
+        "runtime": {
+          "status": "COMPLETED", "passed": false, "functional_passed": true, "security_passed": false,
+          "cases": [
+            {"id": "initialize-disposable-db", "passed": true, "status": "COMPLETED", "observations": [], "violations": [], "http_status": 200, "security_passed": true},
+            {"id": "register-canary", "passed": true, "status": "COMPLETED", "observations": [], "violations": [], "http_status": 200, "security_passed": true},
+            {"id": "public-list", "passed": true, "status": "COMPLETED", "observations": [], "violations": [], "http_status": 200, "security_passed": true},
+            {"id": "lookup", "passed": true, "status": "COMPLETED", "observations": [], "violations": [], "http_status": 200, "security_passed": true},
+            {"id": "debug", "passed": true, "status": "COMPLETED", "observations": [{"sink": "HTTP_RESPONSE", "marker_sha256": "e14649a288d4ebf86966b9c5aece9bc02989119ce788ba8ee514a65626e699e1"}], "violations": [{"sink": "HTTP_RESPONSE", "forbidden_field": "admin"}, {"sink": "HTTP_RESPONSE", "forbidden_field": "password"}], "http_status": 200, "security_passed": false}
+          ]
+        },
+        "expected_behavior_reproduced": true
+      }
+    },
+    {
+      "build_id": "7cde97e2-61cd-4b14-9e3b-6a2c1e2a2ec7",
+      "source_sha": "c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1",
+      "application_image": "sha256:2fae236a05bb16c668afcd019b0ac08ad66721e455975ee599130f671183baa1",
+      "report": {
+        "kind": "external-json-http-acceptance",
+        "plan_sha256": "7defd18b6503b7b33fc73dc0030b506229541d6ce4667011acba863145ca2a24",
+        "marker_sha256": ["93409c14b1222734bbed0ae5a9823b964c8ef884d7ee03aee758933dd01469fa"],
+        "gate": {"passed": true, "scope": "Configured HTTP responses only; not logs or arbitrary code safety"},
+        "runtime": {
+          "status": "COMPLETED", "passed": true, "functional_passed": true, "security_passed": true,
+          "cases": [
+            {"id": "initialize-disposable-db", "passed": true, "status": "COMPLETED", "observations": [], "violations": [], "http_status": 200, "security_passed": true},
+            {"id": "register-canary", "passed": true, "status": "COMPLETED", "observations": [], "violations": [], "http_status": 200, "security_passed": true},
+            {"id": "public-list", "passed": true, "status": "COMPLETED", "observations": [], "violations": [], "http_status": 200, "security_passed": true},
+            {"id": "lookup", "passed": true, "status": "COMPLETED", "observations": [], "violations": [], "http_status": 200, "security_passed": true},
+            {"id": "debug", "passed": true, "status": "COMPLETED", "observations": [], "violations": [], "http_status": 200, "security_passed": true}
+          ]
+        },
+        "expected_behavior_reproduced": true
+      }
+    }
+  ]
+}
