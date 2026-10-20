@@ -62,6 +62,8 @@ class HandoffConfig:
             if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
                     or info.st_mode & 0o022 or info.st_nlink != 1):
                 raise ValueError("Operator configuration must be an owned regular file without shared writes or links")
+            if info.st_size > 65536:
+                raise ValueError("Operator configuration is unexpectedly large")
         except BaseException:
             os.close(fd)
             raise
