@@ -1,0 +1,335 @@
+# Unspool: evidence-driven roadmap to submission and production
+
+Prepared 20 October 2026, Asia/Jakarta. This is a plan, not a claim that the work
+below is complete. No checklist item is satisfied merely because code exists,
+a test count increased, a cloud URL works, or an agent says it succeeded.
+
+## Decision and intended first product
+
+Current verdict: working prototype with real GitLab Duo, CI, bounded automatic
+promotion, and public static-report delivery. Not established as a production
+security product or a general repair service. The latest successful autonomous
+changes normalized display names; they did not discover an unknown real-world
+vulnerability. The 77 Python tests are regression tests, not 77 independent
+vulnerability cases.
+
+First production candidate: a versioned, self-hosted GitLab integration for
+selected Python repositories. Each adopting team owns its workers, repository
+credentials, policies, and evidence. Start in report/MR-only mode with human
+approval. Gradually enable narrowly defined automatic changes in disposable
+staging applications. Preserve `leakhunter` import compatibility.
+
+Do not start by building a shared SaaS that clones arbitrary customer code.
+Multiple people can use a packaged integration in separate projects without
+sharing code, credentials, or mutable state. Shared SaaS is a later product with
+additional authorization, isolation, privacy, tenancy, and operating obligations.
+
+Production readiness must always name a scope: supported languages/frameworks,
+repository sizes, policy semantics, deployment targets, users, and permitted
+automatic changes. Passing a scoped release gate never proves all code safe.
+
+## Established evidence and remaining uncertainty
+
+### Execution log — 20 October, first implementation goal turn
+
+Classification: **progress**. The goal remains active; production readiness is
+not established. These are partial gate results, not a replacement for the full
+objective or independent-user requirements below.
+
+- Added 0.4.0 operator-owned JSON configuration and read-only preflight for
+  GitLab.com. Project ID/path binding, exact application paths, pinned contracts,
+  strict schema and review-only defaults are implemented. Automatic mode requires
+  a protected fast-forward-only target and stops on a changed base.
+- Added private atomic intent records, a per-project/target lock, bounded retries
+  for transient reads, and marker reconciliation for a lost trigger response.
+  Mutations are not automatically replayed. Unit failure/restart tests pass;
+  real remote crash/concurrency drills are still pending.
+- The full local suite passes **89 Python tests**, plus dashboard checks. Counts
+  remain regression tests, not independently labeled vulnerability examples.
+- Built a 0.4.0 wheel and installed it into a fresh Python 3.11 virtual environment.
+  Its installed console command, run from `/tmp` outside the source checkout,
+  passed live preflight against `azharizz/unspool-vampi-validation` without editing
+  Unspool source. This is maintainer-run portability evidence, not an independent
+  installer or pilot. Other declared Python-version boundaries remain unverified.
+- Imported the MIT-licensed external VAmPI project into that dedicated validation
+  repository, preserving upstream revision
+  `f16052dce83f05847133ec98f01c5193a41de7d8`. Added a no-public-listener HTTP probe
+  for its author-documented exposure. It is an intentionally vulnerable external
+  security lab, not a production customer deployment or unknown-vulnerability claim.
+- The isolated VAmPI HTTP baseline now reproduces the published debug exposure:
+  public lookup/list functionality passes, the debug HTTP response leaks the
+  synthetic canary, and the report explicitly says `security_passed: false`.
+  Cloud Build `d4c0faaf-67f6-444a-b9d6-7a33cff8ee12` is the execution record.
+  Two earlier harness-startup failures are retained as setup errors; no upstream
+  code changed. See benchmarks/vampi/README.md. Integration into Unspool's detector,
+  candidate repair and comparative evaluation are not yet complete.
+- Added ADOPTION.md, SECURITY.md, sample configurations and a pinned known
+  dependency set. Threat-model verification, independent review, worker isolation
+  evidence, full recovery drills, deployment/rollback proof for a repaired target,
+  real-world evaluation, baseline comparison and pilot acceptance remain open.
+
+Next: install/test the final candidate wheel, pass remote CI, then extend the external application verification and real
+repair evidence. Do not mark an entire gate complete from these partial checks.
+
+| Area | Established | Not established |
+| --- | --- | --- |
+| Platform integration | Actual Duo sessions, real MRs, verified merge, Cloud Run and Pages delivery | Reliable operation across other GitLab groups and permission models |
+| Security checks | Synthetic marker capture, safe/leaking fixture checks, bounded verification machinery | Independent accuracy on representative applications and unseen vulnerabilities |
+| Deployment | Public sanitized report with exact-revision smoke checks | Deployment and functional verification of a repaired real application |
+| Autonomy | Fresh bounded issue-to-report runs without intermediate intervention | General autonomous remediation or safe execution of adversarial repositories |
+| Product access | Local CLI/UI, local CRUD, public read-only report | Hosted multi-user CRUD or cross-tenant access controls |
+| Operations | Working deployment jobs and local polling controller | Durable recovery, concurrency guarantees, rollback drills, sustained service objectives |
+
+## Gate 0 — confirm the claims and submission basis
+
+- [x] Write the supported-use statement: initially selected Python services,
+  specified sinks and policy semantics, report/MR mode, no universal security claim.
+- [x] Label other language adapters experimental until each has its own execution,
+  detection, and repair evidence. Parsing a language is not equivalent to securing it.
+- [ ] Preserve original source history, MIT notices and attribution. The original
+  project commit was dated 19 October 2026; do not imply an older project history.
+- [ ] Review Path B against that actual history. If classification is ambiguous,
+  obtain organizer clarification before making an eligibility claim; never alter
+  history to fit a category. This document is not an eligibility determination.
+- [ ] Record actual additions, dates, model/provider dependencies, local controller
+  requirements, and what the live public URL does and does not run.
+
+Exit: every public claim maps to evidence or is marked planned/experimental.
+Owner: product maintainer. Independent reviewer: someone who did not build the demo.
+
+## Gate 1 — make a second repository work without source edits to Unspool
+
+- [ ] Replace demo-specific controller assumptions with a validated operator-owned
+  project configuration: project/namespace, protected target, branch convention,
+  issue trigger identity, required jobs, allowed paths, policy/manifest identities,
+  time/cost limits, deployment and rollback settings.
+- [ ] Bind that configuration to a version and authorized project. An issue,
+  model output, repository file, or supplied URL must not enlarge permissions.
+  Keep the current synthetic repair boundary until an explicitly reviewed change
+  introduces the reusable mechanism; never relax it to make a repair pass.
+- [ ] Ship a versioned package/container, reproducible dependency installation,
+  sample configuration, CI template, permission matrix, uninstall instructions,
+  and an automated preflight that performs no mutation.
+- [ ] Verify the installed artifact from a clean environment, not PYTHONPATH into
+  the development checkout. Record exact dependency and container identities.
+- [ ] An independent user installs it on a different authorized repository without
+  editing Unspool source. Test supported Python version boundaries and realistic
+  dependency/framework requirements.
+- [ ] Confirm the new team cannot trigger work, read evidence or deploy changes
+  in the original project. Do not copy the maintainer's credentials into their setup.
+
+Exit: a repeatable clean installation on another project, with installation notes,
+observed duration, permission checks, and a complete evidence bundle.
+
+## Gate 2 — establish real security value independently
+
+- [ ] Select an authorized, realistically structured application with a confirmed
+  exposure defect and an independently defined expected safe behavior. Prefer a
+  maintained MIT project or a consented internal application in an isolated copy.
+  Record upstream revision, license, dependencies, vulnerability provenance and scope.
+- [ ] Reproduce the defect before repair using a harmless canary and a real
+  application boundary such as HTTP. Never probe unrelated live systems or use
+  customer secrets. Disclose sensitive new findings privately to the owner.
+- [ ] Separate configured-source tests, detection of known vulnerabilities, and
+  discovery of previously unknown vulnerabilities. A supplied secret-field selector
+  or explicit repair instruction is not evidence of independent discovery.
+- [ ] Have a reviewer define security and functional acceptance cases before the
+  agent runs. Keep held-out checks inaccessible to the repair agent. Do not tune
+  policy or labels after seeing a bad result and still call it a held-out test.
+- [ ] Run analysis, produce a bounded repair MR, independently reproduce the
+  baseline and rerun security checks plus the application's own regressions.
+- [ ] Exercise a disposable staging deployment of the actual repaired application.
+  Demonstrate the vulnerable request is now blocked/redacted and legitimate
+  requests still work. The graph report is supporting evidence, not that application.
+- [ ] Build an initial evaluation across at least three unrelated repositories,
+  including safe behavior and unsupported cases. As a planning target, use at least
+  20 vulnerable and 20 safe cases across the declared scope; this is an initial
+  evaluation floor, not a production certification or statistical guarantee.
+- [ ] Report case/repository counts, exact revisions, TP/FP/TN/FN, unknowns,
+  execution failures, accepted/rejected repairs, regressions, latency, model/compute
+  cost, and limitations. Report conditional executed-case metrics and coverage
+  separately so abstaining cannot artificially improve the headline result.
+- [ ] Keep case-level results and uncertainty visible. Correlated variants of one
+  fixture are not independent real-world samples; balanced test-set precision does
+  not predict production precision at a different vulnerability prevalence.
+- [ ] Compare the same cases with the project's existing checks and with a
+  repair agent without Unspool's gate. Record additional correct detections and
+  incorrect repairs prevented, along with cost and false blocks. Freeze inputs and
+  versions, repeat stochastic runs, and publish failures as well as successful runs.
+
+Exit: independently reproducible before/after application evidence and an honest
+evaluation report. One successful application supports a pilot story, not a claim
+that arbitrary repositories are supported. If this gate fails, narrow the product.
+
+## Gate 3 — enforce security boundaries outside the model
+
+- [ ] Write a threat model covering repository code/build scripts, dependencies,
+  issue/MR prompt injection, CI artifacts, GitLab identities, model providers,
+  credentials, public reports, and deployment privileges.
+- [ ] Execute unfamiliar code in disposable isolated workers with no host Docker
+  socket, no host credentials, no cloud metadata access, bounded CPU/memory/disk/
+  processes/time, and controlled egress. Select stronger worker/VM isolation for
+  hostile multi-tenant workloads; a subprocess or container alone is not a complete
+  trust boundary. Test the isolation from inside a malicious fixture.
+- [ ] Treat dependency installation as code execution too. Separate dependency
+  fetch/build steps from credentialed promotion and restrict dependency sources.
+- [ ] Run verification/promotion logic from a trusted pinned version. Repository
+  tests can supply useful checks but cannot certify their own trustworthiness.
+  Keep independent policy, tests and deployment logic outside the agent's write scope.
+- [ ] Pin source/base/target SHAs, policy hash, manifest hash, runtime image digest,
+  verifier version, test results, artifact hashes, model/version, actor and run ID.
+  Bind evidence to the exact artifact promoted, not just a self-reported health SHA.
+- [ ] Revalidate or stop when the target branch changes. An MR tested on an old
+  base does not prove its integration with a new target branch is correct.
+- [ ] Use identities scoped to one project and operation. Separate read/analyze,
+  propose, verify and deploy privileges; honor protected branches and required
+  approvals. Do not give Duo the user's identity to escape a permission boundary.
+- [ ] Specify what code/context leaves the worker for model inference, and make
+  provider choice, redaction, retention and opt-out explicit. Test canary secrets
+  against logs, artifacts, prompts and public reports.
+- [ ] Test malicious instructions in issues, source comments and tool outputs;
+  attempted policy/test/CI edits; path escapes; stale/forged artifacts; untrusted
+  configuration; unauthorized triggers; and wrong-project deployment.
+
+Exit: independent review of the trust boundaries, no unresolved critical/high
+risk in the declared use, and regression tests proving the negative cases stop
+promotion. A clean review is evidence within scope, not a guarantee of no flaws.
+
+## Gate 4 — survive interruptions and concurrent work
+
+- [ ] Persist a run identity and state transitions: requested, analyzing, proposed,
+  verifying, blocked, merged, deploying, healthy, failed, recovery required.
+  Reuse GitLab's durable pipeline/job state where possible before adding services.
+- [ ] Use a stable identity based on project + intent/source revision + policy
+  version. Record the trigger before dispatch so restarting before an MR exists
+  cannot start duplicate Duo work. Lock promotion per target/environment.
+- [ ] Bound retries for transient failures; preserve the distinction between failed,
+  unknown, timed-out, canceled and passed. Never turn missing checks into success.
+- [ ] Demonstrate restart after trigger, after push, after MR creation, after merge,
+  during deploy and after successful deploy but before the completion note.
+- [ ] Demonstrate two concurrent issues, duplicate delivery, a stale MR, a changed
+  target branch, 429/5xx responses, revoked credentials and provider unavailability.
+- [ ] Preserve the last healthy deployment when a candidate fails. Prove rollback
+  with an intentional staging failure and retain the artifact to roll back to.
+- [ ] Define cancellation, a kill switch and escalation ownership. Alert on stuck
+  runs and post a final outcome with evidence to the originating issue/MR.
+
+Exit: fault-injection records show no duplicate promotion, unauthorized merge or
+false success; interrupted runs can be safely resumed by someone other than the author.
+
+## Gate 5 — release to a small supervised pilot
+
+- [ ] Two independent teams install the released artifact in separate projects.
+  Start with report/MR-only mode, named reviewers and rollback instructions.
+- [ ] Agree the pilot's repository sizes, concurrent jobs, acceptable latency/cost,
+  support hours, data retention and service objectives before testing them.
+  Choose thresholds from actual customer needs, not from whichever results pass.
+- [ ] Measure those limits on representative repositories and queue pressure.
+  Reject/defer work beyond quotas with an explicit status, not silent truncation.
+- [ ] Keep tenant/project state and credentials isolated; define deletion/export
+  and verify public reports never disclose private code or repository metadata.
+- [ ] Provide SECURITY.md, a private reporting route, dependency inventory and
+  license review, supported versions, upgrade/migration and rollback instructions,
+  diagnostic redaction, billing alerts, and a responsible operator.
+- [ ] Run the pilot for an agreed observation window; track every failure and
+  required intervention. Publish the denominator and unresolved limitations.
+- [ ] Expand autonomy only for approved low-risk change classes with explicit
+  policy and independent acceptance checks. Unknown/high-impact cases remain
+  human-reviewed. Never advertise general automatic security repair from this pilot.
+
+Exit: pilot owners accept the documented scope, incidents/recovery are reviewed,
+and the tested service objectives and security boundaries are met. Only then use
+the phrase production-ready for that specific deployment/use case.
+
+## Gate 6 — optional shared hosted product
+
+This is not necessary for many teams to use the self-hosted integration. If the
+product later accepts customer repositories through a shared website, additionally
+require login/SSO, server-side project membership and per-action authorization,
+tenant isolation tests, short-lived per-project credentials, isolated execution,
+durable queues, shared-state design, fair-use quotas, audit logs, deletion/retention,
+backup restoration, abuse response and ongoing operational ownership.
+
+Public CRUD must never call the existing mutable local server without that design.
+Do not expose host paths or execute arbitrary repositories in the report service.
+Independent security review and customer data-handling approval precede this launch.
+
+## GitLab AI Catalog: a distribution gate, not certification
+
+- [ ] First prove Gate 1 with another installer and Gate 2 with a real application.
+- [ ] Package a genuine versioned custom agent/flow with an explicit external
+  controller dependency if retained. Do not rename the existing foundational
+  Developer flow and imply it is a new Unspool agent implementation.
+- [ ] Publish experimental report/MR-only behavior first; disclose permissions,
+  data transmission, supported cases, costs, limitations and uninstall steps.
+- [ ] Test enablement in a separate namespace, version pinning, upgrade and removal.
+- [ ] Use a managing project where the user actually has Maintainer/Owner rights.
+  The hackathon project's Developer access is not sufficient to create custom
+  agents there; Catalog publication does not remove group enablement constraints.
+
+Do not make Catalog listing a prerequisite for an honest hackathon submission.
+
+## Submission schedule and scope cuts
+
+The current deadline is 27 October 2026 at 20:00 WIB (13:00 UTC). The following
+is a proposed schedule, not an effort estimate or promise of production readiness.
+Parallel engineering cannot substitute for independent evaluation or a pilot.
+
+| Date (WIB) | Highest-value work | Decision at the end |
+| --- | --- | --- |
+| 20–21 October | Gate 0, narrow scope, choose authorized real target and independent reviewer, start portable configuration | Confirm truthful story and feasible target |
+| 21–22 October | Clean installation on a second repository; reproduce confirmed defect and pin acceptance cases | If unsuccessful, keep explicit prototype status |
+| 22–24 October | Real repair/staging demonstration, safe cases, baseline comparison, highest-risk isolation and negative tests | Report measured results; reduce unsupported claims |
+| 24–25 October | Restart/duplicate/concurrency and failed-deployment drills; independent installer/reviewer | Freeze supported behavior; disable unvalidated autonomy |
+| 25–26 October | Release candidate, clean-room reproduction, public evidence bundle and demo recording | Fix blockers only; no late architecture or marketplace expansion |
+| 26 October | Prepare and validate submission fields, public links and video | Aim to submit with a day's buffer |
+| 27 October, before 20:00 | Final availability/visibility checks and submission | Do not submit inflated claims to compensate for unfinished work |
+| After submission | Larger held-out evaluation, supervised pilots, security review and operations gates | Decide whether a scoped production release is justified |
+
+If time is short: keep Python only; keep the controller local and documented;
+retain human approval for external/customer code; skip shared SaaS, public mutable
+CRUD, extra cloud services and Catalog publication. Do not skip a truthful scope,
+independent verification or required submission material.
+
+## Submission go/no-go checklist
+
+- [ ] Public MIT GitLab repository, original project URL and honest provenance.
+- [ ] Actual Duo session, source diff, CI evidence, deployment identity and outcome
+  links; demonstrate one successful run and one deliberately blocked failure.
+- [ ] Public live GCP URL and deployment code in the public repository for the
+  optional Google Cloud bonus; preserve fallback availability.
+- [ ] Confirm what the live project actually executes. If it remains a static
+  report, say so; demonstrate any repaired target separately and explain the
+  deployment boundary rather than implying a full hosted service.
+- [ ] Working clean installation instructions and all required assets/configuration.
+- [ ] Public YouTube video under three minutes showing actual operation; explain
+  time cuts and local-controller requirements without staging fake outcomes.
+- [ ] Text description states the problem, additions, actual autonomy, measured
+  benefits, failure behavior, limitations and model/service dependencies.
+- [ ] No customer data, credentials, unpublished vulnerability details or material
+  lacking required permissions in source, logs, report or video.
+- [ ] Keep the project available through judging/winner announcement, on or around
+  16 November; ensure trial/billing validity and designate an availability owner.
+- [ ] Check every final claim and link from a judge's unauthenticated perspective.
+
+Shipping as a prototype or evaluated beta is acceptable if described accurately.
+Do not declare production readiness because the submission deadline arrived.
+
+## Evidence record for each gate
+
+Use the same record format: claim; exact release/commit; configuration and dataset
+versions; prerequisite permissions; procedure; expected result; observed result;
+all failures/unknowns; logs/artifact hashes; independent reviewer; date; limitations;
+decision (pass, fail, blocked). Keep a claim-evidence table in the release notes.
+Screenshots and demo videos supplement reproducible evidence; they do not replace it.
+
+## Official references checked 20 October 2026
+
+- [Event overview and requirements](https://gitlab-transcend.devpost.com/)
+- [Official rules: timing, Path B, functionality, submission and availability](https://gitlab-transcend.devpost.com/rules)
+- [GitLab AI Catalog and version management](https://docs.gitlab.com/user/duo_agent_platform/ai_catalog/)
+- [Custom agent creation and required roles](https://docs.gitlab.com/user/duo_agent_platform/agents/custom/)
+
+The roadmap's engineering gates and sample targets are our proposals, not extra
+hackathon rules or a security certification standard. Organizer decisions govern
+eligibility; recheck requirements before submission.

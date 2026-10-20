@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "project_id": 87860005,
+  "project_path": "gitlab-ai-hackathon/transcend-october-2026/43244671/unspool",
+  "target_branch": "main",
+  "branch_prefix": "unspool/",
+  "trigger_username": "duo-developer-gitlab-ai-hackathon",
+  "allowed_paths": ["demo/target/service.py"],
+  "verification_jobs": ["python-tests", "dashboard-tests", "verify-exposure"],
+  "deployment_jobs": ["deploy-pages", "production-smoke", "deploy-cloud-run"],
+  "evidence_job": "verify-exposure",
+  "evidence_path": "evidence.json",
+  "health_path": "public/health.json",
+  "protected_files": {
+    "demo/policy.yaml": "c6900cd50f5fdc98ded5fded7d01940f8a01c9e737018cd6ccce42cc1c802fc6",
+    "demo/runtime.yaml": "bcd19cee089f756ebd36d994fdfa6e6307e6db7260db3312c4d5291bdeef3b52"
+  },
+  "mode": "review"
+}
