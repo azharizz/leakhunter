@@ -24,6 +24,25 @@ dashboard-tests:
     - node --check leakhunter/static/app.js
     - node tests/test_dashboard.cjs
 
+installed-wheel:
+  stage: verify
+  image: python:${PYTHON_VERSION}-slim
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ['3.10', '3.12']
+  script:
+    - python -m pip wheel --disable-pip-version-check --no-deps --wheel-dir dist .
+    - python -m pip install --disable-pip-version-check -c requirements.lock dist/unspool-*.whl
+    - python -m pip check
+    - cd /tmp
+    - python -I "$CI_PROJECT_DIR/ci/verify_install.py" --source "$CI_PROJECT_DIR" --output "$CI_PROJECT_DIR/installation.json"
+    - python -m pip freeze > "$CI_PROJECT_DIR/installed-dependencies.txt"
+    - sha256sum "$CI_PROJECT_DIR"/dist/*.whl > "$CI_PROJECT_DIR/wheel-sha256.txt"
+  artifacts:
+    when: always
+    paths: [dist/, installation.json, installed-dependencies.txt, wheel-sha256.txt]
+    expire_in: 90 days
+
 verify-exposure:
   stage: evidence
   image: python:3.12-slim
