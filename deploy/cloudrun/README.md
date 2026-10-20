@@ -42,7 +42,7 @@ The principal set for project `87860005` can impersonate `unspool-deploy` throug
 
 | Identity | Permissions |
 | --- | --- |
-| `unspool-deploy` | Cloud Build Editor and Service Usage Consumer on the project; Run Developer on this service; Artifact Registry Reader on this repository; Storage Object Admin on the staging bucket; Service Account User on the builder and runtime only |
+| `unspool-deploy` | Cloud Build Editor and Service Usage Consumer on the project; Run Developer on this service; Artifact Registry Reader on this repository; Storage Object Admin and Legacy Bucket Reader on the staging bucket; Service Account User on the builder and runtime only |
 | `unspool-build` | Artifact Registry Writer on this repository; Storage Object Viewer on staging; Logs Writer on the project |
 | `unspool-web` | No project roles; runs the static server as UID 101 |
 | `allUsers` | Run Invoker on this public read-only service only |
@@ -69,3 +69,13 @@ python3 -m unspool.handoff --project 87860005 --issue <iid>
 
 Cloud Run hosts the public report only. Keep the local controller running until
 the full workflow returns `DEPLOYED_AND_VERIFIED`.
+
+## Fresh workflow evidence
+
+Before adding Google Cloud, [issue #2](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/work_items/2)
+completed the full workflow without intervention: the controller triggered Duo,
+Duo created [MR !3](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/3),
+the fixed CI gates passed, the controller merged it, and
+[pipeline 2967534949](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2967534949)
+deployed and verified revision `ff1264c4f0f38faa498ab496e6cab7ab70292066`.
+This demonstrates the bounded synthetic workflow, not unrestricted repair safety.
