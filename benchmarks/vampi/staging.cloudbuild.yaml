@@ -1,0 +1,21 @@
+steps:
+  - name: gcr.io/cloud-builders/git
+    args: [clone, --no-checkout, 'https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery.git', upstream]
+  - name: gcr.io/cloud-builders/git
+    dir: upstream
+    args: [checkout, --detach, c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1]
+  - name: gcr.io/cloud-builders/git
+    entrypoint: sh
+    args: [-ec, 'mkdir /workspace/source; git -C /workspace/upstream archive HEAD | tar -x -C /workspace/source']
+  - name: gcr.io/cloud-builders/docker
+    args: [build, -f, Dockerfile.staging, --build-arg, SOURCE_SHA=c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1, -t, 'us-central1-docker.pkg.dev/$PROJECT_ID/unspool/vampi-staging:c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1', source]
+  - name: gcr.io/cloud-builders/docker
+    args: [push, 'us-central1-docker.pkg.dev/$PROJECT_ID/unspool/vampi-staging:c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1']
+  - name: gcr.io/cloud-builders/docker
+    args: [pull, 'python:3.11-slim']
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: sh
+    args: [/workspace/staging.sh, 'us-central1-docker.pkg.dev/$PROJECT_ID/unspool/vampi-staging:c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1']
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s
