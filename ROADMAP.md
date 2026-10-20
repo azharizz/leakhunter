@@ -46,6 +46,29 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — separate HTTP observation boundary
+
+Classification: **progress**, incomplete isolation qualification. MR !7 passed
+final pipeline `2968058406` and merged at
+`e65463a150dcb88bd79598736fe8f4ac3c1474b4`.
+Added a second VAmPI acceptance client that imports no target code. The target
+and HTTP client run in different containers with separate filesystems/processes,
+an internal-only Docker network, no published ports, no passed credentials,
+resource limits and read-only source/probe mounts. Only the application receives
+the source; only the probe receives its measurement code. This aims to close the
+same-process monkeypatch path for this benchmark, not the general runtime.
+Two HTTP client tests passed: safe/leaking behavior distinguished, and leak,
+empty result, forbidden admin field, redirect and oversized response rejected.
+Cloud Build `3493cb5f-f753-4b19-8a0e-7e9c6ef538fe` passed the repaired
+application HTTP checks at `c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1`, with
+`security_passed: true`. Baseline build `be497e7b-d0d2-4c3d-b181-54fc4edfb220`
+reproduced the original exposure at `f16052dce83f05847133ec98f01c5193a41de7d8`,
+with `security_passed: false`. Both preserved the tested public identity behavior
+and used the same probe image ID. See benchmarks/vampi/README.md for identities
+and reproduction. All 95 local tests pass. These are separate-container executions
+of one security-lab application; in-worker malicious-fixture/network isolation
+checks and general-runtime tamper resistance remain unproven.
+
 ### Execution log — local recovery and file boundary hardening
 
 Classification: **progress**. Closed unsafe configuration/state reads: symlinks,

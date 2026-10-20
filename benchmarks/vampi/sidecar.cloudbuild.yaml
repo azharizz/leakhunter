@@ -1,0 +1,19 @@
+substitutions:
+  _SOURCE_SHA: c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1
+  _EXPECT: --expect-fixed
+steps:
+  - name: gcr.io/cloud-builders/git
+    args: [clone, --no-checkout, 'https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery.git', upstream]
+  - name: gcr.io/cloud-builders/git
+    dir: upstream
+    args: [checkout, --detach, '${_SOURCE_SHA}']
+  - name: gcr.io/cloud-builders/docker
+    args: [build, -f, Dockerfile, -t, vampi-validation-dependencies, upstream]
+  - name: gcr.io/cloud-builders/docker
+    args: [pull, 'python:3.11-slim']
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: sh
+    args: [/workspace/sidecar.sh, '${_EXPECT}']
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s
