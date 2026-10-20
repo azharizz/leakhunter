@@ -81,7 +81,30 @@ without relabeling: TP 5 / TN 3 / unknown 2 / FP 0 / FN 0 / execution errors 0,
 with zero parse errors. `benchmarks/external/results.bounded-ingestion.json`
 retains exact analyzer/source-reader/manifest identities and case outcomes. This
 is a repeated selected feasibility set, not new independent accuracy evidence.
-Linux 0.4.4 CI qualification remains required. General callable/runtime evidence
+MR !19 passed pipeline `2968875317` and merged at
+`9a656c7e1578ac0c7bc735d7e1f7981186ccebe0`. Both Linux jobs passed the 38-file
+installed checks: Python 3.10.22 job `17326283669`, wheel
+`a76914eb1775c11d2efdede7c9efeef29816d7912a8e7b642dbb2ea129977ad4`;
+Python 3.12.15 job `17326283670`, wheel
+`5398f609836188cf88a06197e6ecb384d0102c8e733262a6f1031fbb9329b03c`.
+Their 44 ZIP members had identical payloads but six differing ZIP timestamps;
+they were separately built artifacts, not one wheel qualified twice. Preparing
+a single CI build artifact, checksummed before/after each installation and shared
+by both matrix jobs; its build timestamp is anchored to the source commit and
+build metadata is retained. This pipeline change still requires remote validation.
+GitLab's project CI lint accepted it with zero errors/warnings. Two local builds
+with pinned tools, build isolation disabled and the same fixed timestamp
+(`1792515600`) produced identical wheel bytes, SHA-256
+`48171ffeb46846f5803904e8e3ee2caa7ddbebe102b07f57765f47c924951208`.
+That is repeatability in one environment, not a cross-platform reproducible-build
+claim or a permanent published release.
+
+Separately exercised the installed scanner with unpatched release limits: 2,000
+empty source files, 32 files totaling exactly 32 MiB, 20,000 non-source entries
+and a directory at depth 64 were accepted; adding one file/byte/entry/directory
+respectively raised the expected quota error. These are ingestion fixtures,
+not representative parsing/application-load or concurrency qualification.
+General callable/runtime evidence
 tampering, dependency execution, parser resource isolation, full recovery,
 broader evaluation and declared operational qualification remain open.
 

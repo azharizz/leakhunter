@@ -1,4 +1,4 @@
-stages: [verify, evidence, deploy, monitor]
+stages: [build, verify, evidence, deploy, monitor]
 
 workflow:
   rules:
@@ -41,24 +41,41 @@ security-audit:
     paths: [security-reports/]
     expire_in: 90 days
 
+build-wheel:
+  extends: .python-bootstrap
+  stage: build
+  image: python:3.12-slim
+  script:
+    - |
+      export SOURCE_DATE_EPOCH="$(python -c 'import datetime, os; print(int(datetime.datetime.fromisoformat(os.environ["CI_COMMIT_TIMESTAMP"].replace("Z", "+00:00")).timestamp()))')"
+    - python -m pip wheel --disable-pip-version-check --no-deps --no-build-isolation --wheel-dir dist .
+    - sha256sum dist/*.whl > wheel-sha256.txt
+    - |
+      python -c 'import json, os, platform; from importlib.metadata import version; print(json.dumps({"source_commit": os.environ["CI_COMMIT_SHA"], "source_date_epoch": int(os.environ["SOURCE_DATE_EPOCH"]), "builder_python": platform.python_version(), "build_tools": {name: version(name) for name in ("pip", "setuptools", "wheel", "packaging")}}))' > wheel-build.json
+  artifacts:
+    paths: [dist/, wheel-sha256.txt, wheel-build.json]
+    expire_in: 90 days
+
 installed-wheel:
   extends: .python-bootstrap
   stage: verify
   image: python:${PYTHON_VERSION}-slim
+  needs: [build-wheel]
   parallel:
     matrix:
       - PYTHON_VERSION: ['3.10', '3.12']
   script:
-    - python -m pip wheel --disable-pip-version-check --no-deps --wheel-dir dist .
+    - sha256sum -c wheel-sha256.txt
     - python -m pip install --disable-pip-version-check -c requirements.lock dist/unspool-*.whl
     - python -m pip check
     - cd /tmp
     - python -I "$CI_PROJECT_DIR/ci/verify_install.py" --source "$CI_PROJECT_DIR" --output "$CI_PROJECT_DIR/installation.json"
     - python -m pip freeze > "$CI_PROJECT_DIR/installed-dependencies.txt"
-    - sha256sum "$CI_PROJECT_DIR"/dist/*.whl > "$CI_PROJECT_DIR/wheel-sha256.txt"
+    - cd "$CI_PROJECT_DIR"
+    - sha256sum -c wheel-sha256.txt
   artifacts:
     when: always
-    paths: [dist/, installation.json, installed-dependencies.txt, wheel-sha256.txt]
+    paths: [dist/, installation.json, installed-dependencies.txt, wheel-sha256.txt, wheel-build.json]
     expire_in: 90 days
 
 verify-exposure:
