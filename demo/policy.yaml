@@ -1,0 +1,11 @@
+version: 1
+status: approved
+approved_by: Unspool synthetic demo maintainers
+classifications: {PUBLIC: 0, SECRET: 1}
+sources:
+  - {selector: "*.password_hash", class: SECRET}
+sinks:
+  - kind: HTTP_RESPONSE
+    allow: [PUBLIC]
+    deny_fields: ["*.password_hash"]
+invariants: [secret_fields_never_in_external_payloads, no_real_secrets_in_test_artifacts]

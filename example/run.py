@@ -9,7 +9,7 @@ HERE = Path(__file__).resolve().parent
 
 
 def run():
-    parser = argparse.ArgumentParser(description="Run LeakHunter against the bundled example")
+    parser = argparse.ArgumentParser(description="Run Unspool against the bundled example")
     parser.add_argument("--port", type=int, default=8787)
     parser.add_argument("--offline", action="store_true", help="Disable provider calls")
     parser.add_argument("--env-file", type=Path, default=HERE.parent / ".env")

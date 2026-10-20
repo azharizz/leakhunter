@@ -50,7 +50,7 @@ The independent functional regression command, runnable **from the target root**
 It pins legitimate product/profile/audit behavior and authorization denials,
 without requiring vulnerable extra response fields to survive a repair.
 
-## Run LeakHunter against the target
+## Run Unspool against the target
 
 ```sh
 python3 -m pip install -r requirements.txt

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>LeakHunter · Exposure intelligence</title>
+    <title>Unspool · Graph workspace</title>
     <link rel="stylesheet" href="/static/styles.css">
   </head>
   <body>
@@ -12,30 +12,22 @@
     <main>
       <!-- Component: application header and primary actions. -->
       <header class="top">
-        <div>
-          <div class="eyebrow">Exposure intelligence</div>
-          <h1>LeakHunter</h1>
-          <div class="muted">
-            Static candidates, executed evidence, independently gated local repairs.
-          </div>
+        <div class="brand">
+          <svg class="brandmark" viewBox="0 0 32 32" aria-hidden="true"><path d="M8 9v14h16M8 16h8l8-7M16 16l8 7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="9" r="2"/><circle cx="24" cy="9" r="2"/><circle cx="24" cy="23" r="2"/></svg>
+          <span>Unspool</span>
+          <span class="workspace-name">Graph workspace</span>
         </div>
 
         <div class="actions">
-          <button id="run" class="primary" type="button">Run analysis</button>
+          <button id="workspaceToggle" type="button" aria-controls="workspaceSettings" aria-expanded="false">Workspace</button>
+          <button id="run" class="primary" type="button">Analyze</button>
         </div>
       </header>
-
-      <p class="help">
-        Analysis does not repair code. Runtime results cover executed synthetic cases only.
-        Model advice cannot confirm a finding, approve policy, or pass a repair gate.
-        Repairs are isolated local branches and local merge-request simulations, never a
-        push, merge, or deployment.
-      </p>
 
       <div id="activity" class="notice" role="status" aria-live="polite"></div>
       <div id="error" class="notice error" role="alert" tabindex="-1"></div>
 
-      <details class="secondary">
+      <details id="workspaceSettings" class="secondary workspace-settings">
         <summary>Workspace settings &amp; snapshots</summary>
       <!-- Component: runtime and provider configuration. -->
       <section class="panel" aria-labelledby="configurationTitle">
@@ -61,10 +53,6 @@
           </div>
         </div>
 
-        <div id="viewStatus" class="notice" role="status" aria-live="polite">
-          Live knowledge · user annotations survive analysis.
-        </div>
-
         <details>
           <summary>Snapshot provenance / analysis coverage</summary>
           <pre id="provenance">No analysis recorded.</pre>
@@ -72,14 +60,27 @@
       </section>
       </details>
 
+      <div class="workspace-heading">
+        <div><h1>Follow the data.</h1><p class="muted">Explore connections. Keep what matters.</p></div>
+        <div id="viewStatus" class="view-status" role="status" aria-live="polite">Loading workspace…</div>
+      </div>
+
       <!-- Component: filtered SVG knowledge graph. -->
       <section id="graphSection" class="panel" aria-labelledby="graphTitle">
-        <div class="toolbar">
-          <h2 id="graphTitle">Knowledge graph · CPG &amp; annotations</h2>
-          <span id="graphStatus" class="badge" role="status"></span>
+        <div class="graph-toolbar">
+          <div class="segmented" role="group" aria-label="Record editor">
+            <button id="nodesMode" type="button" aria-pressed="true" aria-controls="nodeInspector">Nodes</button>
+            <button id="edgesMode" type="button" aria-pressed="false" aria-controls="edgeInspector">Edges</button>
+          </div>
+          <label class="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>
+            <input id="graphSearch" type="search" aria-label="Search graph" placeholder="Search labels, IDs, files…">
+          </label>
+          <button id="filtersToggle" type="button" aria-expanded="false" aria-controls="graphFilters">Filters</button>
+          <button id="addRecord" class="primary" type="button">Add node</button>
         </div>
 
-        <div class="filters">
+        <div id="graphFilters" class="filters" hidden>
           <label>
             Node kinds (multiple selection)
             <select id="nodeKinds" multiple aria-describedby="filterHelp"></select>
@@ -89,22 +90,21 @@
             <select id="edgeTypes" multiple aria-describedby="filterHelp"></select>
           </label>
           <label>
-            Find nodes by ID, label or location
-            <input id="graphSearch" type="search" placeholder="Filter visible nodes">
-          </label>
-          <label>
             Node display limit
-            <input id="nodeLimit" type="number" min="1" step="1" value="150" required>
+            <input id="nodeLimit" type="number" min="1" step="1" value="30" required>
           </label>
-        </div>
-
-        <p id="filterHelp" class="help">
+          <button id="resetFilters" type="button">Reset filters</button>
+          <p id="filterHelp" class="help full">
           No selected types means all types. Use Ctrl/Command to select multiple options.
           The explicit node limit applies after filtering; only edges between displayed
-          nodes are drawn. Scroll the graph horizontally and vertically. Tab to nodes and
-          edges for full labels; press Enter on a node to inspect it.
-        </p>
+          nodes are drawn.
+          Sources, sinks, functions and calls appear first.
+          </p>
+        </div>
 
+        <div class="workbench">
+        <div class="canvas">
+        <div class="canvas-heading"><h2 id="graphTitle">Knowledge graph</h2><span id="graphStatus" role="status"></span></div>
         <div class="graph-scroll" tabindex="0" role="region" aria-label="Scrollable knowledge graph">
           <svg
             id="graphSvg"
@@ -114,24 +114,31 @@
             <title id="svgTitle">Knowledge graph</title>
             <desc id="svgDescription">
               Filtered nodes and relationships. Full node and edge information is also
-              available in the editors below.
+              available in the inspector.
             </desc>
           </svg>
         </div>
 
-        <div id="graphSelection" class="help" role="status" aria-live="polite">
-          Select a node to read its complete record below.
+        <div class="canvas-bottom">
+          <span class="canvas-hint">Select to inspect · scroll to explore</span>
+          <div class="zoom" role="group" aria-label="Graph zoom">
+            <button id="zoomOut" type="button" aria-label="Zoom out">−</button>
+            <output id="zoomLevel" aria-live="polite">100%</output>
+            <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
+            <button id="fitGraph" type="button" aria-label="Fit graph to canvas width">Fit</button>
+          </div>
         </div>
-      <div class="two">
-        <section class="panel" aria-labelledby="nodeTitle">
-          <h2 id="nodeTitle">Knowledge node editor</h2>
+        <div id="graphSelection" class="help" role="status" aria-live="polite">Select a node or connection to inspect it.</div>
+        </div>
+      <aside class="inspector" aria-label="Record inspector">
+        <section id="nodeInspector" aria-labelledby="nodeTitle">
+          <div class="inspector-heading"><h2 id="nodeTitle">Node inspector</h2><button id="newNode" type="button">New</button></div>
           <p class="help">
-            Add durable annotations or edit the selected live node. Deleting a node also
-            deletes its connected edges. Saved snapshots are read-only.
+            Select a node on the graph or create an annotation.
           </p>
 
           <label>
-            Read / select node
+            Selected node
             <select id="nodeSelect">
               <option value="">New node</option>
             </select>
@@ -142,7 +149,7 @@
               <legend id="nodeLegend">Create node</legend>
               <div class="fields">
                 <label>
-                  Node ID (optional on create)
+                  ID (optional)
                   <input name="id" autocomplete="off">
                 </label>
                 <label>
@@ -169,11 +176,10 @@
               </div>
 
               <div class="actions">
-                <button id="saveNode" type="submit">Create node</button>
+                <button id="saveNode" class="primary" type="submit">Create node</button>
                 <button id="deleteNode" class="danger" type="button" disabled>
                   Delete node
                 </button>
-                <button id="newNode" type="button">New node</button>
               </div>
             </fieldset>
           </form>
@@ -184,15 +190,14 @@
           </details>
         </section>
 
-        <section class="panel" aria-labelledby="edgeTitle">
-          <h2 id="edgeTitle">Knowledge edge editor</h2>
+        <section id="edgeInspector" aria-labelledby="edgeTitle" hidden>
+          <div class="inspector-heading"><h2 id="edgeTitle">Edge inspector</h2><button id="newEdge" type="button">New</button></div>
           <p class="help">
-            Connect any two existing node IDs. Inspect, update or delete a selected
-            relationship; IDs remain stable during updates.
+            Connect two nodes or edit an existing relationship.
           </p>
 
           <label>
-            Read / select edge
+            Selected edge
             <select id="edgeSelect">
               <option value="">New edge</option>
             </select>
@@ -203,7 +208,7 @@
               <legend id="edgeLegend">Create edge</legend>
               <div class="fields">
                 <label>
-                  Edge ID (optional on create)
+                  ID (optional)
                   <input name="id" autocomplete="off">
                 </label>
                 <label>
@@ -227,11 +232,10 @@
               </div>
 
               <div class="actions">
-                <button id="saveEdge" type="submit">Create edge</button>
+                <button id="saveEdge" class="primary" type="submit">Create edge</button>
                 <button id="deleteEdge" class="danger" type="button" disabled>
                   Delete edge
                 </button>
-                <button id="newEdge" type="button">New edge</button>
               </div>
             </fieldset>
           </form>
@@ -241,13 +245,20 @@
             <pre id="edgeRecord">No edge selected.</pre>
           </details>
         </section>
+      </aside>
       </div>
       </section>
 
+      <footer class="workspace-footer"><span>Local workspace · annotations persist across analysis</span><span>Tab to explore · Enter to inspect</span></footer>
       <!-- Component: live knowledge editors. -->
 
       <details class="secondary">
         <summary>Analysis results &amp; policy</summary>
+        <p class="help">
+          Analysis does not repair code. Runtime results cover executed synthetic cases only.
+          Model advice cannot confirm a finding, approve policy, or pass a repair gate.
+          Repairs are isolated local branches and local merge-request simulations, never a push, merge, or deployment.
+        </p>
         <div class="actions secondary-actions">
           <button id="runRepair" type="button">Run independently verified repair</button>
           <button id="runEvaluate" type="button">Evaluate labeled cases</button>
