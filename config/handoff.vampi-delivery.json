@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "project_id": 87865932,
+  "project_path": "gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery",
+  "target_branch": "master",
+  "branch_prefix": "unspool/",
+  "trigger_username": "duo-developer-gitlab-ai-hackathon",
+  "allowed_paths": ["api_views/users.py"],
+  "verification_jobs": ["application-syntax", "verify-exposure"],
+  "deployment_jobs": [],
+  "evidence_job": "verify-exposure",
+  "evidence_path": "acceptance/evidence.json",
+  "health_path": "acceptance/health.json",
+  "protected_files": {
+    "AGENTS.md": "95ee8bd76b403f7749b14943ab9bfe490de9f25ba091bde6ce9a617c10b93aee",
+    ".gitlab-ci.yml": "8bff5151455809ae17e3eb53738ae23eb498c1ba3f33c3168417e84f317bf5e6",
+    ".gitlab/duo/agent-config.yml": "8c56785f0e53884c476d910132b6d3ce7db760d695d1972eb52ae8c217f95542"
+  },
+  "mode": "review",
+  "timeout": 120,
+  "poll_interval": 3
+}

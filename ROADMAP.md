@@ -51,13 +51,33 @@ stops the solo engineering work.
 Classification: **progress**, incomplete qualification. Created a second isolated
 validation project, `87865932` (`unspool-vampi-delivery`), with original VAmPI
 history at `f16052dce83f05847133ec98f01c5193a41de7d8`, a protected `master`,
-and fast-forward merges. The existing group foundational flows are visible;
-actual execution on this project is not yet proven. Added a pinned HTTP acceptance
+and fast-forward merges. Added a pinned HTTP acceptance
 CI harness and strict evidence adapter with a regression test. It exports source
 without Git credentials, runs the application without passed CI credentials or
 external network, and keeps verification outside the permitted repair diff.
-The real repair and candidate CI execution remain pending. This is not an
-analyzer discovery or completed isolation audit.
+The external repair now has direct evidence:
+
+- Duo session `9754951` produced [VAmPI MR !1](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/merge_requests/1).
+  Its complete diff changes only `api_views/users.py`, projecting username/email
+  instead of returning password/admin fields. Candidate SHA:
+  `c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1`.
+- [Candidate pipeline 2968003131](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/pipelines/2968003131)
+  passed application syntax and the frozen loopback HTTP acceptance probe. Job
+  `17319543552` recorded image ID
+  `sha256:49bcaf51146af53baa498a2c0bce009f9957f4f074257c3be9502a5bbf03177d`.
+- The separately installed 0.4.0 CLI, run outside the checkout from `/tmp`,
+  returned `READY_FOR_REVIEW` for this exact SHA and pipeline. Configuration
+  digest: `888b3d9f4b78d985b3cfde7bea3f9550f06119c0116af3779065b6a18dedae5b`.
+  It verified the full diff, mandatory jobs, exact health evidence and pinned
+  CI/agent instructions; it performed no merge. See config/handoff.vampi-delivery.json.
+- Baseline GitLab pipeline `2967877801` failed acceptance and produced no success
+  evidence. Its raw diagnostics were discarded, so the exact failure cause is
+  unknown; do not count it as a confirmed leak detection. The separate Cloud Build
+  baseline below is the confirmed HTTP leak reproduction.
+
+This establishes one instructed known-exposure repair and review handoff, not an
+analyzer discovery, broad accuracy measurement or completed isolation audit.
+Post-merge verification, staging/rollback and broader evaluation remain pending.
 
 ### Execution log — 20 October, first implementation goal turn
 
