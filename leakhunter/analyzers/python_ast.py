@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from leakhunter.policy.engine import Policy
+from leakhunter.analyzers.sources import exclusions, source_files
 
 ANALYZER_VERSION = "python-flow-4"
 SINKS = {
@@ -24,7 +25,7 @@ METHOD_SINKS = {
     "track": "THIRD_PARTY_ANALYTICS", "capture": "THIRD_PARTY_ANALYTICS",
     "jsonify": "HTTP_RESPONSE", "JSONResponse": "HTTP_RESPONSE",
 }
-EXCLUDED = {".git", "__pycache__", "data", ".venv", "venv", "node_modules"}
+EXCLUDED = exclusions("python")
 
 
 def _hash(value: str) -> str:
@@ -511,11 +512,8 @@ def analyze_project(root: Path, policy: Policy, previous: dict | None = None, *,
     compatible = (previous.get("analyzer_version") == ANALYZER_VERSION and previous.get("policy_digest") == policy.digest
                   and previous.get("entrypoints", []) == entrypoints)
     trees, records, parse_errors, changed, reused_ast = {}, {}, [], set(), []
-    for path in sorted(root.rglob("*.py")):
+    for path, content in source_files(root, {".py"}, EXCLUDED):
         relative = path.relative_to(root).as_posix()
-        if any(part in EXCLUDED for part in path.relative_to(root).parts) or path.is_symlink():
-            continue
-        content = path.read_bytes()
         digest = hashlib.sha256(content).hexdigest()
         cached = old.get(relative, {})
         same = compatible and cached.get("hash") == digest and "ast" in cached

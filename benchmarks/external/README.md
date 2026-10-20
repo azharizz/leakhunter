@@ -43,6 +43,13 @@ Both runs produced TP 5, FP 0, TN 3, FN 0, unknown labels 2, execution errors 0.
 qualified-callable existence checks; it produced the same outcomes with no label
 or analyzer changes. Missing/mistyped callable targets now fail setup instead of
 silently becoming negative predictions.
+`results.bounded-ingestion.json` repeats the unchanged manifest with a clean
+installed 0.4.4 wheel and isolated imports after source-ingestion hardening.
+It retained TP 5 / TN 3 / unknown 2, with no false positives, misses, execution
+errors or parse errors. The report now records the source-reader module hash as
+well as the analyzer hash; labels and upstream source revisions were unchanged.
+This checks regression on the same selected set, not a new held-out evaluation
+or evidence that larger/malicious repositories meet production operating limits.
 These are predictions on **eight selected labeled cases**, not ten runtime tests.
 Conditional precision/recall are 5/5 for this selected set only. They are too
 small, correlated and selection-biased to estimate production accuracy.

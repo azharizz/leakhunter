@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from leakhunter.analyzers.registry import analyze_project
+from leakhunter.analyzers.sources import exclusions, source_files
 from leakhunter.application.decorators import exclusive
 from leakhunter.execution.runtime import load_manifest, run_suite
 from leakhunter.languages import LANGUAGES, extensions, finding_function, manifest_entrypoints, manifest_language, runtime_image
@@ -100,14 +101,16 @@ def graph() -> dict:
 
 
 def revision_sha(root: Path) -> str:
+    root = Path(root).resolve()
     digest = hashlib.sha256()
     language = LANGUAGE
+    files = source_files(root, extensions(language), exclusions(language))
     for suffix in extensions(language):
-        for path in sorted(root.rglob(f"*{suffix}")):
-            if path.is_symlink() or any(part in {".git", "__pycache__", "data"} for part in path.relative_to(root).parts):
+        for path, content in files:
+            if path.suffix != suffix:
                 continue
             digest.update(path.relative_to(root).as_posix().encode() + b"\0")
-            digest.update(hashlib.sha256(path.read_bytes()).digest())
+            digest.update(hashlib.sha256(content).digest())
     return digest.hexdigest()
 
 

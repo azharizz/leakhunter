@@ -11,7 +11,7 @@ import sys
 import tempfile
 import time
 
-from leakhunter.analyzers import python_ast
+from leakhunter.analyzers import python_ast, sources
 from leakhunter.analyzers.python_ast import analyze_project
 from leakhunter.policy.engine import Policy
 
@@ -118,6 +118,7 @@ def main():
     counts = Counter(c["classification"] for result in results for c in result["cases"])
     report = {"kind": "frozen-external-static-feasibility", "unspool_version": version("unspool"),
               "analyzer_sha256": hashlib.sha256(Path(python_ast.__file__).read_bytes()).hexdigest(),
+              "source_reader_sha256": hashlib.sha256(Path(sources.__file__).read_bytes()).hexdigest(),
               "manifest_sha256": hashlib.sha256(raw).hexdigest(), "repositories": results,
               "counts": dict(counts), "total_cases": sum(counts.values()),
               "runtime_cases_executed": 0, "model_calls": 0,

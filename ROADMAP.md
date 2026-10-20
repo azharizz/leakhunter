@@ -46,6 +46,45 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — bounded repository source ingestion, 21 October
+
+Classification: **progress**, production qualification incomplete. MR !18 passed
+pipeline `2968840400` and merged at `d45e521d1b6290f8f70e28c6efc614f44ae8edf5`.
+Reproduced blocking reads in both Python and JavaScript analysis using real
+source-named FIFOs; each pre-fix child exceeded two seconds and was killed.
+Version 0.4.4 replaces analyzer and local revision-hash traversal with one bounded
+source scanner. Directory descriptors/no-follow opens refuse source and
+directory link swaps; nonblocking file opens and descriptor checks refuse special
+files and hardlinks. Reads remain bounded when a file grows after stat.
+
+Declared/enforced input budgets are 1 MiB/file, 32 MiB source total, 2,000 source
+files, 20,000 visited entries and depth 64; excluded dependency trees are pruned
+before descent. Over-budget or unsupported input stops the whole analysis,
+rather than yielding a truncated successful result. Revision hashing now uses
+the same language-specific exclusions as analysis; ADOPTION.md documents the
+effect on historical identities. These input budgets were chosen before their
+tests, and are not parser CPU/memory or throughput guarantees.
+
+All 117 regression tests passed, including timeout-bounded FIFO refusal across
+all five adapters/revision hashing, file/directory replacement, hardlinks,
+quota boundaries and post-stat growth. A clean macOS Python 3.11.9 installation
+of 0.4.4 verified 38 installed files, three commands, STOP cancellation and the
+synthetic exposure gate outside the checkout. Wheel SHA-256:
+`236655a773f08b7c2d60f275e3149b97d5d55af0abe7755a11414eca089c9ca6`.
+The installed CLI refused a real source FIFO in 0.133 seconds, exited 2 with no
+success output and left zero analysis snapshots in its database. This single
+timing is not a latency guarantee. Local audit still reports zero advisories in
+the selected dependency pins, 14 LOW/6 MEDIUM source warnings and no HIGH/errors.
+
+The installed wheel reran the original ten-case, three-repository static manifest
+without relabeling: TP 5 / TN 3 / unknown 2 / FP 0 / FN 0 / execution errors 0,
+with zero parse errors. `benchmarks/external/results.bounded-ingestion.json`
+retains exact analyzer/source-reader/manifest identities and case outcomes. This
+is a repeated selected feasibility set, not new independent accuracy evidence.
+Linux 0.4.4 CI qualification remains required. General callable/runtime evidence
+tampering, dependency execution, parser resource isolation, full recovery,
+broader evaluation and declared operational qualification remain open.
+
 ### Execution log — review revision freshness, 21 October
 
 Classification: **progress**, production qualification incomplete. MR !16 passed

@@ -1,0 +1,145 @@
+{
+  "kind": "frozen-external-static-feasibility",
+  "unspool_version": "0.4.4",
+  "analyzer_sha256": "9ce9ec188bed28501d7c700a57e122e7ce027b9b0ba652e376cd555c4502c4d7",
+  "source_reader_sha256": "462258a328b0cf95738f9b20c823f800a6d4033bb5e0ba455ffc69032a2debed",
+  "manifest_sha256": "8e49a7cca7b3d55af760d507a0780ec0d4d7ea3e80195a2263a483d590d2ceb4",
+  "repositories": [
+    {
+      "repository": "vampi",
+      "sha": "f16052dce83f05847133ec98f01c5193a41de7d8",
+      "duration_ms": 70.42,
+      "python_files": 11,
+      "coverage": {
+        "parse_errors": 0,
+        "unresolved_calls": 129,
+        "unsupported_constructs": 0
+      },
+      "cases": [
+        {
+          "id": "vampi-debug-http",
+          "expected_violation": true,
+          "observed_possible_flow": true,
+          "classification": "TP",
+          "matching_finding_count": 2,
+          "source_file_sha256": "46006eb7207ebbae163f5320b13e3bf0ec464cef201a51fb2cd43b5cfdb4116c"
+        },
+        {
+          "id": "vampi-public-json",
+          "expected_violation": false,
+          "observed_possible_flow": false,
+          "classification": "TN",
+          "matching_finding_count": 0,
+          "source_file_sha256": "4ce47b9850812e47140b2d2f2e20c08ae4b5338d168ce72f23e3127986ef6e1b"
+        },
+        {
+          "id": "vampi-debug-json",
+          "expected_violation": true,
+          "observed_possible_flow": true,
+          "classification": "TP",
+          "matching_finding_count": 1,
+          "source_file_sha256": "4ce47b9850812e47140b2d2f2e20c08ae4b5338d168ce72f23e3127986ef6e1b"
+        }
+      ]
+    },
+    {
+      "repository": "dvga",
+      "sha": "a961308c02d1fb462b192681c336b0739e432da7",
+      "duration_ms": 258.66,
+      "python_files": 35,
+      "coverage": {
+        "parse_errors": 0,
+        "unresolved_calls": 362,
+        "unsupported_constructs": 7
+      },
+      "cases": [
+        {
+          "id": "dvga-public-username",
+          "expected_violation": false,
+          "observed_possible_flow": false,
+          "classification": "TN",
+          "matching_finding_count": 0,
+          "source_file_sha256": "188765524f367925e6970de7737552c7ae3a47b98af2f7554e388e0207f829ff"
+        },
+        {
+          "id": "dvga-password-policy",
+          "expected_violation": true,
+          "observed_possible_flow": true,
+          "classification": "TP",
+          "matching_finding_count": 1,
+          "source_file_sha256": "188765524f367925e6970de7737552c7ae3a47b98af2f7554e388e0207f829ff"
+        },
+        {
+          "id": "dvga-token-authorization",
+          "expected_violation": null,
+          "observed_possible_flow": false,
+          "classification": "UNKNOWN_LABEL",
+          "matching_finding_count": 0,
+          "source_file_sha256": "188765524f367925e6970de7737552c7ae3a47b98af2f7554e388e0207f829ff"
+        }
+      ]
+    },
+    {
+      "repository": "pygoat",
+      "sha": "19d17cc8874861142b330636d068bbde54e86b85",
+      "duration_ms": 993.9,
+      "python_files": 80,
+      "coverage": {
+        "parse_errors": 0,
+        "unresolved_calls": 869,
+        "unsupported_constructs": 1
+      },
+      "cases": [
+        {
+          "id": "pygoat-user-data",
+          "expected_violation": true,
+          "observed_possible_flow": true,
+          "classification": "TP",
+          "matching_finding_count": 3,
+          "source_file_sha256": "458b2a920c4d32653e57a62f60c0a723e7fc4a8324ef0eb400f8afc5febf9e15"
+        },
+        {
+          "id": "pygoat-all-users",
+          "expected_violation": true,
+          "observed_possible_flow": true,
+          "classification": "TP",
+          "matching_finding_count": 3,
+          "source_file_sha256": "458b2a920c4d32653e57a62f60c0a723e7fc4a8324ef0eb400f8afc5febf9e15"
+        },
+        {
+          "id": "pygoat-index",
+          "expected_violation": false,
+          "observed_possible_flow": false,
+          "classification": "TN",
+          "matching_finding_count": 0,
+          "source_file_sha256": "458b2a920c4d32653e57a62f60c0a723e7fc4a8324ef0eb400f8afc5febf9e15"
+        },
+        {
+          "id": "pygoat-custom-log",
+          "expected_violation": null,
+          "observed_possible_flow": false,
+          "classification": "UNKNOWN_LABEL",
+          "matching_finding_count": 0,
+          "source_file_sha256": "aaf2cf863921cee738811cbf661d901bcd1a626c19011f4feb53d857fe757136"
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "TP": 5,
+    "TN": 3,
+    "UNKNOWN_LABEL": 2
+  },
+  "total_cases": 10,
+  "runtime_cases_executed": 0,
+  "model_calls": 0,
+  "binary_labeled_cases": 8,
+  "precision_on_labeled_cases": 1.0,
+  "recall_on_labeled_cases": 1.0,
+  "limitations": [
+    "Source-labeled security-lab cases, not held-out",
+    "Possible static flow is not executed vulnerability proof",
+    "No-match is a miss/negative prediction, never application safety",
+    "Unknown labels excluded from binary metrics but retained"
+  ]
+}
