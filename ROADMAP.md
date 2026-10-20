@@ -46,6 +46,27 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — real GitLab controller interruption
+
+Classification: **progress**. MR !10 passed pipeline `2968113480`
+and merged at `2b779cd176643dd13f2ea2b6dd10b07f3d99a338`.
+Created an explicitly labeled comment-only recovery MR !2 in the isolated VAmPI
+project, with stable branch `unspool/repair-2`, source
+`951960c9d85ea874a5f9e0248c42b83f9751d499` and passing real pipeline
+`2968122599`. A read-only wrapper invokes the installed 0.4.0 controller against
+real GitLab responses; all writes are refused locally. The first run reached
+the MR-read boundary, then was actually SIGKILLed (exit 137). Its private journal
+retained `VERIFYING`, MR 2 and the pinned configuration digest. A second actual
+SIGKILL after the evidence artifact read retained the same intent. A normal
+resume returned `READY_FOR_REVIEW` for the same SHA/pipeline after 21 real reads,
+zero writes, and a competing duplicate invocation was rejected by the target
+lock before API dispatch. GitLab still showed one open MR, the original target
+SHA and unchanged issue system-note IDs, with no new Duo trigger. All 97 local
+tests pass. The unwrapped installed CLI replay also returned `READY_FOR_REVIEW`
+for the same SHA/pipeline and retained that final state in the original journal.
+This is a controlled restart exercise, not another security repair or Duo run.
+See benchmarks/recovery/README.md.
+
 ### Execution log — disposable application staging and rollback
 
 Classification: **progress**. MR !9 passed pipeline
