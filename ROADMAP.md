@@ -28,13 +28,29 @@ Production readiness must always name a scope: supported languages/frameworks,
 repository sizes, policy semantics, deployment targets, users, and permitted
 automatic changes. Passing a scoped release gate never proves all code safe.
 
+### Solo validation amendment — user instruction, 20 October
+
+The project is built solo. Recruiting two independent teams is no longer a
+prerequisite for this goal. Replace installer/pilot requirements with the solo
+qualification gates below. Preserve the distinction between independent evidence
+sources and an independent person: automated review or a second environment is
+not external customer acceptance. Do not claim a human-reviewed certification.
+
+Use fresh installations in separate environments and projects; upstream-owned
+test suites and published vulnerability provenance; acceptance cases frozen
+before repair; held-out checks unavailable to the repair runtime; recorded
+baseline comparisons; static/dependency/security checks; and reproducible
+recovery/isolation/load drills. Evaluate all outcomes and retain failed runs.
+External pilot feedback remains valuable future evidence, not a dependency that
+stops the solo engineering work.
+
 ## Established evidence and remaining uncertainty
 
 ### Execution log — 20 October, first implementation goal turn
 
 Classification: **progress**. The goal remains active; production readiness is
 not established. These are partial gate results, not a replacement for the full
-objective or independent-user requirements below.
+objective or the solo qualification requirements below.
 
 - Added 0.4.0 operator-owned JSON configuration and read-only preflight for
   GitLab.com. Project ID/path binding, exact application paths, pinned contracts,
@@ -46,6 +62,11 @@ objective or independent-user requirements below.
   real remote crash/concurrency drills are still pending.
 - The full local suite passes **89 Python tests**, plus dashboard checks. Counts
   remain regression tests, not independently labeled vulnerability examples.
+- MR !6 merged at `f67ed2a6d4514554d677dd7979d6095a9857b421`.
+  [Pipeline 2967835951](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2967835951)
+  passed Python tests, dashboard checks, exposure verification, Cloud Run delivery
+  and the production smoke job. This validates that revision's report delivery;
+  it does not establish repair accuracy on external applications.
 - Built a 0.4.0 wheel and installed it into a fresh Python 3.11 virtual environment.
   Its installed console command, run from `/tmp` outside the source checkout,
   passed live preflight against `azharizz/unspool-vampi-validation` without editing
@@ -68,8 +89,9 @@ objective or independent-user requirements below.
   evidence, full recovery drills, deployment/rollback proof for a repaired target,
   real-world evaluation, baseline comparison and pilot acceptance remain open.
 
-Next: install/test the final candidate wheel, pass remote CI, then extend the external application verification and real
-repair evidence. Do not mark an entire gate complete from these partial checks.
+Next: extend external application verification and real repair evidence, then
+complete the remaining clean-environment and failure drills. Do not mark an
+entire gate complete from these partial checks.
 
 | Area | Established | Not established |
 | --- | --- | --- |
@@ -95,7 +117,9 @@ repair evidence. Do not mark an entire gate complete from these partial checks.
   requirements, and what the live public URL does and does not run.
 
 Exit: every public claim maps to evidence or is marked planned/experimental.
-Owner: product maintainer. Independent reviewer: someone who did not build the demo.
+Owner: product maintainer. For solo qualification, retain the frozen inputs,
+unmodified upstream expectations, automated review results and reproducible logs.
+External human review is not yet obtained and must not be implied.
 
 ## Gate 1 — make a second repository work without source edits to Unspool
 
@@ -112,13 +136,13 @@ Owner: product maintainer. Independent reviewer: someone who did not build the d
   and an automated preflight that performs no mutation.
 - [ ] Verify the installed artifact from a clean environment, not PYTHONPATH into
   the development checkout. Record exact dependency and container identities.
-- [ ] An independent user installs it on a different authorized repository without
+- [ ] A fresh isolated installation exercises a different authorized repository without
   editing Unspool source. Test supported Python version boundaries and realistic
   dependency/framework requirements.
-- [ ] Confirm the new team cannot trigger work, read evidence or deploy changes
+- [ ] Confirm a separate project's identity cannot trigger work, read private evidence or deploy changes
   in the original project. Do not copy the maintainer's credentials into their setup.
 
-Exit: a repeatable clean installation on another project, with installation notes,
+Exit: repeatable clean installations in at least two environments/projects, with installation notes,
 observed duration, permission checks, and a complete evidence bundle.
 
 ## Gate 2 — establish real security value independently
@@ -133,7 +157,7 @@ observed duration, permission checks, and a complete evidence bundle.
 - [ ] Separate configured-source tests, detection of known vulnerabilities, and
   discovery of previously unknown vulnerabilities. A supplied secret-field selector
   or explicit repair instruction is not evidence of independent discovery.
-- [ ] Have a reviewer define security and functional acceptance cases before the
+- [ ] Freeze security and functional acceptance cases before the
   agent runs. Keep held-out checks inaccessible to the repair agent. Do not tune
   policy or labels after seeing a bad result and still call it a held-out test.
 - [ ] Run analysis, produce a bounded repair MR, independently reproduce the
@@ -157,7 +181,7 @@ observed duration, permission checks, and a complete evidence bundle.
   incorrect repairs prevented, along with cost and false blocks. Freeze inputs and
   versions, repeat stochastic runs, and publish failures as well as successful runs.
 
-Exit: independently reproducible before/after application evidence and an honest
+Exit: reproducible before/after application evidence against independently sourced expectations and an honest
 evaluation report. One successful application supports a pilot story, not a claim
 that arbitrary repositories are supported. If this gate fails, narrow the product.
 
@@ -191,7 +215,8 @@ that arbitrary repositories are supported. If this gate fails, narrow the produc
   attempted policy/test/CI edits; path escapes; stale/forged artifacts; untrusted
   configuration; unauthorized triggers; and wrong-project deployment.
 
-Exit: independent review of the trust boundaries, no unresolved critical/high
+Exit: a recorded security review of the trust boundaries using automated checks
+and adversarial execution tests, no unresolved critical/high
 risk in the declared use, and regression tests proving the negative cases stop
 promotion. A clean review is evidence within scope, not a guarantee of no flaws.
 
@@ -215,15 +240,20 @@ promotion. A clean review is evidence within scope, not a guarantee of no flaws.
   runs and post a final outcome with evidence to the originating issue/MR.
 
 Exit: fault-injection records show no duplicate promotion, unauthorized merge or
-false success; interrupted runs can be safely resumed by someone other than the author.
+false success; interrupted runs can be safely resumed from a fresh operator
+environment using only the documented procedure. External operator usability
+remains unverified until someone else tries it.
 
-## Gate 5 — release to a small supervised pilot
+## Gate 5 — solo release qualification and future supervised adoption
 
-- [ ] Two independent teams install the released artifact in separate projects.
-  Start with report/MR-only mode, named reviewers and rollback instructions.
-- [ ] Agree the pilot's repository sizes, concurrent jobs, acceptable latency/cost,
+- [ ] Exercise the released artifact in two clean environments and separate
+  projects, without source-checkout imports or inherited development state.
+  Start with report/MR-only mode and tested rollback instructions. Record this
+  as solo qualification, not adoption by independent teams.
+- [ ] Declare the qualification's repository sizes, concurrent jobs, acceptable latency/cost,
   support hours, data retention and service objectives before testing them.
-  Choose thresholds from actual customer needs, not from whichever results pass.
+  Choose thresholds from the declared supported use before execution, not from
+  whichever results pass. External customer needs remain unvalidated.
 - [ ] Measure those limits on representative repositories and queue pressure.
   Reject/defer work beyond quotas with an explicit status, not silent truncation.
 - [ ] Keep tenant/project state and credentials isolated; define deletion/export
@@ -231,15 +261,16 @@ false success; interrupted runs can be safely resumed by someone other than the 
 - [ ] Provide SECURITY.md, a private reporting route, dependency inventory and
   license review, supported versions, upgrade/migration and rollback instructions,
   diagnostic redaction, billing alerts, and a responsible operator.
-- [ ] Run the pilot for an agreed observation window; track every failure and
+- [ ] Run a recorded soak/repeated-workflow exercise for a declared observation window; track every failure and
   required intervention. Publish the denominator and unresolved limitations.
 - [ ] Expand autonomy only for approved low-risk change classes with explicit
   policy and independent acceptance checks. Unknown/high-impact cases remain
   human-reviewed. Never advertise general automatic security repair from this pilot.
 
-Exit: pilot owners accept the documented scope, incidents/recovery are reviewed,
-and the tested service objectives and security boundaries are met. Only then use
-the phrase production-ready for that specific deployment/use case.
+Exit: the solo release qualification meets the declared operational/security
+criteria with all failures reviewed. Describe it as qualified for the explicit
+tested use, with external adoption/security-review limitations disclosed. Do not
+claim independent-team acceptance, certification, or universal production safety.
 
 ## Gate 6 — optional shared hosted product
 
@@ -256,7 +287,7 @@ Independent security review and customer data-handling approval precede this lau
 
 ## GitLab AI Catalog: a distribution gate, not certification
 
-- [ ] First prove Gate 1 with another installer and Gate 2 with a real application.
+- [ ] First prove Gate 1 through clean-environment installation and Gate 2 with an external application.
 - [ ] Package a genuine versioned custom agent/flow with an explicit external
   controller dependency if retained. Do not rename the existing foundational
   Developer flow and imply it is a new Unspool agent implementation.
