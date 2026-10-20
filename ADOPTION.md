@@ -1,6 +1,6 @@
 # Install Unspool for another GitLab project
 
-Version 0.4.4 includes the operator-configured controller for GitLab.com, file
+Version 0.4.5 includes the operator-configured controller for GitLab.com, file
 boundary hardening and an operator STOP flag (introduced after 0.4.0).
 It also rechecks candidate/pipeline/target freshness before review readiness.
 The current execution hosts are Linux/macOS with Python 3.10+ and authenticated
@@ -39,6 +39,43 @@ This does not sandbox runtime execution, bound all parser/AST computation, or
 prevent same-process callable evidence tampering. Keep the worker and reviewed
 source snapshot immutable and preserve the runtime restrictions below.
 
+## Independent HTTP acceptance (0.4.5)
+
+`python -m unspool.http_acceptance --base-url http://target:8080 --plan plan.json`
+executes an operator-owned JSON plan from a different process/container. Run it
+only against an authorized disposable application with synthetic records; the
+plan can include mutating requests. It imports no application code and is not an
+application launcher or sandbox. Provision a trusted probe image and isolated
+app separately, with no target source mount in the probe. Do not expose the local
+mutable Unspool server as a remote execution service.
+
+See `benchmarks/vampi/http-plan.json` for an example. Ordered cases specify an
+ID, method, origin-relative path, expected status, expected JSON subset and
+optional JSON body/headers. Expected objects match their specified fields;
+nonempty expected arrays require each specified record to occur, and empty
+expected arrays require an empty result. `${nonce}` and `${secret}` are distinct
+fresh random values shared across the plan. Response bodies/headers are checked
+for configured literal canaries; configured forbidden JSON keys are checked at
+every depth. This is not arbitrary taint analysis or proof of all app behavior.
+
+The client rejects redirects, inherited proxies, credential-bearing base URLs,
+duplicate/nonfinite JSON, oversized responses and unbounded contract comparison.
+Plans are capped at 64 KiB/64 cases; responses at 1 MiB. Startup waits only for
+TCP readiness; requests are not retried, including mutations. A failed contract
+stops later requests with explicit NOT_RUN records. Output retains hashes and
+check outcomes, never raw target bodies, credentials or exception messages.
+Exit 0 requires functional and security success. Use a worker/job deadline too;
+HTTP request deadlines alone do not bound every DNS/parser/OS operation.
+
+Freeze the probe, plan, application revision/image and CI adapter outside the
+repair allowlist. This command reports its plan hash but cannot itself attest
+which Git commit/image serves a URL. Before using its result for handoff, a
+trusted pinned CI adapter must bind the report to the exact candidate artifact
+and produce the configured health evidence. The existing callable runtime still
+shares an interpreter with target code; this command does not silently replace it
+or make hostile callable execution trustworthy. Logs and outbound application
+requests need separate independent observers.
+
 ## Install outside the analyzed repository
 
 Install the reviewed wheel in a dedicated virtual environment. Do not execute
@@ -47,7 +84,7 @@ the controller from an agent-writable or third-party repository checkout.
 ```sh
 python3 -m venv ~/.venvs/unspool
 ~/.venvs/unspool/bin/python -m pip install --upgrade -r /path/to/reviewed/requirements.build.lock
-~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.4-py3-none-any.whl
+~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.5-py3-none-any.whl
 ~/.venvs/unspool/bin/unspool-handoff --help
 glab auth status --hostname gitlab.com
 ```

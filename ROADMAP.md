@@ -46,6 +46,30 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — shared wheel and reusable HTTP verification, 21 October
+
+Classification: **progress**, production qualification incomplete. MR !20 passed
+pipeline `2968892353` and merged at `28b76baadf62f39fd0bc3e382cf040020ed212a4`.
+Build job `17326418809` produced wheel SHA-256
+`09190410380e87f8918c8726d37abe3057bb188b4b803de7a40c9fc8bd9d0965`.
+Python 3.10.22 job `17326418813` and Python 3.12.15 job `17326418814`
+qualified that same artifact outside the checkout, verified all 38 files and
+retained identical checksum/build metadata. Its source was `2406e510`, epoch
+`1792520080`, builder Python 3.12.15 and pinned pip/setuptools/wheel/packaging.
+This closes the separately-built-wheel ambiguity, not permanent release or all
+cross-platform reproducible builds.
+
+Preparing 0.4.5 with a reusable declarative JSON HTTP probe. Unlike the callable
+worker, it imports no target code; isolation/source binding must be supplied by
+trusted CI. Added an independently mounted VAmPI plan/benchmark adapter so the
+new packaged probe can be exercised against both pinned real revisions without
+changing the earlier benchmark or application. The initial full suite passed
+119 tests (original HTTP tests retained); subsequent added header/escaped-canary
+and special-plan checks require final verification. Freeze the plan/code before
+its first new Cloud Build runs; record all failures, unknowns and image hashes.
+General callable evidence tampering, trusted dependency build, broader evaluation,
+full remote recovery and operating qualification remain open gates.
+
 ### Execution log — bounded repository source ingestion, 21 October
 
 Classification: **progress**, production qualification incomplete. MR !18 passed

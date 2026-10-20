@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "markers": ["${secret}"],
+  "forbidden_fields": ["password", "admin"],
+  "cases": [
+    {"id": "initialize-disposable-db", "method": "GET", "path": "/createdb", "status": 200, "expect": {}},
+    {"id": "register-canary", "method": "POST", "path": "/users/v1/register", "status": 200,
+     "json": {"username": "unspool${nonce}", "email": "${nonce}@example.invalid", "password": "${secret}"},
+     "expect": {"status": "success"}},
+    {"id": "public-list", "method": "GET", "path": "/users/v1", "status": 200,
+     "expect": {"users": [{"username": "unspool${nonce}", "email": "${nonce}@example.invalid"}]}},
+    {"id": "lookup", "method": "GET", "path": "/users/v1/unspool${nonce}", "status": 200,
+     "expect": {"username": "unspool${nonce}", "email": "${nonce}@example.invalid"}},
+    {"id": "debug", "method": "GET", "path": "/users/v1/_debug", "status": 200,
+     "expect": {"users": [{"username": "unspool${nonce}", "email": "${nonce}@example.invalid"}]}}
+  ]
+}
