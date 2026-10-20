@@ -79,8 +79,9 @@ This establishes one instructed known-exposure repair and review handoff, not an
 analyzer discovery, broad accuracy measurement or completed isolation audit.
 After review, the operator merged the external MR using the existing authorized
 GitLab login. Protected `master` now points to the tested candidate SHA without a
-new merge commit. Post-merge pipeline `2968031105` is running; no deployment is
-claimed. The full local suite passes 90 tests. Staging/rollback and broader
+new merge commit. [Post-merge pipeline 2968031105](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/pipelines/2968031105)
+passed syntax and fixed-behavior HTTP acceptance at that same SHA; no public
+deployment is claimed. The full local suite passes 90 tests. Staging/rollback and broader
 evaluation remain pending.
 
 ### Execution log — 20 October, first implementation goal turn

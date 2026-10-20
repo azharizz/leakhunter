@@ -73,9 +73,11 @@ returned `READY_FOR_REVIEW` after checking the diff, exact source/pipeline,
 mandatory jobs, artifacts and pinned CI/instructions with
 `config/handoff.vampi-delivery.json`. No automatic merge was performed.
 This is one instructed known-exposure repair, not independent discovery or a
-measured general repair success rate. The upstream has no automated Python test
+measured general repair success rate. After operator review and fast-forward
+promotion, [post-merge pipeline 2968031105](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/pipelines/2968031105)
+passed both checks on the same repaired SHA. The upstream has no automated Python test
 suite in the pinned tree; syntax and our frozen HTTP acceptance do not prove all
-other application behavior correct. Post-merge/staging/rollback checks remain open.
+other application behavior correct. Staging and rollback checks remain open.
 
 The earlier GitLab baseline pipeline `2967877801` blocked on acceptance and
 produced no success evidence, but discarded diagnostics make its exact cause
