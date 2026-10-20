@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unspool"
-version = "0.4.5"
+version = "0.4.6"
 license = {text = "MIT"}
 description = "Policy-aware exposure analysis and independent synthetic repair verification"
 requires-python = ">=3.10"

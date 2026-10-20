@@ -1,0 +1,31 @@
+substitutions:
+  _SOURCE_SHA: c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1
+steps:
+  - name: gcr.io/cloud-builders/git
+    args: [clone, --no-checkout, 'https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery.git', upstream]
+  - name: gcr.io/cloud-builders/git
+    dir: upstream
+    args: [checkout, --detach, '${_SOURCE_SHA}']
+  - name: gcr.io/cloud-builders/docker
+    args: [pull, 'us-central1-docker.pkg.dev/$PROJECT_ID/unspool/vampi-staging@sha256:2b779dff0e4ff46af33966c4ae8372c9d8cbe7f440145cdf846cb6d8be3267dd']
+  - name: gcr.io/cloud-builders/docker
+    args: [pull, 'python:3.11-slim']
+  - name: gcr.io/cloud-builders/docker
+    args: [pull, 'docker:27-dind']
+  - name: docker:27-cli
+    dir: upstream
+    entrypoint: sh
+    args:
+      - -ec
+      - |
+        apk add --no-cache git python3
+        export CI_JOB_ID=1 CI_COMMIT_SHA=${_SOURCE_SHA}
+        export UNSPOOL_APP_IMAGE="$$(docker image inspect --format '{{.Id}}' 'us-central1-docker.pkg.dev/$PROJECT_ID/unspool/vampi-staging@sha256:2b779dff0e4ff46af33966c4ae8372c9d8cbe7f440145cdf846cb6d8be3267dd')"
+        export UNSPOOL_PROBE_IMAGE="$$(docker image inspect --format '{{.Id}}' python:3.11-slim)"
+        export UNSPOOL_FILTER_IMAGE="$$(docker image inspect --format '{{.Id}}' docker:27-dind)"
+        sh /workspace/framework/benchmarks/vampi/ci-independent.sh
+        cat acceptance/evidence.json
+        cat acceptance/health.json
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s

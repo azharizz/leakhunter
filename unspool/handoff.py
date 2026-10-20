@@ -13,6 +13,7 @@ from urllib.request import ProxyHandler, Request, build_opener
 from urllib.parse import quote
 
 from unspool.handoff_config import HandoffConfig, preflight, verify_contracts
+from unspool.http_evidence import validate_bound_evidence
 from unspool.handoff_state import HandoffCanceled, JournalAPI, RunJournal, trigger_issue
 from unspool.smoke import NoRedirect
 
@@ -145,6 +146,8 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
                     or health != {"status": "ok", "commit": mr["sha"], "verified": True}):
                 raise ValueError("Independent exposure evidence is missing, failed, or for another revision")
             if config:
+                if config.http_contract:
+                    validate_bound_evidence(evidence, mr["sha"], dict(config.http_contract))
                 verify_contracts(config, api, mr["sha"])
                 current = api.request("GET", mr_path)
                 validate_scope(current, changes, project, config)

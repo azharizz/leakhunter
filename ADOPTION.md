@@ -1,6 +1,6 @@
 # Install Unspool for another GitLab project
 
-Version 0.4.5 includes the operator-configured controller for GitLab.com, file
+Version 0.4.6 includes the operator-configured controller for GitLab.com, file
 boundary hardening and an operator STOP flag (introduced after 0.4.0).
 It also rechecks candidate/pipeline/target freshness before review readiness.
 The current execution hosts are Linux/macOS with Python 3.10+ and authenticated
@@ -84,7 +84,7 @@ the controller from an agent-writable or third-party repository checkout.
 ```sh
 python3 -m venv ~/.venvs/unspool
 ~/.venvs/unspool/bin/python -m pip install --upgrade -r /path/to/reviewed/requirements.build.lock
-~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.5-py3-none-any.whl
+~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.6-py3-none-any.whl
 ~/.venvs/unspool/bin/unspool-handoff --help
 glab auth status --hostname gitlab.com
 ```
