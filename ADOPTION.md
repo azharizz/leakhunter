@@ -1,8 +1,10 @@
 # Install Unspool for another GitLab project
 
-Version 0.4.6 includes the operator-configured controller for GitLab.com, file
+Version 0.4.7 includes the operator-configured controller for GitLab.com, file
 boundary hardening and an operator STOP flag (introduced after 0.4.0).
 It also rechecks candidate/pipeline/target freshness before review readiness.
+The CLI rejects `evaluate --gate` before configuration or execution: detection
+accuracy cannot authorize release. Ungated evaluation remains available.
 The current execution hosts are Linux/macOS with Python 3.10+ and authenticated
 `glab`. These are supported interfaces, not a claim of production certification.
 Other language analyzers remain experimental; this controller initially accepts
@@ -14,7 +16,8 @@ The pipeline builds one wheel with pinned tools and a source-commit timestamp,
 then passes that exact artifact and checksum to both Python installation jobs.
 Each job checks its checksum before and after qualification. `wheel-build.json`
 records the source SHA, timestamp, builder interpreter and build tool versions.
-These are CI artifacts with 90-day retention, not a permanent package release.
+CI artifacts have 90-day retention. The [frozen release](RELEASE.md) retains its
+wheel, checksums and verification records separately in the package registry.
 
 ## Local analysis input limits
 
@@ -145,7 +148,7 @@ the controller from an agent-writable or third-party repository checkout.
 ```sh
 python3 -m venv ~/.venvs/unspool
 ~/.venvs/unspool/bin/python -m pip install --upgrade -r /path/to/reviewed/requirements.build.lock
-~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.6-py3-none-any.whl
+~/.venvs/unspool/bin/pip install -c /path/to/reviewed/requirements.lock /path/to/reviewed/unspool-0.4.7-py3-none-any.whl
 ~/.venvs/unspool/bin/unspool-handoff --help
 glab auth status --hostname gitlab.com
 ```

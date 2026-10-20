@@ -16,8 +16,11 @@ configuration, state creation or target execution. Ungated evaluation remains.
 The regression failed on the old code and passed after the fix. All 127 local
 Python tests and dashboard checks passed. Installed-wheel verification now checks
 the rejection through both `unspool` and compatible `leakhunter` commands.
-Version 0.4.7 is the patch candidate; its final CI/artifact records and judge
-instructions must replace 0.4.6 before the new freeze is declared complete.
+The 0.4.7 package source is `722f3955bb44c270b24f248b9046f0f26df93a76`.
+Pipeline `2969187062` passed all checks. The identical CI-built wheel passed
+Linux Python 3.10/3.12 and fresh macOS 3.11 installation, including the new
+pre-execution refusal. [RELEASE.md](RELEASE.md) and the judge guide pin its
+source/checksum; retained submission checks identify the final main/report SHA.
 
 The previously local checklist audit below is reconciled and included in this
 change. Production gaps remain unchecked; video, submission, personal eligibility
@@ -640,7 +643,7 @@ anonymous evidence sources; public pipeline metadata and retained records are.
 | Security value | Real external Duo MR, HTTP baseline/fix, staging failure/recreation drill, ten-case static set across three repositories | Upstream regressions, inaccessible held-out checks, 20-positive/20-negative floor, ungated-agent comparison |
 | Trust boundaries | Pinned contracts, diff/SHA checks, source bounds, controlled isolation drill, separate HTTP probe | General callable tamper resistance, dependency-build containment, complete identity/privacy/adversarial qualification |
 | Recovery | Durable intent, local target lock, bounded reads, STOP/Ctrl-C, real MR/evidence-read crash recovery | Remaining remote crash points, full concurrency/failure matrix, remote cancellation and alerting |
-| Submission material | Public source/original, live static report, pinned judge guide, submission text/evidence map, public retained records and documented Path B basis | Current patch release verification; video, personal attestations, submission and ongoing hosting belong to the author |
+| Submission material | Public source/original, live static report, pinned judge guide, submission text/evidence map, verified patch package, public retained records and documented Path B basis | Video, personal attestations, submission and ongoing hosting belong to the author |
 
 No complete production gate is inferred from this audit. Shared SaaS and Catalog
 publication remain optional; neither is required for a self-hosted integration or
