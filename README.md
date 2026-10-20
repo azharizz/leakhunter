@@ -13,9 +13,73 @@ Unspool is the new product name for the original LeakHunter project. Install wit
 `leakhunter` Python imports and command remain compatible with existing callers.
 
 The GitLab pipeline verifies the Python suite, dashboard, and a committed
-synthetic exposure case before publishing an immutable, read-only graph with
-GitLab Pages. The full local app retains annotation CRUD. A published report
-does not expose repository execution or repair endpoints to the public.
+synthetic exposure case before publishing an immutable, read-only graph to
+Cloud Run and GitLab Pages. The full local app retains annotation CRUD. A
+published report does not expose repository execution or repair endpoints.
+
+## Verified workflow and evidence
+
+On 20 October 2026, a fresh run completed without intermediate human edits,
+retries, or approvals:
+
+1. The local controller triggered the real GitLab Duo Developer flow from
+   [issue #3](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/work_items/3).
+2. [Duo session 9749019](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/automate/agent-sessions/9749019)
+   changed only the allowlisted synthetic service and created
+   [MR !5](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/5).
+3. The controller checked the complete diff, exact source revision, required CI
+   jobs, and independent runtime evidence before merging through the user's
+   existing authorized `glab` login. The Duo runtime's permissions were unchanged.
+4. [Pipeline 2967584891](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2967584891)
+   passed all 77 Python tests, dashboard checks, the exposure gate, Cloud Run
+   delivery, Pages delivery, and live exact-revision smoke checks. Both hosts
+   served commit `834f456623421a6150f16c2b82fd950910e0cb9a`.
+5. The controller returned `DEPLOYED_AND_VERIFIED` and recorded the pipeline and
+   merged revision on the MR. These links describe that observed run; later
+   deployments can serve newer commits, identified by their `health.json`.
+
+To start a bounded issue workflow:
+
+```sh
+python3 -m unspool.handoff --project 87860005 --issue <iid>
+```
+
+The controller must remain running locally with an authenticated `glab` session.
+Cloud Run hosts only the public report, not the controller or a multi-user CRUD
+backend. GCP deployment uses short-lived GitLab OIDC credentials restricted to
+this project's protected `main` branch; no service account keys are stored in CI.
+See [deployment code, permissions, and cost settings](deploy/cloudrun/README.md).
+
+## What these results establish
+
+**This is a working hackathon prototype with real platform integration and
+controlled synthetic validation. It is not a production-grade security product.**
+Synthetic means the application, sensitive markers, labels, and expected behavior
+were deliberately constructed. The execution, captured observations, GitLab Duo
+session, MR, CI jobs, merge, cloud deployment, and HTTP smoke checks were real.
+
+| Evidence | What it establishes | What it does not establish |
+| --- | --- | --- |
+| 77 passing Python tests and dashboard checks | The checked behavior passed the regression suite at the linked revision | Absence of bugs, production load capacity, or compatibility with every repository |
+| Fixed synthetic exposure probe | The exercised response preserved its public contract and did not return the configured secret marker | Safety of unexecuted inputs, paths, sinks, dependencies, or business rules |
+| Fresh Duo-to-production run | The bounded workflow completed on actual GitLab and GCP infrastructure without an intermediate human action | Reliability across arbitrary tasks, adversarial repositories, permission models, or service outages |
+| Deployed revision smoke checks | Public HTTP endpoints served the exact verified report revision | A deployed customer backend, online scanning service, or hosted CRUD application |
+| Synthetic precision/recall measurements below | Performance on the stated executed labeled fixtures | Real-world detection accuracy or a representative independent benchmark |
+
+The latest fresh Duo tasks changed display-name normalization while preserving
+the secret-field restriction. They demonstrate delivery and verification of a
+bounded change; they are **not evidence of discovering and repairing an unknown
+vulnerability in a real production application**. Earlier generated-target repair
+tests are separate synthetic experiments described below.
+
+Before considering production adoption, evaluate consented real applications
+with independently established findings, project-specific policy and executable
+regressions, safe execution isolation, and a reviewable repair process. Measure
+misses, false positives, blocked/unknown outcomes, and repair regressions on
+previously unseen cases. Authentication and authorization for hosted mutations,
+concurrent-user/load behavior, recovery and rollback, adversarial inputs, and
+operational monitoring also need dedicated validation. Do not use a passing demo
+gate as a general authorization to release customer code.
 
 Policy-aware exposure analysis for Python, JavaScript, TypeScript, Go, and Rust, executed synthetic evidence, and independently verified local repairs.
 
@@ -23,7 +87,10 @@ Policy-aware exposure analysis for Python, JavaScript, TypeScript, Go, and Rust,
 
 ## Architecture status
 
-Status below reflects the implemented Python workflow and observed verification on 2026-10-17, not universal production readiness. `leakhunter/` remains configurable for external repositories; executable fixtures and scenario generation remain in `example/`.
+The engine experiments below are historical observations from the earlier local
+workflow; the GitLab/GCP results above were verified on 20 October 2026. Neither
+establishes universal production readiness. `leakhunter/` remains configurable for
+external repositories; executable fixtures and scenario generation remain in `example/`.
 
 Production layout is grouped by responsibility: `leakhunter/app.py` is the composition root; `api/` owns HTTP transport; `application/` owns orchestration and operation decorators; `providers/` owns model factories/clients; `execution/` owns runtime and worker code; `repairs/` owns repair verification; `storage/` owns the knowledge bank; `analyzers/`, `policy/`, and `static/` remain focused packages/assets. The package root contains only the composition entrypoints: `app.py`, `__init__.py`, and `__main__.py`.
 
@@ -51,7 +118,7 @@ Pattern boundaries are intentional: `application.decorators.exclusive` decorates
 | Duo repair branch/MR | Implemented; real local Git artifacts verified | `leakhunter/repairs/engine.py` applies allowlisted edits in an isolated copied repository and creates a real branch/commit plus `merge-request.json` only after passing gates. Artifacts explicitly declare `simulation: true`; no remote push, MR publication, merge, or deployment occurs. |
 | Independent differential verification | Implemented; passing and blocked outcomes exercised | Independently reproduces the baseline, reruns static/runtime/functional checks, pins policy/manifest/runtime image, protects original source and test scope, and blocks unresolved findings. Context-only discharge requires exact passing runtime evidence. A generated-target repair passed; leaking complex-example proposals failed without an MR. |
 
-Verification also included 41 passing regression tests, dashboard CRUD/history/approval interactions, and installed-wheel execution against external safe and unsafe targets. See [verification and limits](#verification-and-limits) and the [example's observed integration results](example/README.md#observed-integration-results) for scope and caveats.
+Earlier verification included 41 passing regression tests, dashboard CRUD/history/approval interactions, and installed-wheel execution against external safe and unsafe targets. The latest linked GitLab pipeline passed 77 Python tests. These counts describe different revisions, not independent real-world benchmark cases. See [verification and limits](#verification-and-limits) and the [example's observed integration results](example/README.md#observed-integration-results) for scope and caveats.
 
 ## Install and run against another repository
 
