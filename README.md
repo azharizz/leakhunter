@@ -61,6 +61,16 @@ See [deployment code, permissions, and cost settings](deploy/cloudrun/README.md)
 
 ## What these results establish
 
+A separate external application experiment now has a real instructed repair:
+[VAmPI MR !1](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/merge_requests/1)
+removes password/admin fields from its published debug exposure while the frozen
+HTTP acceptance checks preserve public identity behavior. Candidate pipeline
+`2968003131` passed, and the installed 0.4.0 controller independently returned
+`READY_FOR_REVIEW` for its exact revision before operator promotion. See the
+[reproduction record and limitations](benchmarks/vampi/README.md).
+VAmPI is an intentionally vulnerable external security lab; this result is not
+unknown-vulnerability discovery or proof of general repair accuracy.
+
 **This is a working hackathon prototype with real platform integration and
 controlled synthetic validation. It is not a production-grade security product.**
 Synthetic means the application, sensitive markers, labels, and expected behavior

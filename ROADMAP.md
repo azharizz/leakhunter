@@ -77,7 +77,11 @@ The external repair now has direct evidence:
 
 This establishes one instructed known-exposure repair and review handoff, not an
 analyzer discovery, broad accuracy measurement or completed isolation audit.
-Post-merge verification, staging/rollback and broader evaluation remain pending.
+After review, the operator merged the external MR using the existing authorized
+GitLab login. Protected `master` now points to the tested candidate SHA without a
+new merge commit. Post-merge pipeline `2968031105` is running; no deployment is
+claimed. The full local suite passes 90 tests. Staging/rollback and broader
+evaluation remain pending.
 
 ### Execution log — 20 October, first implementation goal turn
 
