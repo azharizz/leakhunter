@@ -65,7 +65,11 @@ class HTTPEvidenceTest(unittest.TestCase):
                 validate_bound_evidence(evidence, self.run["source_sha"], self.contract)
 
     def test_config_pins_are_optional_but_cannot_silently_change_existing_journal_identity(self):
-        old = HandoffConfig.load(self.root / "config/handoff.vampi-delivery.json")
+        with tempfile.TemporaryDirectory() as directory:
+            operator = Path(directory) / "operator.json"
+            operator.write_bytes((self.root / "config/handoff.vampi-delivery.json").read_bytes())
+            operator.chmod(0o600)
+            old = HandoffConfig.load(operator)
         self.assertEqual(old.digest, "888b3d9f4b78d985b3cfde7bea3f9550f06119c0116af3779065b6a18dedae5b")
         fixture = config_fixture.ConfigTest()
         config = fixture.load({**fixture.data(), "http_contract": self.contract})

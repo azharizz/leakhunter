@@ -88,6 +88,12 @@ explicit expected pins and rejected a different candidate revision. The source
 audit remained at 14 LOW/6 MEDIUM, no HIGH/errors; selected dependency pins had
 no reported advisories. Linux 0.4.6 qualification and actual GitLab project CI
 migration remain open. So do broader runtime/evaluation/recovery/operating gates.
+Initial MR !22 pipeline `2969066322` stopped on the compatibility test because
+the checked-in configuration template had shared-write permissions in the CI
+checkout. The secure loader correctly refused it. Updated only the test setup
+to copy that template into an owned mode-0600 operator file before checking the
+historical digest; the loader and permission policy are unchanged. Its six
+evidence tests pass locally; the replacement CI pipeline must still pass.
 
 ### Execution log — shared wheel and reusable HTTP verification, 21 October
 
