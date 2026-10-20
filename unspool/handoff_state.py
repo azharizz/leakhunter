@@ -27,11 +27,17 @@ class RunJournal:
         info = self.directory.lstat()
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
             raise ValueError("Controller state directory must be a private, operator-owned real directory (0700)")
-        self.lock_fd = os.open(self.lock_path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+        self.lock_fd = os.open(self.lock_path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
         try:
+            self._private_file(self.lock_fd)
             fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             if self.path.exists() or self.path.is_symlink():
-                fd = os.open(self.path, os.O_RDONLY | os.O_NOFOLLOW)
+                fd = os.open(self.path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                try:
+                    self._private_file(fd)
+                except BaseException:
+                    os.close(fd)
+                    raise
                 with os.fdopen(fd) as source:
                     text = source.read(65537)
                 if len(text) > 65536:
@@ -47,6 +53,13 @@ class RunJournal:
             self.lock_fd = None
             raise
         return self
+
+    @staticmethod
+    def _private_file(fd):
+        info = os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+                or info.st_mode & 0o077 or info.st_nlink != 1):
+            raise ValueError("Controller state and lock files must be private owned regular files without links")
 
     def save(self, state, **values):
         self.data.update(values)

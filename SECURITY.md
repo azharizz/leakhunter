@@ -8,6 +8,9 @@ or repair requests. Never expose the mutable local API as a shared public servic
 
 ## Trust boundaries
 
+See [THREAT_MODEL.md](THREAT_MODEL.md) for the control/evidence matrix and known
+gaps, including same-process runtime tampering and dependency-build privilege.
+
 - Operators own and review configuration, policy, runtime manifests, verification
   logic, credentials and promotion authorization. Repository/issue/model content
   is untrusted data; it cannot grant permissions or expand a repair scope.

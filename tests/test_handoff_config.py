@@ -2,6 +2,7 @@ import base64
 from dataclasses import replace
 import hashlib
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -63,6 +64,30 @@ class ConfigTest(unittest.TestCase):
             path.chmod(0o666)
             with self.assertRaises(ValueError):
                 HandoffConfig.load(path)
+
+    def test_operator_file_links_special_files_and_oversize_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "original.json"
+            source.write_text(json.dumps(self.data()))
+            link = root / "linked.json"
+            link.symlink_to(source)
+            with self.assertRaises(OSError):
+                HandoffConfig.load(link)
+            link.unlink()
+            os.link(source, link)
+            with self.assertRaises(ValueError):
+                HandoffConfig.load(source)
+            link.unlink()
+            source.write_text(" " * 65537)
+            with self.assertRaisesRegex(ValueError, "large"):
+                HandoffConfig.load(source)
+            fifo = root / "fifo"
+            os.mkfifo(fifo)
+            with self.assertRaises(ValueError):
+                HandoffConfig.load(fifo)
+            with self.assertRaises(ValueError):
+                HandoffConfig.load(root)
 
     def api(self, *, merge_method="ff", contract=b"contract"):
         calls = []

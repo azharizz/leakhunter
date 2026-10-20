@@ -5,8 +5,10 @@ from dataclasses import asdict, dataclass
 import base64
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
+import stat
 from urllib.parse import quote
 
 
@@ -54,8 +56,19 @@ class HandoffConfig:
     @classmethod
     def load(cls, path):
         path = Path(path)
-        if path.stat().st_mode & 0o022:
-            raise ValueError("Operator configuration must not be writable by group or others")
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        try:
+            info = os.fstat(fd)
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+                    or info.st_mode & 0o022 or info.st_nlink != 1):
+                raise ValueError("Operator configuration must be an owned regular file without shared writes or links")
+        except BaseException:
+            os.close(fd)
+            raise
+        with os.fdopen(fd) as source:
+            text = source.read(65537)
+            if len(text) > 65536:
+                raise ValueError("Operator configuration is unexpectedly large")
 
         def unique(pairs):
             result = {}
@@ -65,7 +78,7 @@ class HandoffConfig:
                 result[key] = value
             return result
 
-        data = json.loads(path.read_text(), object_pairs_hook=unique)
+        data = json.loads(text, object_pairs_hook=unique)
         if not isinstance(data, dict):
             raise ValueError("Configuration must be a JSON object")
         allowed = set(cls.__dataclass_fields__)

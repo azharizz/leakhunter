@@ -8,10 +8,10 @@ a test count increased, a cloud URL works, or an agent says it succeeded.
 
 Current verdict: working prototype with real GitLab Duo, CI, bounded automatic
 promotion, and public static-report delivery. Not established as a production
-security product or a general repair service. The latest successful autonomous
-changes normalized display names; they did not discover an unknown real-world
-vulnerability. The 77 Python tests are regression tests, not 77 independent
-vulnerability cases.
+security product or a general repair service. The synthetic delivery runs
+normalized display names; the later external VAmPI run repaired an instructed,
+published exposure. Neither discovered an unknown real-world vulnerability.
+Regression test counts are not counts of independent vulnerability cases.
 
 First production candidate: a versioned, self-hosted GitLab integration for
 selected Python repositories. Each adopting team owns its workers, repository
@@ -45,6 +45,19 @@ External pilot feedback remains valuable future evidence, not a dependency that
 stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
+
+### Execution log — local recovery and file boundary hardening
+
+Classification: **progress**. Closed unsafe configuration/state reads: symlinks,
+hard links, special files, shared permissions and wrong ownership are rejected
+using the opened descriptor; reads are nonblocking and bounded. State remains
+private and atomic. Added regression cases and an actual child-process kill test:
+while a child holds the project/target lock a competing intent is rejected;
+after SIGKILL the lock can be acquired and the saved trigger intent survives.
+All 21 handoff/config/state tests pass. This proves the local OS-lock/intent
+case, not remote crash recovery or a distributed lock. Added THREAT_MODEL.md with
+explicit unresolved worker-evidence tampering, dependency execution and provider
+privacy risks. The full adversarial isolation and remote recovery gates remain open.
 
 ### Execution log — external acceptance integration
 
@@ -225,7 +238,7 @@ that arbitrary repositories are supported. If this gate fails, narrow the produc
 
 ## Gate 3 — enforce security boundaries outside the model
 
-- [ ] Write a threat model covering repository code/build scripts, dependencies,
+- [x] Write a threat model covering repository code/build scripts, dependencies,
   issue/MR prompt injection, CI artifacts, GitLab identities, model providers,
   credentials, public reports, and deployment privileges.
 - [ ] Execute unfamiliar code in disposable isolated workers with no host Docker

@@ -28,6 +28,9 @@ evidence that its trigger, pipeline or repair integration is already ready.
 
 The schema rejects unknown fields, credentials, duplicate keys, non-normalized
 paths, wildcards, source-path escapes and group/world-writable config files.
+Configuration must be an operator-owned regular file of at most 64 KiB; symbolic
+links, hard links and special files are rejected. Copy the example as an ordinary
+file into the operator's private configuration directory.
 No configuration key can execute shell commands. There is no automatic discovery
 of configuration from issue text or an untrusted repository.
 
@@ -105,6 +108,8 @@ The CLI stores private atomic records under
 An optional `--state-dir` must be a real private operator-owned directory (0700),
 outside the target checkout. Records contain project/intent identifiers, config
 digest, stages and observed SHAs/job IDs, not tokens or application payloads.
+State and lock files must be private regular files owned by the operator; links,
+shared permissions and special files are rejected without blocking on reads.
 
 One controller holds a lock for each project/target. A second controller fails
 explicitly instead of racing a promotion; other projects can run independently.
