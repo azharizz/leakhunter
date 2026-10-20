@@ -1,5 +1,12 @@
 # Unspool
 
+The [GitLab project](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool)
+contains the redesign, MIT history, actual GitLab Duo integration, and CI delivery.
+The [public report](https://unspool-site-1032c3.gitlab.io) is read-only; graph CRUD runs locally.
+See [HANDOFF.md](HANDOFF.md) for the one-command issue workflow, deployment project,
+verification boundaries, and required local glab authentication. The older local
+repair engine described below remains a separate simulation of remote MR creation.
+
 Unspool is the new product name for the original LeakHunter project. Install with
 `pip install .` and run `unspool --help` or `python -m unspool --help`. The
 `leakhunter` Python imports and command remain compatible with existing callers.
@@ -258,7 +265,7 @@ A repair requires an approved policy, unchanged source revision, and an executed
 4. Rejects unsupported/failed analysis, new violations, unresolved candidates, changed policy/manifest, changed runtime image, out-of-scope edits, or modification of original source.
 5. Only after every gate passes, creates a real local branch/commit and `repairs/<id>/merge-request.json` with `simulation: true` and independent verification results.
 
-Incomplete model proposals are stored as rejected/failed, not successful repairs. There is no automatic remote push, GitLab MR creation, merge, or deployment. OpenRouter simulates the Duo repair role only.
+Incomplete model proposals are stored as rejected/failed, not successful repairs. This local repair engine does not push, create GitLab MRs, merge, or deploy. OpenRouter simulates its Duo repair role. The separate `unspool.handoff` workflow uses the real GitLab Duo Developer flow and GitLab CI.
 
 ## CLI and HTTP interfaces
 

@@ -104,6 +104,7 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10):
                 raise RuntimeError("Merged revision failed delivery; inspect the production pipeline")
             if deployed.get("status") == "success":
                 jobs = api.request("GET", f"{prefix}/pipelines/{deployed['id']}/jobs?per_page=100")
+                jobs += api.request("GET", f"{prefix}/pipelines/{deployed['id']}/bridges?per_page=100")
                 passed = {job["name"] for job in jobs if job.get("status") == "success"}
                 if not {"deploy-pages", "production-smoke"} <= passed:
                     raise ValueError("The deployment and live revision smoke check must both pass")
@@ -116,9 +117,39 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10):
     raise TimeoutError("Merge completed, but production verification has not completed")
 
 
+def from_issue(project, iid, *, api=None, timeout=1200, interval=10):
+    """Use local glab authentication to orchestrate Duo without expanding its token."""
+    api = api or GitLab()
+    path = f"projects/{project}/merge_requests?source_branch=unspool%2Frepair-{iid}&state=all&per_page=100"
+    deadline = time.monotonic() + timeout
+    requests = api.request("GET", path)
+    if not requests:
+        api.request("POST", f"projects/{project}/issues/{iid}/notes", {"body":
+            "@duo-developer-gitlab-ai-hackathon Implement this bounded issue following AGENTS.md. "
+            f"Use unspool/repair-{iid}, change only demo/target/service.py, run the independent checks, "
+            "and open a non-draft MR. The authenticated local handoff controller handles promotion; "
+            "do not merge through another route or change permissions."})
+    while True:
+        usable = [mr for mr in requests if mr.get("state") in {"opened", "merged"}]
+        if len(usable) > 1:
+            raise ValueError("Multiple repair MRs exist; refuse ambiguous promotion")
+        if usable:
+            return complete(project, usable[0]["iid"], api=api,
+                            timeout=max(0, deadline - time.monotonic()), interval=interval)
+        if requests:
+            raise ValueError("The existing repair MR is closed; no duplicate created")
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Duo did not produce a repair MR before the deadline")
+        time.sleep(interval)
+        requests = api.request("GET", path)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project", type=int, required=True)
-    parser.add_argument("--merge-request", type=int, required=True)
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--merge-request", type=int)
+    target.add_argument("--issue", type=int)
     args = parser.parse_args()
-    print(json.dumps(complete(args.project, args.merge_request)))
+    run = from_issue if args.issue is not None else complete
+    print(json.dumps(run(args.project, args.issue if args.issue is not None else args.merge_request)))

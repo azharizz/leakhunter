@@ -39,21 +39,20 @@ verify-exposure:
 
 deploy-pages:
   stage: deploy
-  image: alpine:3.22
   interruptible: false
   resource_group: production
   needs:
     - job: verify-exposure
-      artifacts: true
-  script:
-    - test -s public/index.html
-    - test -s public/health.json
-  pages:
-    publish: public
-    expire_in: never
+      artifacts: false
+  variables:
+    UNSPOOL_SOURCE_SHA: $CI_COMMIT_SHA
+  trigger:
+    project: azharizz/unspool-site
+    branch: main
+    strategy: depend
   environment:
     name: production
-    url: $CI_PAGES_URL
+    url: https://unspool-site-1032c3.gitlab.io
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
@@ -62,6 +61,6 @@ production-smoke:
   image: python:3.12-slim
   needs: [deploy-pages]
   script:
-    - python -m unspool.smoke --url "$CI_PAGES_URL" --commit "$CI_COMMIT_SHA"
+    - python -m unspool.smoke --url https://unspool-site-1032c3.gitlab.io --commit "$CI_COMMIT_SHA"
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

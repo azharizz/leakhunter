@@ -9,7 +9,7 @@ in the [public GitLab project](https://gitlab.com/gitlab-ai-hackathon/transcend-
 
 GitLab CI runs Python regression tests, dashboard checks, and a real synthetic
 exposure probe. Only a passing probe can produce the immutable Pages report.
-Default-branch pipelines publish that report and verify its exact commit through
+Default-branch pipelines trigger the public deployment project and verify the exact commit through
 `health.json`. The live report is read-only; local graph CRUD remains available
 through `python -m unspool`. The mutable local analysis server is not published.
 
@@ -20,24 +20,36 @@ response fields still work. Never merge that deliberately failing fixture.
 
 ## Repair handoff
 
-The existing GitLab Duo Developer flow is the intended runtime. Project access
-is Developer, so custom-flow management cannot be assumed. Launch an available
-Developer flow from a GitLab issue or MR with a narrowly scoped repair goal.
+The existing GitLab Duo Developer flow writes the change. Project access
+is Developer, so custom-flow management cannot be assumed. Start a narrowly scoped
+issue workflow using the local controller with your existing authenticated glab login.
 The agent must obey `AGENTS.md`, change only `demo/target/service.py`, and create
 a real MR on an `unspool/` branch.
 
-After opening a non-draft MR, the agent can run:
+Start from one initial intent:
 
 ```sh
-python3 -m unspool.handoff --project 87860005 --merge-request <iid>
+python3 -m unspool.handoff --project 87860005 --issue <iid>
 ```
 
-The controller uses the flow's existing `GITLAB_TOKEN`, or authenticated `glab`
-locally. It checks the complete diff, exact revision, mandatory CI jobs, runtime
+The controller triggers Duo when no MR exists, otherwise reuses the existing MR.
+The Duo runtime token cannot merge into main; the local controller uses the
+user's existing authorized glab login without sharing it with Duo. It checks
+the complete diff, exact revision, mandatory CI jobs, runtime
 evidence, and report revision before merging. It waits for the merged revision's
 Pages deployment and production smoke check, then records the pipeline on the
 MR. Failed, missing, skipped, manual, or timed-out checks stop the workflow.
 It does not change permissions or branch protection.
+
+The hackathon group's Pages site is restricted to members and Developer access
+cannot change it. Public delivery therefore uses
+[azharizz/unspool-site](https://gitlab.com/azharizz/unspool-site), owned by the same
+user. The main pipeline passes its exact SHA to that downstream pipeline, which
+rebuilds the public source, reruns the fixed exposure gate, publishes the report,
+and checks the live revision. No personal token is stored in CI; the trigger uses
+GitLab's temporary job token. The public report is
+[Unspool](https://unspool-site-1032c3.gitlab.io). The enterprise Jamf policy on this
+Mac blocks browser access to GitLab Pages; remote CI performs the live check.
 
 An implementation and passing unit tests are not proof of a hands-off run.
 Claim hands-off only after a real Duo session creates the repair and completes

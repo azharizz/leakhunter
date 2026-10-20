@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from unspool.handoff import complete, validate_pipeline, validate_scope
+from unspool.handoff import complete, from_issue, validate_pipeline, validate_scope
 from unspool.smoke import check
 
 
@@ -87,3 +87,17 @@ class HandoffTest(unittest.TestCase):
         self.assertEqual(result["status"], "DEPLOYED_AND_VERIFIED")
         self.assertEqual(next(body for method, _, body in calls if method == "PUT"), {"sha": "a" * 40})
         self.assertTrue(any(method == "POST" and "/notes" in path for method, path, _ in calls))
+        self.assertTrue(any("/bridges?" in path for _, path, _ in calls))
+
+    def test_issue_retry_reuses_the_existing_mr_without_retriggering_duo(self):
+        calls = []
+
+        class API:
+            def request(self, method, path, body=None):
+                calls.append(method)
+                return [{"iid": 2, "state": "opened"}]
+
+        with patch("unspool.handoff.complete", return_value={"status": "verified"}) as finish:
+            self.assertEqual(from_issue(1, 1, api=API())["status"], "verified")
+            self.assertEqual(finish.call_args.args, (1, 2))
+        self.assertEqual(calls, ["GET"])
