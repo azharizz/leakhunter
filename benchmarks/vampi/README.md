@@ -103,6 +103,57 @@ No raw application output, database or source archive is published as an artifac
 
 ## Separate-container HTTP verification
 
+### Source-bound CI runner (0.4.6)
+
+`ci-independent.sh` binds the independent report to the exact checked-out commit,
+all archived file content, plan/probe and app/probe/filter image identities, and
+distinct container IDs. Verification uses preloaded image IDs and installs no
+application dependencies. A temporary host INPUT filter and a live host-listener
+control test the workload-to-host boundary before the application starts. Only
+the trusted filter helper has NET_ADMIN/NET_RAW with host networking. This example
+requires a dedicated disposable Docker daemon, not a shared developer/production
+host. Cleanup failure removes successful artifacts and fails the job.
+
+| Run | Outcome |
+| --- | --- |
+| [Current fixed-source worker](https://console.cloud.google.com/cloud-build/builds;region=us-central1/8c5a61ad-eb7d-4c57-a726-e196f5ec05a8?project=398376578726) | SUCCESS; host controls and five HTTP requests passed; exact-source evidence/health produced |
+| [Vulnerable-source worker](https://console.cloud.google.com/cloud-build/builds;region=us-central1/7d80c7cf-19ee-4629-a329-8b1ce12bd7af?project=398376578726) | FAILURE as intended; HTTP functionality completed, canary observed, security false |
+
+`results.independent.json` retains the actual evidence and stopped-run diagnostic;
+both were compared directly with completed logs. Earlier positive qualifications
+are also listed rather than discarded. The installed 0.4.6 validator accepted
+the current real record against explicit expected pins and refused a different
+candidate SHA. This is one known lab, not broad accuracy or kernel/egress proof.
+The existing GitLab project's older CI has not yet been migrated to this runner.
+
+For a clean Cloud Build context, copy these framework files and directories
+without Git metadata or credentials:
+
+```sh
+UNSPOOL_BOUND_CONTEXT="$(mktemp -d)"
+mkdir -p "$UNSPOOL_BOUND_CONTEXT/framework/unspool" \
+  "$UNSPOOL_BOUND_CONTEXT/framework/leakhunter/analyzers" \
+  "$UNSPOOL_BOUND_CONTEXT/framework/benchmarks/vampi"
+cp unspool/__init__.py unspool/http_acceptance.py unspool/http_evidence.py \
+  "$UNSPOOL_BOUND_CONTEXT/framework/unspool/"
+cp leakhunter/__init__.py "$UNSPOOL_BOUND_CONTEXT/framework/leakhunter/"
+cp leakhunter/analyzers/sources.py "$UNSPOOL_BOUND_CONTEXT/framework/leakhunter/analyzers/"
+cp benchmarks/vampi/ci-independent.sh benchmarks/vampi/http-plan.json \
+  "$UNSPOOL_BOUND_CONTEXT/framework/benchmarks/vampi/"
+cp benchmarks/vampi/independent.cloudbuild.yaml "$UNSPOOL_BOUND_CONTEXT/"
+```
+
+Submit that directory with `independent.cloudbuild.yaml` and the earlier documented
+project/region/service-account/staging-bucket flags. The example pulls the retained
+private staging artifact through the authorized build identity; other projects
+must provision their own reviewed runtime image and access. Its source is hidden
+by the read-only exact-candidate source mount. For the vulnerable run add
+`--substitutions=_SOURCE_SHA=f16052dce83f05847133ec98f01c5193a41de7d8` and expect
+a failed job with the stopped diagnostic, not a green security gate. The generic
+adapter/controller contract and dedicated-worker requirements are in ADOPTION.md.
+
+### Original independent probe and generic plan replay
+
 The original standalone probe remains unchanged below. Version 0.4.5 adds a
 packaged reusable probe, `python -m unspool.http_acceptance`, plus the frozen
 `http-plan.json` for this application. `generic_probe.py` is a benchmark adapter

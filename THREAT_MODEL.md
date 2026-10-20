@@ -36,6 +36,18 @@ output are untrusted inputs and never grant authorization.
 
 ## Release decisions
 
+The 0.4.6 optional HTTP handoff contract requires source-bound safe case results
+and exact plan/probe/app/probe-image/filter-image pins from the operator. Its CI
+example uses prebuilt images and a dedicated disposable daemon. Only trusted
+operator code can run the host-network NET_ADMIN/NET_RAW filter helper; the app
+and probe have neither capability. A live host-listener control and blocked
+workload connection are required before app execution. This closes a tested
+host-service access path rather than assuming an internal Docker network proves
+host isolation. It is not every DNS/egress channel, kernel escape, image-builder
+or hostile shared-worker qualification. A cleanup-failure regression with a stub
+Docker client proves the actual shell removes success artifacts and exits nonzero;
+real Cloud Build records separately qualify the network and HTTP execution.
+
 The separate 0.4.5 JSON HTTP probe observes requests/responses without importing
 target code and can run in a separately provisioned probe container. Its canary,
 field and functional assertions are declarative and bounded. Actual VAmPI

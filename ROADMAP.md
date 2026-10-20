@@ -46,6 +46,49 @@ stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
 
+### Execution log — source-bound HTTP CI and host boundary, 21 October
+
+Classification: **progress**, production qualification incomplete. MR !21 passed
+pipeline `2968954866`, then merged at `8de167220454824c8e9ee59260c7660d53eaf2f7`.
+Both installed Linux jobs qualified the same 0.4.5 wheel, SHA-256
+`605bc5530897ccd8e3679791fd12cd70a73f2fd9dea17a5bfcddd2410a30baaf`.
+
+Added a 0.4.6 evidence adapter and optional operator `http_contract`: exact plan,
+probe, all three application/probe/privileged-filter image IDs and ordered case
+IDs are checked against the candidate SHA and complete safe case records.
+Source snapshot and distinct container identities are retained. Older config
+journal digests remain unchanged when the optional contract is absent; they do
+not silently gain this stronger evidence mode. Trusted pinned orchestration is
+still required; the records are not cryptographic attestations.
+
+The VAmPI CI example now uses pre-provisioned immutable images and performs no
+target dependency installation. App/probe containers receive no host credentials,
+socket, writable root or capabilities. A trusted privileged network helper installs
+a temporary host INPUT filter. A live host listener is reachable from a trusted
+host-network control, unreachable from the workload network, and still reachable
+from the control afterward. Both participants retain internal service DNS while
+external forwarding is pointed at loopback. Cleanup failure revokes success.
+
+Initial worker builds `54f7ca79-0867-4540-ae2d-48f1016f4328` and
+`77a73b22-adb4-4a38-913e-35fb7b6102c5` succeeded. After explicit image-pin
+validation changes, current build `8c5a61ad-eb7d-4c57-a726-e196f5ec05a8`
+also succeeded with all five repaired-app requests passing and source-bound
+health. Vulnerable revision build `7d80c7cf-19ee-4629-a329-8b1ce12bd7af`
+failed as intended: HTTP functionality completed, a canary was observed and
+security was false. Full sanitized evidence is in benchmarks/vampi/results.independent.json.
+These were deliberate code-revision qualifications, not restarted observations.
+
+All 126 local tests passed, including recorded-leak refusal, wrong revision/image/
+probe/plan/case refusal, compatibility and a real-shell cleanup-failure test with
+a stub Docker client. A clean installed macOS Python 3.11.9 0.4.6 wheel verified
+40 files, commands/cancellation/synthetic exposure outside the checkout. Its SHA-256
+is `51d67f00aedbd616e3c8bb2784309f4b04cb06876dec1cfb4363755d227b72f2`.
+The installed validator accepted the current real Cloud Build evidence against
+explicit expected pins and rejected a different candidate revision. The source
+audit remained at 14 LOW/6 MEDIUM, no HIGH/errors; selected dependency pins had
+no reported advisories. Linux 0.4.6 qualification and actual GitLab project CI
+migration remain open. So do broader runtime/evaluation/recovery/operating gates.
+
 ### Execution log — shared wheel and reusable HTTP verification, 21 October
 
 Classification: **progress**, production qualification incomplete. MR !20 passed
