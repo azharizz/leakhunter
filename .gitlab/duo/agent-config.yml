@@ -1,3 +1,4 @@
 setup_script:
-  - apt-get update -qq && apt-get install -y python3-pip nodejs
-  - python3 -m pip install --break-system-packages --disable-pip-version-check .
+  # GitLab's UBI image includes pip for Python 3.12, not its system Python.
+  - ln -sf /usr/bin/python3.12 /usr/local/bin/python3
+  - python3 -m pip install --disable-pip-version-check .
