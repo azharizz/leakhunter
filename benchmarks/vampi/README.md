@@ -8,8 +8,8 @@ The upstream MIT notice is preserved in the imported repository.
 The author documents excessive exposure at `/users/v1/_debug`. This benchmark
 tests that published behavior with a synthetic canary over actual HTTP. It is
 an externally authored intentional security lab, not a customer production system,
-an independent human evaluation, a new vulnerability discovery, or a measured
-Unspool detection/repair result yet.
+an independent human evaluation or a new vulnerability discovery. The later
+instructed repair and controller verification are recorded separately below.
 
 ## Observed baseline, 20 October 2026
 
@@ -56,10 +56,47 @@ gcloud builds submit benchmarks/vampi \
 Do not expose the deliberately vulnerable application to the public internet.
 `probe.py --expect-fixed` defines the candidate acceptance check: public identity
 behavior must remain, and debug responses must exclude passwords/admin flags.
-That candidate run is not yet completed. The upstream dependency tree includes
+The candidate run is recorded below. The upstream dependency tree includes
 intentionally old packages and has not been claimed safe for production.
 
-Next work: wire this real HTTP observation into Unspool's independently pinned
-runtime evidence, produce a bounded real repair MR, test the candidate with the
-fixed expectation, retain negative controls, and compare with the ungated agent.
-Keep this baseline distinct from those later outcomes in all metrics.
+## Observed instructed repair
+
+Duo session `9754951` created [MR !1](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/merge_requests/1)
+at `c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1`. Its only changed file is
+`api_views/users.py`; the debug response now projects username/email.
+[Pipeline 2968003131](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/pipelines/2968003131)
+passed syntax and the fixed-behavior HTTP acceptance. The harness was pinned at
+Unspool `61b884e723012c8ede7308a4aa49f5e5cd512e56`, before the repair ran.
+
+The installed Unspool 0.4.0 console command, run from `/tmp` outside the checkout,
+returned `READY_FOR_REVIEW` after checking the diff, exact source/pipeline,
+mandatory jobs, artifacts and pinned CI/instructions with
+`config/handoff.vampi-delivery.json`. No automatic merge was performed.
+This is one instructed known-exposure repair, not independent discovery or a
+measured general repair success rate. After operator review and fast-forward
+promotion, [post-merge pipeline 2968031105](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/pipelines/2968031105)
+passed both checks on the same repaired SHA. The upstream has no automated Python test
+suite in the pinned tree; syntax and our frozen HTTP acceptance do not prove all
+other application behavior correct. Staging and rollback checks remain open.
+
+The earlier GitLab baseline pipeline `2967877801` blocked on acceptance and
+produced no success evidence, but discarded diagnostics make its exact cause
+unknown. Only the separate Cloud Build baseline above confirms the actual leak.
+Comparison with an ungated agent and wider cases remains pending.
+
+## Pinned repair acceptance harness
+
+`ci-verify.sh` exports the exact candidate revision without Git metadata, builds
+dependencies separately, and runs the frozen fixed-behavior HTTP probe with the
+same container restrictions. It passes no CI variables or credentials into the
+application container. `report.py` runs outside that container and only adapts
+an exact positive result into the handoff evidence contract, recording the source
+SHA and resolved image ID. This is HTTP acceptance of a known exposure; it does
+not represent an Unspool analyzer discovery.
+
+The validation repository must fetch these files from a pinned Unspool commit,
+and pin its CI/agent instructions in the operator configuration. Its repair may
+change only `api_views/users.py`. GitLab's hosted runner/Docker service and the
+probe's application process are not a verified sandbox for actively malicious
+repositories. This experiment does not close the hostile-code isolation gate.
+No raw application output, database or source archive is published as an artifact.

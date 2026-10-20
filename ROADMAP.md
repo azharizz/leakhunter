@@ -8,10 +8,10 @@ a test count increased, a cloud URL works, or an agent says it succeeded.
 
 Current verdict: working prototype with real GitLab Duo, CI, bounded automatic
 promotion, and public static-report delivery. Not established as a production
-security product or a general repair service. The latest successful autonomous
-changes normalized display names; they did not discover an unknown real-world
-vulnerability. The 77 Python tests are regression tests, not 77 independent
-vulnerability cases.
+security product or a general repair service. The synthetic delivery runs
+normalized display names; the later external VAmPI run repaired an instructed,
+published exposure. Neither discovered an unknown real-world vulnerability.
+Regression test counts are not counts of independent vulnerability cases.
 
 First production candidate: a versioned, self-hosted GitLab integration for
 selected Python repositories. Each adopting team owns its workers, repository
@@ -45,6 +45,62 @@ External pilot feedback remains valuable future evidence, not a dependency that
 stops the solo engineering work.
 
 ## Established evidence and remaining uncertainty
+
+### Execution log — local recovery and file boundary hardening
+
+Classification: **progress**. Closed unsafe configuration/state reads: symlinks,
+hard links, special files, shared permissions and wrong ownership are rejected
+using the opened descriptor; reads are nonblocking and bounded. State remains
+private and atomic. Added regression cases and an actual child-process kill test:
+while a child holds the project/target lock a competing intent is rejected;
+after SIGKILL the lock can be acquired and the saved trigger intent survives.
+All 21 handoff/config/state tests and the full 93-test local suite pass.
+Remote pipeline `2968050565` passed the hardening revision
+`4e9fba9aedc19c2a5d6d4278501a934699f8c42b`; a subsequent two-line change
+also enforces the 64 KiB configuration limit before UTF-8 decoding, with its
+configuration tests passing locally and final remote CI still required.
+This proves the local OS-lock/intent
+case, not remote crash recovery or a distributed lock. Added THREAT_MODEL.md with
+explicit unresolved worker-evidence tampering, dependency execution and provider
+privacy risks. The full adversarial isolation and remote recovery gates remain open.
+
+### Execution log — external acceptance integration
+
+Classification: **progress**, incomplete qualification. Created a second isolated
+validation project, `87865932` (`unspool-vampi-delivery`), with original VAmPI
+history at `f16052dce83f05847133ec98f01c5193a41de7d8`, a protected `master`,
+and fast-forward merges. Added a pinned HTTP acceptance
+CI harness and strict evidence adapter with a regression test. It exports source
+without Git credentials, runs the application without passed CI credentials or
+external network, and keeps verification outside the permitted repair diff.
+The external repair now has direct evidence:
+
+- Duo session `9754951` produced [VAmPI MR !1](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/merge_requests/1).
+  Its complete diff changes only `api_views/users.py`, projecting username/email
+  instead of returning password/admin fields. Candidate SHA:
+  `c146bd1b9ee9fbe2730c316675de1fa7e55f0fa1`.
+- [Candidate pipeline 2968003131](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/pipelines/2968003131)
+  passed application syntax and the frozen loopback HTTP acceptance probe. Job
+  `17319543552` recorded image ID
+  `sha256:49bcaf51146af53baa498a2c0bce009f9957f4f074257c3be9502a5bbf03177d`.
+- The separately installed 0.4.0 CLI, run outside the checkout from `/tmp`,
+  returned `READY_FOR_REVIEW` for this exact SHA and pipeline. Configuration
+  digest: `888b3d9f4b78d985b3cfde7bea3f9550f06119c0116af3779065b6a18dedae5b`.
+  It verified the full diff, mandatory jobs, exact health evidence and pinned
+  CI/agent instructions; it performed no merge. See config/handoff.vampi-delivery.json.
+- Baseline GitLab pipeline `2967877801` failed acceptance and produced no success
+  evidence. Its raw diagnostics were discarded, so the exact failure cause is
+  unknown; do not count it as a confirmed leak detection. The separate Cloud Build
+  baseline below is the confirmed HTTP leak reproduction.
+
+This establishes one instructed known-exposure repair and review handoff, not an
+analyzer discovery, broad accuracy measurement or completed isolation audit.
+After review, the operator merged the external MR using the existing authorized
+GitLab login. Protected `master` now points to the tested candidate SHA without a
+new merge commit. [Post-merge pipeline 2968031105](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/pipelines/2968031105)
+passed syntax and fixed-behavior HTTP acceptance at that same SHA; no public
+deployment is claimed. The full local suite passes 90 tests. Staging/rollback and broader
+evaluation remain pending.
 
 ### Execution log — 20 October, first implementation goal turn
 
@@ -187,7 +243,7 @@ that arbitrary repositories are supported. If this gate fails, narrow the produc
 
 ## Gate 3 — enforce security boundaries outside the model
 
-- [ ] Write a threat model covering repository code/build scripts, dependencies,
+- [x] Write a threat model covering repository code/build scripts, dependencies,
   issue/MR prompt injection, CI artifacts, GitLab identities, model providers,
   credentials, public reports, and deployment privileges.
 - [ ] Execute unfamiliar code in disposable isolated workers with no host Docker

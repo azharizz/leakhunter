@@ -1,5 +1,8 @@
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -9,6 +12,52 @@ from unspool.handoff_state import RunJournal, trigger_issue
 
 
 class StateTest(unittest.TestCase):
+    def test_killed_process_releases_target_lock_and_preserves_durable_intent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            child = subprocess.Popen([sys.executable, "-c", """
+import sys,time
+from unspool.handoff_state import RunJournal
+with RunJournal(sys.argv[1], 1, 'main', 'issue:2', 'config') as journal:
+    journal.save('TRIGGER_INTENT', dispatch_started=True)
+    print('ready', flush=True)
+    time.sleep(30)
+""", directory], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            try:
+                import select
+                self.assertTrue(select.select([child.stdout], [], [], 5)[0], "Child did not acquire lock")
+                self.assertEqual(child.stdout.readline().strip(), "ready")
+                with self.assertRaises(BlockingIOError):
+                    with RunJournal(directory, 1, "main", "issue:3", "config"):
+                        pass
+                child.kill()
+                child.wait(timeout=5)
+                with RunJournal(directory, 1, "main", "issue:2", "config") as resumed:
+                    self.assertTrue(resumed.data["dispatch_started"])
+                    self.assertEqual(resumed.data["state"], "TRIGGER_INTENT")
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                child.communicate(timeout=5)
+
+    def test_special_shared_and_hardlinked_state_or_lock_is_rejected(self):
+        for field in ("path", "lock_path"):
+            for kind in ("fifo", "hardlink", "shared"):
+                with self.subTest(field=field, kind=kind), tempfile.TemporaryDirectory() as directory:
+                    journal = RunJournal(directory, 1, "main", "issue:2", "config")
+                    target = getattr(journal, field)
+                    if kind == "fifo":
+                        os.mkfifo(target, mode=0o600)
+                    else:
+                        target.write_text("{}")
+                        target.chmod(0o600)
+                        if kind == "shared":
+                            target.chmod(0o644)
+                        else:
+                            os.link(target, Path(directory) / "alias")
+                    with self.assertRaises(ValueError):
+                        with journal:
+                            pass
+
     def test_only_transient_reads_are_retried_and_mutations_are_never_replayed(self):
         api = GitLab()
         with patch.object(api, "_request", side_effect=[GitLabError("GET", 429, True), {"ok": True}]) as request, patch("unspool.handoff.time.sleep"):
