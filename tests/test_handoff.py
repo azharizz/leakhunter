@@ -64,6 +64,8 @@ class HandoffTest(unittest.TestCase):
         merged = dict(mr, state="merged", merge_commit_sha="b" * 40)
 
         class API:
+            include_cloud = True
+
             def request(self, method, path, body=None):
                 calls.append((method, path, body))
                 if path.endswith("/changes"):
@@ -78,6 +80,8 @@ class HandoffTest(unittest.TestCase):
                     return [{"id": 3, "source": "push", "status": "success", "web_url": "https://gitlab.com/pipeline/3"}]
                 if "/pipelines/" in path:
                     names = ("deploy-pages", "production-smoke", "deploy-cloud-run") if "/3/" in path else ("python-tests", "dashboard-tests", "verify-exposure")
+                    if not self.include_cloud:
+                        names = tuple(name for name in names if name != "deploy-cloud-run")
                     return [{"id": 4, "name": name, "status": "success"} for name in names]
                 if "/notes" in path:
                     return []
@@ -88,6 +92,10 @@ class HandoffTest(unittest.TestCase):
         self.assertEqual(next(body for method, _, body in calls if method == "PUT"), {"sha": "a" * 40})
         self.assertTrue(any(method == "POST" and "/notes" in path for method, path, _ in calls))
         self.assertTrue(any("/bridges?" in path for _, path, _ in calls))
+        missing_cloud = API()
+        missing_cloud.include_cloud = False
+        with self.assertRaises(ValueError):
+            complete(1, 1, api=missing_cloud, interval=0)
 
     def test_issue_retry_reuses_the_existing_mr_without_retriggering_duo(self):
         calls = []
