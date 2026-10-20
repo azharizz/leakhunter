@@ -45,9 +45,9 @@ gateway=$(docker network inspect --format '{{(index .IPAM.Config 0).Gateway}}' "
 docker run -d --name "$listener" --pull=never --network=host --user=10001:10001 \
   --read-only --cap-drop=ALL --security-opt=no-new-privileges --log-driver=none \
   --memory=64m --cpus=1 --pids-limit=32 --workdir=/tmp \
-  "$probe_image" python -I -B -m http.server 19375 --bind "$gateway" >/dev/null
+  "$probe_image" python -I -B -m http.server 19375 --bind 0.0.0.0 >/dev/null
 check_host() {
-  docker run --rm --pull=never --network="$network" --dns=127.0.0.1 --user=10001:10001 \
+  docker run --rm --pull=never --network="$1" --dns=127.0.0.1 --user=10001:10001 \
     --read-only --cap-drop=ALL --security-opt=no-new-privileges --memory=64m --cpus=1 --pids-limit=32 \
     "$probe_image" python -I -B -c 'import socket,sys,time
 deadline=time.monotonic()+5
@@ -57,13 +57,14 @@ while time.monotonic()<deadline:
   with socket.create_connection((sys.argv[1],19375),timeout=0.5): reachable=True
   break
  except OSError: time.sleep(0.1)
-sys.exit(0 if reachable == (sys.argv[2]=="reachable") else 1)' "$gateway" "$1"
+sys.exit(0 if reachable == (sys.argv[2]=="reachable") else 1)' "$2" "$3"
 }
-check_host reachable
+check_host host 127.0.0.1 reachable
 [ "$(docker inspect --format '{{.State.Running}}' "$listener")" = true ] || exit 1
 docker run --rm --pull=never --network=host --cap-drop=ALL --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint=iptables \
   "$filter_image" -I INPUT -s "$subnet" -j DROP
-check_host blocked
+check_host "$network" "$gateway" blocked
+check_host host 127.0.0.1 reachable
 [ "$(docker inspect --format '{{.State.Running}}' "$listener")" = true ] || exit 1
 docker rm -f "$listener" >/dev/null
 app_id=$(docker run -d --name "$app" --pull=never --network="$network" --network-alias=target \
