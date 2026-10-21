@@ -1,6 +1,7 @@
 __pycache__/
 data/
 .DS_Store
+.serena/
 .env
 example/sample.json
 .venv/

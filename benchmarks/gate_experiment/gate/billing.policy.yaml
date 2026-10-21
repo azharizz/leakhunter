@@ -1,0 +1,27 @@
+version: 1
+status: approved
+approved_by: Unspool gate-experiment maintainers
+classifications:
+  PUBLIC: 0
+  PII: 1
+  SECRET: 2
+sources:
+- selector: '*.card_number'
+  class: SECRET
+- selector: '*.cvv'
+  class: SECRET
+- selector: '*.api_token'
+  class: SECRET
+sinks:
+- kind: HTTP_RESPONSE
+  allow:
+  - PUBLIC
+- kind: APPLICATION_LOG
+  allow:
+  - PUBLIC
+- kind: WEBHOOK
+  allow:
+  - PUBLIC
+invariants:
+- secret_fields_never_in_external_payloads
+- no_real_secrets_in_test_artifacts

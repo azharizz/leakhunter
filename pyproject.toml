@@ -14,6 +14,11 @@ dependencies = ["PyYAML>=6.0", "tree-sitter>=0.25,<0.26", "tree-sitter-javascrip
 unspool = "leakhunter.app:main"
 leakhunter = "leakhunter.app:main"
 unspool-handoff = "unspool.handoff:main"
+unspool-issue-draft = "unspool.issue_draft:main"
+unspool-bind-closed-loop-evidence = "unspool.closed_loop_evidence:main"
+unspool-diff = "unspool.exposure_diff:main"
+unspool-gate-report = "unspool.gate_experiment:main"
+unspool-attestation = "unspool.attestation:main"
 
 [tool.setuptools.packages.find]
 include = ["leakhunter*", "unspool*"]

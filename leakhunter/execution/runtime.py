@@ -22,7 +22,8 @@ from leakhunter.languages import entrypoint as language_entrypoint, manifest_lan
 
 _NAME = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$")
 _CASE_KEYS = {"id", "module", "callable", "entrypoint", "args", "kwargs", "sensitive", "context", "expect",
-              "expected_violation", "finding", "capture_http", "capture_calls", "observe_calls", "trace", "artifacts"}
+              "expected_violation", "finding", "capture_http", "capture_calls", "observe_calls", "trace", "artifacts",
+              "on_demand"}
 _CONTEXT_KEYS = {"audience", "recipient", "tenant", "source_tenant", "authorized", "contract", "synthetic",
                  "boundary_kind", "applicable_questions", "security_contexts"}
 _BOOTSTRAP = "import sys;sys.path.insert(0,sys.argv.pop(1));from leakhunter.runtime_worker import main;main()"
@@ -81,6 +82,8 @@ def _validate(manifest):
         if not isinstance(case["id"], str) or not re.fullmatch(r"[A-Za-z0-9_.-]+", case["id"]) or case["id"] in ids:
             raise ValueError("invalid or duplicate case id")
         ids.add(case["id"])
+        if "on_demand" in case and not isinstance(case["on_demand"], bool):
+            raise ValueError("case on_demand must be boolean")
         if language == "python":
             if "entrypoint" in case:
                 raise ValueError("Python cases use module/callable, not entrypoint")

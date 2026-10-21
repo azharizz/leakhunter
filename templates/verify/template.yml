@@ -1,0 +1,115 @@
+spec:
+  component: [sha]
+  inputs:
+    policy_path:
+      description: Repository-relative Unspool policy file.
+      regex: '^[A-Za-z0-9_./-]+$'
+    manifest_path:
+      description: Repository-relative synthetic runtime manifest.
+      regex: '^[A-Za-z0-9_./-]+$'
+    target_directory:
+      description: Repository-relative code directory to analyze.
+      regex: '^[A-Za-z0-9_./-]+$'
+    stage:
+      default: verify
+      regex: '^[A-Za-z0-9_-]+$'
+    sign_stage:
+      default: verify
+      regex: '^[A-Za-z0-9_-]+$'
+    decision_model:
+      description: Luna Decisions model; requires a masked AGENT_PROVIDER_API_KEY CI variable.
+      default: openai/gpt-6-luna-decisions
+      regex: '^[A-Za-z0-9_./:-]+$'
+---
+
+# Runs the consumer's own synthetic probes with the local backend: trusted code only.
+unspool-verify:
+  stage: $[[ inputs.stage ]]
+  image: python:3.12-slim
+  variables:
+    GIT_DEPTH: "0"
+    # The exposure diff exports the exact MR base commit.
+    UNSPOOL_POLICY_PATH: "$[[ inputs.policy_path ]]"
+    UNSPOOL_MANIFEST_PATH: "$[[ inputs.manifest_path ]]"
+    UNSPOOL_TARGET_DIRECTORY: "$[[ inputs.target_directory ]]"
+    UNSPOOL_COMPONENT_SHA: "$[[ component.sha ]]"
+    # Luna decides every reviewed boundary; the gate fails closed without the API key.
+    AGENT_PROVIDER_URL: https://openrouter.ai/api/v1/chat/completions
+    AGENT_PROVIDER_MODEL: "$[[ inputs.decision_model ]]"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  before_script:
+    - apt-get update -qq && apt-get install -y --no-install-recommends git tar
+    - git init /tmp/unspool-source
+    - git -C /tmp/unspool-source fetch --depth 1 https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool.git "$UNSPOOL_COMPONENT_SHA"
+    - git -C /tmp/unspool-source checkout FETCH_HEAD
+    - python -m pip install --disable-pip-version-check -c /tmp/unspool-source/requirements.lock /tmp/unspool-source
+  script:
+    - |
+      python - <<'PY'
+      import os
+      from pathlib import Path
+      root = Path(os.environ["CI_PROJECT_DIR"]).resolve()
+      files = ("UNSPOOL_POLICY_PATH", "UNSPOOL_MANIFEST_PATH")
+      for name in (*files, "UNSPOOL_TARGET_DIRECTORY"):
+          path = (root / os.environ[name]).resolve()
+          if path != root and root not in path.parents:
+              raise SystemExit(f"{name} escapes CI_PROJECT_DIR")
+          if not (path.is_file() if name in files else path.is_dir()):
+              raise SystemExit(f"{name} has the wrong type or does not exist")
+      PY
+    # Diff first: the MR security widget must show an added leak even when the gate below blocks.
+    - unspool diff --repository "$CI_PROJECT_DIR" --target-directory "$UNSPOOL_TARGET_DIRECTORY" --policy "$CI_PROJECT_DIR/$UNSPOOL_POLICY_PATH" --manifest "$CI_PROJECT_DIR/$UNSPOOL_MANIFEST_PATH" --base "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --head "$CI_COMMIT_SHA" --output unspool-diff
+    - mkdir -p /tmp/unspool-base
+    - git -C "$CI_PROJECT_DIR" archive "$CI_MERGE_REQUEST_DIFF_BASE_SHA" | tar -x -C /tmp/unspool-base
+    - python -m unspool --repository "/tmp/unspool-base/$UNSPOOL_TARGET_DIRECTORY" --policy "/tmp/unspool-base/$UNSPOOL_POLICY_PATH" --runtime-manifest "/tmp/unspool-base/$UNSPOOL_MANIFEST_PATH" --runtime-backend local --data-dir /tmp/unspool-base-data --once analyze > base-evidence.json
+    - python -m unspool --repository "$CI_PROJECT_DIR/$UNSPOOL_TARGET_DIRECTORY" --policy "$CI_PROJECT_DIR/$UNSPOOL_POLICY_PATH" --runtime-manifest "$CI_PROJECT_DIR/$UNSPOOL_MANIFEST_PATH" --runtime-backend local --data-dir /tmp/unspool-head-data --once analyze > head-evidence.json
+    - unspool-bind-closed-loop-evidence --diff unspool-diff/exposure-diff.json --base-evidence base-evidence.json --head-evidence head-evidence.json --base-sha "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --head-sha "$CI_COMMIT_SHA" --output evidence.json --sast-output unspool-diff/gl-sast-report.json --note-output mr-note.md
+    - python -m unspool.attestation prepare --evidence evidence.json --base-sha "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --head-sha "$CI_COMMIT_SHA" --output attestation.statement.json
+    - python -m unspool.publish --evidence evidence.json --output public --commit "$CI_COMMIT_SHA"
+    - mkdir -p unspool-runtime/unspool
+    - cp /tmp/unspool-source/unspool/__init__.py /tmp/unspool-source/unspool/attestation.py unspool-runtime/unspool/
+  artifacts:
+    when: always
+    paths: [evidence.json, base-evidence.json, head-evidence.json, attestation.statement.json, mr-note.md, public/, unspool-diff/, unspool-runtime/]
+    reports:
+      sast: unspool-diff/gl-sast-report.json
+    expire_in: 90 days
+
+unspool-sign-evidence:
+  stage: $[[ inputs.sign_stage ]]
+  image: alpine:3.22
+  interruptible: false
+  needs:
+    - job: unspool-verify
+      artifacts: true
+  id_tokens:
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
+  before_script:
+    - apk add --no-cache cosign
+  script:
+    - test "$CI_COMMIT_REF_PROTECTED" = "true"
+    - cosign sign-blob --yes --bundle attestation.bundle.json attestation.statement.json
+  artifacts:
+    paths: [attestation.bundle.json]
+    expire_in: 90 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+unspool-verify-attestation:
+  stage: $[[ inputs.sign_stage ]]
+  image: python:3.12-alpine
+  interruptible: false
+  needs:
+    - job: unspool-verify
+      artifacts: true
+    - job: unspool-sign-evidence
+      artifacts: true
+  before_script:
+    - apk add --no-cache cosign
+  script:
+    - test "$CI_COMMIT_REF_PROTECTED" = "true"
+    - PYTHONPATH="$CI_PROJECT_DIR/unspool-runtime" python -m unspool.attestation verify --evidence evidence.json --statement attestation.statement.json --bundle attestation.bundle.json --expected-identity "$CI_PROJECT_URL//.gitlab-ci.yml@refs/heads/$CI_COMMIT_REF_NAME" --expected-head-sha "$CI_COMMIT_SHA"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

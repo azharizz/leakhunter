@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import sys
 from urllib.request import urlopen
 from http.server import ThreadingHTTPServer
 
@@ -23,7 +24,10 @@ def configure(args: argparse.Namespace) -> None:
 
 
 def call_model(model: str, prompt: str, *, questions: dict | None = None) -> tuple[str | dict, int, str]:
-    return ProviderFactory.create(API_URL, API_KEY, opener=urlopen).call(model, prompt, questions=questions)
+    provider = ProviderFactory.create(API_URL, API_KEY, opener=urlopen)
+    result = provider.call(model, prompt, questions=questions)
+    service.record_model_usage(provider.last_usage)
+    return result
 
 
 current_policy = service.current_policy
@@ -40,6 +44,11 @@ Handler = create_handler(service)
 
 
 def main(argv=None) -> None:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv[:1] == ["diff"]:
+        from unspool.exposure_diff import main as diff_main
+        diff_main(argv[1:])
+        return
     parser = argparse.ArgumentParser(
         description="Analyze, execute synthetic proofs, and independently verify repairs for a configured repository")
     parser.add_argument("--repository", type=Path, required=True)
@@ -51,6 +60,10 @@ def main(argv=None) -> None:
     parser.add_argument("--provider-url", default=os.getenv("AGENT_PROVIDER_URL", ""))
     parser.add_argument("--decision-model", default=os.getenv("AGENT_PROVIDER_MODEL", ""))
     parser.add_argument("--repair-model", default=os.getenv("DUO_PROVIDER_MODEL", ""))
+    parser.add_argument("--decision-mode", choices=("required", "advisory"),
+                        default=os.getenv("UNSPOOL_DECISION_MODE", "required"),
+                        help="required (default): Luna decides every reviewed boundary and the gate fails closed "
+                             "without it; advisory: record Luna's verdict without letting it change the gate")
     parser.add_argument("--runtime-manifest", type=Path)
     parser.add_argument("--runtime-backend", choices=("docker", "local"), default="docker",
                         help="local executes trusted target code without a security sandbox")

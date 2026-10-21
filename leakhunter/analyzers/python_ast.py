@@ -11,7 +11,9 @@ from pathlib import Path
 from leakhunter.policy.engine import Policy
 from leakhunter.analyzers.sources import exclusions, source_files
 
-ANALYZER_VERSION = "python-flow-4"
+ANALYZER_VERSION = "python-flow-6"
+# Whole entrypoint arguments are opaque records that may hold any policy field.
+OPAQUE = "OPAQUE_RECORD"
 SINKS = {
     "logging.debug": "APPLICATION_LOG", "logging.info": "APPLICATION_LOG",
     "logging.warning": "APPLICATION_LOG", "logging.error": "APPLICATION_LOG",
@@ -20,6 +22,10 @@ SINKS = {
     "fastapi.responses.JSONResponse": "HTTP_RESPONSE", "starlette.responses.JSONResponse": "HTTP_RESPONSE",
     "requests.post": "WEBHOOK", "requests.put": "WEBHOOK", "requests.request": "WEBHOOK",
     "httpx.post": "WEBHOOK", "httpx.put": "WEBHOOK", "httpx.request": "WEBHOOK",
+    "litellm.completion": "AI_PROMPT", "litellm.acompletion": "AI_PROMPT",
+    "openai.chat.completions.create": "AI_PROMPT",
+    "openai.responses.create": "AI_PROMPT",
+    "anthropic.messages.create": "AI_PROMPT",
 }
 METHOD_SINKS = {
     "track": "THIRD_PARTY_ANALYTICS", "capture": "THIRD_PARTY_ANALYTICS",
@@ -77,6 +83,34 @@ class Value:
         for value in self.fields.values():
             flows.update(value.all_flows())
         return flows
+
+
+_RECORD_METHODS = {"get", "items", "keys", "values", "copy", "to_dict", "dict", "model_dump", "__dict__"}
+
+
+def _record_like(function, name):
+    """Whether ``name`` is used as a record or collection of records, not a scalar such as an ID."""
+    for node in ast.walk(function):
+        if isinstance(node, (ast.Subscript, ast.Attribute)) and isinstance(node.value, ast.Name) and node.value.id == name:
+            return True
+        if isinstance(node, ast.Call):
+            args = [item.value if isinstance(item, ast.Starred) else item for item in node.args]
+            if (isinstance(node.func, ast.Name) and node.func.id in {"dict", "vars", "list", "asdict"}
+                    and any(isinstance(item, ast.Name) and item.id == name for item in args)):
+                return True
+            if any(item.arg is None and isinstance(item.value, ast.Name) and item.value.id == name for item in node.keywords):
+                return True
+        if isinstance(node, ast.Dict) and any(key is None and isinstance(value, ast.Name) and value.id == name
+                                              for key, value in zip(node.keys, node.values)):
+            return True
+        if isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)) and isinstance(node.iter, ast.Name) and node.iter.id == name:
+            return True
+    return False
+
+
+def _fields_only(flows):
+    """Selecting one field/item of a record does not expose the whole record."""
+    return {key: flow for key, flow in flows.items() if flow[1] != OPAQUE}
 
 
 def _merge(*values):
@@ -227,6 +261,20 @@ class _Project:
         return any(fnmatch.fnmatchcase(symbol, pattern)
                    for sink in self.policy.sinks.values() for pattern in sink.get("deny_fields", []))
 
+    def ai_prompt_sink(self, path, node, name):
+        """Recognize common SDK calls only when the module imports that provider."""
+        imports = set(self.imports.get(path, {}).values())
+        callee = ast.unparse(node.func).lower()
+        providers = {value.split(".", 1)[0] for value in imports}
+        if ("openai" in providers and ("chat.completions.create" in callee or "responses.create" in callee)):
+            return "AI_PROMPT"
+        if "anthropic" in providers and "messages.create" in callee:
+            return "AI_PROMPT"
+        if ("litellm" in providers and
+                (name in {"litellm.completion", "litellm.acompletion"} or callee.endswith(".completion"))):
+            return "AI_PROMPT"
+        return None
+
     def source(self, value, symbol, node):
         classification = self.policy.classify(symbol)
         if classification != "PUBLIC" or self.denied_field(symbol):
@@ -238,11 +286,12 @@ class _Project:
     def sink(self, value, kind, node, path, function):
         identity = self.ids[id(node)]
         self.nodes[identity].update(sink=kind)
-        for source, (symbol, classification, trace) in value.all_flows().items():
+        for source, (symbol, classification, trace) in self.expand(value.all_flows()):
             decision = self.policy.evaluate(classification, kind, symbol=symbol)
             self.edge(trace[-1], identity, "DATA_FLOW")
             if decision["allowed"]:
                 continue
+            whole = source.endswith("#whole")
             finding_id = _hash(f"{path}|{function}|{source}|{identity}|{kind}")
             route = trace if trace[-1] == identity else trace + [identity]
             context_reasons = {"audience_unknown", "recipient_unknown", "required_contract_missing",
@@ -250,13 +299,30 @@ class _Project:
             requirements = [reason for reason in decision["reasons"] if reason in context_reasons]
             self.findings[finding_id] = {
                 "id": finding_id, "severity": "critical" if classification == "SECRET" else "high",
-                "title": f"{classification} data reaches {kind}", "source": symbol,
+                "title": (f"Whole record containing {classification} field reaches {kind}" if whole
+                          else f"{classification} data reaches {kind}"),
+                "source": symbol, "exposure": "WHOLE_RECORD" if whole else "FIELD",
                 "classification": classification, "sink": kind, "file": path, "line": getattr(node, "lineno", 1),
                 "function": function, "path": route, "rule": f"policy_v{self.policy.version}",
                 "reasons": decision["reasons"], "static_result": "POSSIBLE_FLOW", "status": "POSSIBLE",
                 "context_requirements": requirements,
                 "policy_violation": any(reason not in context_reasons for reason in decision["reasons"]),
             }
+
+    def selectors(self):
+        """Field selectors the policy classifies or denies, e.g. ``*.password_hash``."""
+        patterns = {source["selector"] for source in self.policy.sources}
+        patterns |= {pattern for sink in self.policy.sinks.values() for pattern in sink.get("deny_fields", [])}
+        return sorted(pattern for pattern in patterns if pattern.startswith("*.") and len(pattern) > 2)
+
+    def expand(self, flows):
+        """Yield ordinary flows; an opaque record yields one flow per policy field it may hold."""
+        for source, (symbol, classification, trace) in flows.items():
+            if classification != OPAQUE:
+                yield source, (symbol, classification, trace)
+                continue
+            for pattern in self.selectors():
+                yield f"{source}|{pattern}#whole", (pattern, self.policy.classify(pattern), trace)
 
     def expr(self, node, env, path, function, stack):
         if node is None:
@@ -272,9 +338,9 @@ class _Project:
                 return self.hop(base.fields[key], node)
             if base.known and key is not None and not base.flows:
                 return Value(known=True)
-            value = Value(flows=dict(base.flows))
+            value = Value(flows=_fields_only(base.flows))
             if key is None:
-                value = _merge(base, self.expr(node.slice, env, path, function, stack))
+                value = _merge(Value(flows=_fields_only(base.all_flows())), self.expr(node.slice, env, path, function, stack))
             value = self.hop(value, node)
             if isinstance(key, str):
                 self.source(value, f"*.{key}", node)
@@ -330,7 +396,7 @@ class _Project:
                 return self.hop(value, node)
             combined = _merge(*args, *kwargs.values())
             method = node.func.attr if isinstance(node.func, ast.Attribute) else node.func.id if isinstance(node.func, ast.Name) else ""
-            kind = SINKS.get(name) or METHOD_SINKS.get(method)
+            kind = SINKS.get(name) or METHOD_SINKS.get(method) or self.ai_prompt_sink(path, node, name)
             if method in {"debug", "info", "warning", "error", "exception", "critical", "log"} and isinstance(node.func, ast.Attribute):
                 receiver = ast.unparse(node.func.value).lower()
                 if any(word in receiver for word in ("logger", "logging", "log")):
@@ -358,7 +424,7 @@ class _Project:
                         return self.hop(receiver.fields[key], node)
                     if receiver.known and not receiver.flows:
                         return self.hop(args[1] if len(args) > 1 else Value(known=True), node)
-                    return self.source(self.hop(Value(flows=receiver.flows), node), f"*.{key}", node)
+                    return self.source(self.hop(Value(flows=_fields_only(receiver.flows)), node), f"*.{key}", node)
                 combined = _merge(combined, receiver)
             # Unknown/library transformations propagate their inputs, never sanitize them.
             self.unresolved.add((path, getattr(node, "lineno", 1), name))
@@ -489,6 +555,10 @@ class _Project:
             value = args[index] if index < len(args) else kwargs.get(param.arg)
             if value is None:
                 value = self.expr(defaults[index], env, path, name, stack) if defaults[index] is not None else Value()
+                if (entry and defaults[index] is None and param.arg not in {"self", "cls"}
+                        and _record_like(function, param.arg)):
+                    identity = self.ids[id(param)]
+                    value.flows[identity] = (f"{param.arg}.*", OPAQUE, [identity])
             env[param.arg] = self.hop(value, param)
         for param, default in zip(function.args.kwonlyargs, function.args.kw_defaults):
             value = kwargs[param.arg] if param.arg in kwargs else self.expr(default, env, path, name, stack)
@@ -583,13 +653,19 @@ def analyze_project(root: Path, policy: Policy, previous: dict | None = None, *,
                                    if isinstance(node, (ast.Lambda, ast.Match, ast.Global, ast.Nonlocal, ast.Yield, ast.YieldFrom))],
         "supported": ["assignments and overwrite kills", "attributes and literal-key containers", "branch/loop may-flow joins",
                       "local and imported Python function arguments/returns", "route-decorated and uncalled public function returns",
-                      "logging/print", "Flask jsonify and FastAPI JSONResponse", "requests/httpx egress", "analytics track/capture"],
+                      "logging/print", "Flask jsonify and FastAPI JSONResponse", "requests/httpx egress", "analytics track/capture",
+                      "whole entrypoint-argument records reaching a sink (dict(), **spread, copy, direct return)",
+                      "OpenAI/Anthropic/LiteLLM prompt sinks (recognized SDK call shapes)"],
         "limitations": ["No implicit/control-dependence taint", "No reflection or dynamic dispatch resolution",
                         "No framework ORM/schema inference", "No proof of runtime recipient, tenant or authorization",
                         "Unknown calls propagate inputs conservatively; recursive calls use the same fallback",
                         "No native/third-party implementation analysis; no sanitizer inferred from names",
                         "No lambda/match/global/nonlocal/generator execution model; see unsupported_constructs",
-                        "Container aliases are preserved for direct assignments, not arbitrary library mutations"],
+                        "Container aliases are preserved for direct assignments, not arbitrary library mutations",
+                        "Whole-record exposure is modeled for entrypoint arguments used as records (subscript, attribute,"
+                        " get/items/copy, dict(), ** or iteration); ORM/query results are not inferred",
+                        "Any subscript/attribute/get projection is treated as selecting one field of a whole record",
+                        "AI SDK sink recognition is syntax/import based; dynamic clients and other providers are unresolved"],
         "parse_errors": parse_errors,
         "unresolved_calls": sorted([item for record in records.values() for item in record.get("unresolved_calls", [])], key=lambda item: (item["file"], item["line"], item["call"])),
     }

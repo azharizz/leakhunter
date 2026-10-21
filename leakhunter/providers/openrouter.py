@@ -14,6 +14,7 @@ class OpenRouterClient:
         self.api_url = api_url
         self.api_key = api_key
         self.opener = opener
+        self.last_usage = None
 
     def call(self, model: str, prompt: str, *, questions: dict | None = None) -> tuple[str | dict, int, str]:
         if not self.api_key or not model or not self.api_url:
@@ -35,6 +36,7 @@ class OpenRouterClient:
             if len(payload) > 2_000_000:
                 raise ValueError("Provider response exceeds size limit")
             result = json.loads(payload)
+            self.last_usage = result.get("usage") if isinstance(result.get("usage"), dict) else None
             if questions is not None:
                 answers = result["answers"]
                 if not isinstance(result["model"], str) or not result["model"]:

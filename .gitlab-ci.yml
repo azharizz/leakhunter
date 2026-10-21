@@ -1,4 +1,4 @@
-stages: [build, verify, evidence, deploy, monitor]
+stages: [build, verify, evidence, sign, verify-attestation, deploy, monitor]
 
 workflow:
   rules:
@@ -82,15 +82,92 @@ verify-exposure:
   extends: .python-bootstrap
   stage: evidence
   image: python:3.12-slim
+  variables:
+    GIT_DEPTH: "0"
+    # Luna is required for every review boundary; the masked API key is supplied by the project owner.
+    AGENT_PROVIDER_URL: https://openrouter.ai/api/v1/chat/completions
+    AGENT_PROVIDER_MODEL: openai/gpt-6-luna-decisions
+  before_script:
+    - apt-get update -qq && apt-get install -y --no-install-recommends git tar
+    - python -m pip install --disable-pip-version-check --upgrade -r requirements.build.lock
   script:
     - pip install --disable-pip-version-check -c requirements.lock .
-    # Only the committed synthetic target is executed in this disposable CI container.
-    - python -m unspool --repository demo/target --policy demo/policy.yaml --runtime-manifest demo/runtime.yaml --runtime-backend local --data-dir /tmp/unspool-demo --provider-url '' --once analyze --gate > evidence.json
-    - python -m unspool.publish --evidence evidence.json --output public --commit "$CI_COMMIT_SHA"
+    - |
+      set -eu
+      base_sha=""
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+        base_sha="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+      elif [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        base_sha="$CI_COMMIT_BEFORE_SHA"
+      fi
+      if [ -n "$base_sha" ] && [ "$base_sha" != "0000000000000000000000000000000000000000" ]; then
+        mkdir -p /tmp/unspool-base
+        git archive "$base_sha" | tar -x -C /tmp/unspool-base
+        # Run the same fixed synthetic manifest against the exact base and head trees.
+        python -m unspool --repository /tmp/unspool-base/demo/target --policy /tmp/unspool-base/demo/policy.yaml --runtime-manifest /tmp/unspool-base/demo/runtime.yaml --runtime-backend local --data-dir /tmp/unspool-base-data --once analyze > base-evidence.json
+        python -m unspool diff --repository "$CI_PROJECT_DIR" --target-directory demo/target --policy "$CI_PROJECT_DIR/demo/policy.yaml" --manifest "$CI_PROJECT_DIR/demo/runtime.yaml" --base "$base_sha" --head "$CI_COMMIT_SHA" --output unspool-diff
+        python -m unspool --repository demo/target --policy demo/policy.yaml --runtime-manifest demo/runtime.yaml --runtime-backend local --data-dir /tmp/unspool-head-data --once analyze > head-evidence.json
+        unspool-bind-closed-loop-evidence --diff unspool-diff/exposure-diff.json --base-evidence base-evidence.json --head-evidence head-evidence.json --base-sha "$base_sha" --head-sha "$CI_COMMIT_SHA" --output evidence.json --sast-output unspool-diff/gl-sast-report.json --note-output mr-note.md
+        python -m unspool.attestation prepare --evidence evidence.json --base-sha "$base_sha" --head-sha "$CI_COMMIT_SHA" --output attestation.statement.json
+      else
+        # Non-MR feature branches still get the existing bounded synthetic gate.
+        python -m unspool --repository demo/target --policy demo/policy.yaml --runtime-manifest demo/runtime.yaml --runtime-backend local --data-dir /tmp/unspool-demo --once analyze --gate > evidence.json
+        python - <<'PY'
+        import json
+        from pathlib import Path
+        from unspool.exposure_diff import sast_report
+        Path("unspool-diff").mkdir(exist_ok=True)
+        Path("unspool-diff/gl-sast-report.json").write_text(json.dumps(sast_report([])) + "\n")
+        PY
+      fi
+      python -m unspool.publish --evidence evidence.json --output public --commit "$CI_COMMIT_SHA"
   artifacts:
     when: always
-    paths: [evidence.json, public/]
+    paths: [evidence.json, base-evidence.json, head-evidence.json, attestation.statement.json, mr-note.md, unspool-diff/, public/]
+    reports:
+      sast: unspool-diff/gl-sast-report.json
     expire_in: 90 days
+
+sign-evidence:
+  stage: sign
+  image: alpine:3.22
+  interruptible: false
+  needs:
+    - job: verify-exposure
+      artifacts: true
+  id_tokens:
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
+  before_script:
+    - apk add --no-cache cosign
+  script:
+    - test "$CI_COMMIT_REF_PROTECTED" = "true"
+    - test -f attestation.statement.json
+    - cosign sign-blob --yes --bundle attestation.bundle.json attestation.statement.json
+  artifacts:
+    paths: [attestation.bundle.json]
+    expire_in: 90 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+verify-attestation:
+  stage: verify-attestation
+  image: python:3.12-alpine
+  interruptible: false
+  needs:
+    - job: verify-exposure
+      artifacts: true
+    - job: sign-evidence
+      artifacts: true
+  before_script:
+    - apk add --no-cache cosign
+  script:
+    - test "$CI_COMMIT_REF_PROTECTED" = "true"
+    - python -m unspool.attestation verify --evidence evidence.json --statement attestation.statement.json --bundle attestation.bundle.json --expected-identity "$CI_PROJECT_URL//.gitlab-ci.yml@refs/heads/$CI_COMMIT_REF_NAME" --expected-head-sha "$CI_COMMIT_SHA"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 deploy-pages:
   stage: deploy
@@ -98,6 +175,8 @@ deploy-pages:
   resource_group: production
   needs:
     - job: verify-exposure
+      artifacts: false
+    - job: verify-attestation
       artifacts: false
   variables:
     UNSPOOL_SOURCE_SHA: $CI_COMMIT_SHA
@@ -131,6 +210,8 @@ deploy-cloud-run:
   needs:
     - job: verify-exposure
       artifacts: true
+    - job: verify-attestation
+      artifacts: false
   script:
     - bash deploy/cloudrun/deploy.sh
   environment:
