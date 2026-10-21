@@ -113,12 +113,12 @@ verify-exposure:
         # Non-MR feature branches still get the existing bounded synthetic gate.
         python -m unspool --repository demo/target --policy demo/policy.yaml --runtime-manifest demo/runtime.yaml --runtime-backend local --data-dir /tmp/unspool-demo --once analyze --gate > evidence.json
         python - <<'PY'
-        import json
-        from pathlib import Path
-        from unspool.exposure_diff import sast_report
-        Path("unspool-diff").mkdir(exist_ok=True)
-        Path("unspool-diff/gl-sast-report.json").write_text(json.dumps(sast_report([])) + "\n")
-        PY
+      import json
+      from pathlib import Path
+      from unspool.exposure_diff import sast_report
+      Path("unspool-diff").mkdir(exist_ok=True)
+      Path("unspool-diff/gl-sast-report.json").write_text(json.dumps(sast_report([])) + "\n")
+      PY
       fi
       python -m unspool.publish --evidence evidence.json --output public --commit "$CI_COMMIT_SHA"
   artifacts:
