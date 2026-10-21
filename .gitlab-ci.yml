@@ -84,9 +84,20 @@ verify-exposure:
   image: python:3.12-slim
   variables:
     GIT_DEPTH: "0"
-    # Luna is required for every review boundary; the masked API key is supplied by the project owner.
+    GCP_PROJECT_NUMBER: "398376578726"
+    GCP_WORKLOAD_IDENTITY_FEDERATION_POOL_ID: unspool-exposure-ci
+    GCP_WORKLOAD_IDENTITY_FEDERATION_PROVIDER_ID: gitlab-mr
     AGENT_PROVIDER_URL: https://openrouter.ai/api/v1/chat/completions
     AGENT_PROVIDER_MODEL: openai/gpt-6-luna-decisions
+  id_tokens:
+    GCP_ID_TOKEN:
+      aud: https://iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${GCP_WORKLOAD_IDENTITY_FEDERATION_POOL_ID}/providers/${GCP_WORKLOAD_IDENTITY_FEDERATION_PROVIDER_ID}
+  secrets:
+    AGENT_PROVIDER_API_KEY:
+      gcp_secret_manager:
+        name: projects/398376578726/secrets/unspool-agent-provider-key
+      token: $GCP_ID_TOKEN
+      file: false
   before_script:
     - apt-get update -qq && apt-get install -y --no-install-recommends git tar
     - python -m pip install --disable-pip-version-check --upgrade -r requirements.build.lock
