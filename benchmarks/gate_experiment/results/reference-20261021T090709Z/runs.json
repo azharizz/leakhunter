@@ -1,0 +1,607 @@
+{
+ "case_set_sha256": "09143bdc326100ea65d5ebffed6aac867a9a105960a627d30594b723f6ab1954",
+ "probe_set_sha256": "df3f36d5c7993472a1e5e7d5f793931015f825928f6c9ff1cff56ef0bff5bd59",
+ "task_ids": [
+  "T01-whole-record",
+  "T02-second-endpoint",
+  "T03-error-path-return",
+  "T04-nested-object",
+  "T05-safe-avatar",
+  "T06-log-line",
+  "T07-webhook-token",
+  "T08-error-path-log",
+  "T09-safe-currency",
+  "T10-pii-to-llm",
+  "T11-all-fields-export",
+  "T12-safe-priority"
+ ],
+ "held_out_task_ids": [
+  "T03-error-path-return",
+  "T08-error-path-log",
+  "T11-all-fields-export",
+  "T12-safe-priority"
+ ],
+ "agent": "reference",
+ "repair_model": "deepseek/deepseek-v4.1-flash",
+ "decision_model": "openai/gpt-6-luna-decisions",
+ "decision_mode": "required",
+ "started_at": "20261021T090709Z",
+ "runs": [
+  {
+   "task_id": "T01-whole-record",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "UNCERTAIN",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ]
+  },
+  {
+   "task_id": "T01-whole-record",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "UNCERTAIN",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ]
+  },
+  {
+   "task_id": "T01-whole-record",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "UNCERTAIN",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ]
+  },
+  {
+   "task_id": "T02-second-endpoint",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "UNCERTAIN",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ]
+  },
+  {
+   "task_id": "T02-second-endpoint",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "UNCERTAIN",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ]
+  },
+  {
+   "task_id": "T02-second-endpoint",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "UNCERTAIN",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ]
+  },
+  {
+   "task_id": "T03-error-path-return",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ]
+  },
+  {
+   "task_id": "T03-error-path-return",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ]
+  },
+  {
+   "task_id": "T03-error-path-return",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ]
+  },
+  {
+   "task_id": "T04-nested-object",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.62)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.60)"
+   ]
+  },
+  {
+   "task_id": "T04-nested-object",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.62)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.60)"
+   ]
+  },
+  {
+   "task_id": "T04-nested-object",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.62)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.60)"
+   ]
+  },
+  {
+   "task_id": "T05-safe-avatar",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.59)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.60)"
+   ]
+  },
+  {
+   "task_id": "T05-safe-avatar",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.59)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.60)"
+   ]
+  },
+  {
+   "task_id": "T05-safe-avatar",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.59)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.60)"
+   ]
+  },
+  {
+   "task_id": "T06-log-line",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.50)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ]
+  },
+  {
+   "task_id": "T06-log-line",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.50)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ]
+  },
+  {
+   "task_id": "T06-log-line",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.50)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ]
+  },
+  {
+   "task_id": "T07-webhook-token",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.50)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ]
+  },
+  {
+   "task_id": "T07-webhook-token",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.50)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ]
+  },
+  {
+   "task_id": "T07-webhook-token",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.50)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ]
+  },
+  {
+   "task_id": "T08-error-path-log",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.50)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ]
+  },
+  {
+   "task_id": "T08-error-path-log",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.50)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ]
+  },
+  {
+   "task_id": "T08-error-path-log",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.50)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ]
+  },
+  {
+   "task_id": "T09-safe-currency",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.56)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.71)"
+   ]
+  },
+  {
+   "task_id": "T09-safe-currency",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.56)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.71)"
+   ]
+  },
+  {
+   "task_id": "T09-safe-currency",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.56)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.71)"
+   ]
+  },
+  {
+   "task_id": "T10-pii-to-llm",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.67)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.58)"
+   ]
+  },
+  {
+   "task_id": "T10-pii-to-llm",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.67)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.58)"
+   ]
+  },
+  {
+   "task_id": "T10-pii-to-llm",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": false,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.67)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.58)"
+   ]
+  },
+  {
+   "task_id": "T11-all-fields-export",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.67)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.58)"
+   ]
+  },
+  {
+   "task_id": "T11-all-fields-export",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.67)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.58)"
+   ]
+  },
+  {
+   "task_id": "T11-all-fields-export",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.67)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.58)"
+   ]
+  },
+  {
+   "task_id": "T12-safe-priority",
+   "run_id": "1",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.63)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.61)"
+   ]
+  },
+  {
+   "task_id": "T12-safe-priority",
+   "run_id": "2",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.63)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.61)"
+   ]
+  },
+  {
+   "task_id": "T12-safe-priority",
+   "run_id": "3",
+   "agent": "reference",
+   "held_out": true,
+   "own_tests": "passed",
+   "gate": "blocked",
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "latency_ms": null,
+   "model_cost_usd": null,
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.63)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.61)"
+   ]
+  }
+ ]
+}
