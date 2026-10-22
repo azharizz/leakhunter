@@ -1,6 +1,8 @@
 # Unspool demo footage guide
 
-Prepared 21 October 2026, WIB. Final cut: **2:00**, using release **0.4.7**.
+Updated 22 October 2026, WIB. Final cut: **2:45.8**. The main recorded GitLab
+workflow refers to release **0.4.7**; the ending update shows the current local,
+unpushed worktree evidence.
 This is a recording plan, not a new execution record. No app, tests, agent workflow
 or deployment was run to create this guide. Commands below are for later use.
 
@@ -22,6 +24,7 @@ Keep these distinctions visible in captions:
 | Vulnerable/repaired HTTP records | `Retained before/after evidence · one known exposure` |
 | Original synthetic delivery | `Separate bounded hands-off demo · historical run` |
 | Public Cloud Run page | `Live read-only report · controller runs locally` |
+| Final gate replay and tests | `Current local worktree · unpushed · synthetic benchmark recheck` |
 
 The local graph is the bundled synthetic fixture. It is **not** the VAmPI
 application's graph. The external HTTP replays and the older GitLab repair
@@ -164,8 +167,11 @@ cases exercise one known lab exposure; they are not five vulnerability repairs.
    its task normalized display names while preserving a secret-field restriction.
 2. Open Cloud Run and its health JSON. Pair the **currently observed** commit with
    its own pipeline, not automatically with the older hands-off run.
-3. Show release 0.4.7 and final retained checks. If showing test counts, say
-   **“127 regression tests at the verified revision,”** not “127 vulnerabilities.”
+3. Show release 0.4.7 and final retained checks as historical release evidence.
+   Its bundle reports **127 regression tests at that verified revision**. Keep
+   that count tied to that revision; the appended local update separately shows
+   **144 tests passed on the current worktree**. Test counts are not vulnerability
+   counts.
 
 Recorded reference identities:
 
@@ -181,7 +187,7 @@ external repair and historical hands-off delivery are different revisions.
 If hosting now serves another SHA, show its actual matching evidence or use the
 retained record labeled with its date. Never substitute an expected health result.
 
-## 5. Final silent edit — 2:00
+## 5. Final silent edit — 2:45.8
 
 The exported file is `demo-footage/unspool-demo.mp4`. It keeps the original UI
 recording and adds a short animated evidence walkthrough between the issue and
@@ -204,6 +210,17 @@ repair footage. It has no voice track.
 | 1:45–1:49 | Local graph and annotation controls | Inspect the trusted fixture; annotations do not repair code |
 | 1:49–1:57 | Task-boundary card | Scope the task, checks, and human decision |
 | 1:57–2:00 | Scope and limitation card | One known lab exposure; arbitrary-repository safety is unproven |
+| 2:00–2:09 | Local evidence-update card | Saved required-mode Luna recheck; current changes are local and unpushed |
+| 2:09–2:18 | Gate behavior card | Luna guides probe selection and review; its score alone does not decide; independent evidence still gates promotion |
+| 2:18–2:27 | 36-patch result card | 14/14 leaking patches blocked; 20/22 clean patches passed; 2 clean T05 patches remain blocked by unresolved static candidates |
+| 2:27–2:36 | Local verification card | 144 unit tests and dashboard checks passed; audit reports 0 dependency advisories, 22 LOW and 6 MEDIUM Bandit findings |
+| 2:36–2:45.8 | Scope and limits card | Same saved synthetic patches, no new repair generation; GitLab CI on this revision, live Duo promotion and broad repository use remain unverified |
+
+The five added cards use slight camera movement and short crossfades. The video
+has no narration or audio track. The update is based on the retained replay at
+`benchmarks/gate_experiment/results/model-gate-recheck-20261021T160424Z/`; the
+same 36 saved patches were re-evaluated, not newly generated. Luna cost and
+latency were not captured. The 144-test count describes the local worktree.
 
 Cursor movement, click pulses and focused highlights are visual guidance. The
 negative-run panel is a retained worker verification result, not a newly staged
@@ -226,6 +243,8 @@ discovery.
   audio/assets appear in the final export.
 - [ ] Watch the full export at ordinary playback size. Confirm it has no audio
   track, the evidence labels match the visible record, and text remains readable.
+- [ ] Verify the export is 1920×1080 H.264 and run a full decode check. Keep the
+  historical 0.4.7 test count distinct from the 144-test local worktree result.
 - [ ] Upload the finished video publicly to YouTube and check it signed out.
   Add the actual URL to the submission. This guide does not upload or submit it.
 

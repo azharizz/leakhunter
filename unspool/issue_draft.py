@@ -130,13 +130,18 @@ def draft(snapshot: dict, manifest: dict, allowlisted_file: str, base_sha: str,
     location = {"target_directory": target_directory, "file": file}
     if not isinstance(target_directory, str) or not target_directory or allowlisted_file != repository_path(location):
         raise ValueError("Allowlisted path must be the finding's file within the analyzed target directory")
-    probes, public_fields, sources = [], set(), set()
-    for case in cases:
-        if not _case_matches(case, file, function, sink):
-            continue
-        result = observed.get(case.get("id"))
+    probes, coverage_probes, public_fields, sources = [], [], set(), set()
+    related_cases = [case for case in cases if _case_matches(case, file, function, sink)]
+    for case in related_cases:
+        case_id = case.get("id")
+        result = observed.get(case_id)
+        if (not isinstance(case_id, str) or not isinstance(result, dict)
+                or result.get("passed") is not True or result.get("error")
+                or not isinstance(result.get("violations"), list)):
+            raise ValueError("Every configured probe for the bound boundary must have completed")
+        coverage_probes.append(case_id)
         if _violates(result, sink):
-            probes.append(case["id"])
+            probes.append(case_id)
             mapping = case.get("finding", {})
             if isinstance(mapping.get("symbol"), str):
                 sources.add(mapping["symbol"])
@@ -146,22 +151,23 @@ def draft(snapshot: dict, manifest: dict, allowlisted_file: str, base_sha: str,
             if isinstance(case.get("expect"), dict):
                 public_fields.update(map(str, case["expect"]))
     if not probes:
-        raise ValueError("No runtime probe observed this finding group leaking")
+        raise ValueError("No completed runtime probe observed this finding group leaking")
     if group:
         sources.update(item["source"] for item in group if isinstance(item.get("source"), str))
         lines = _lines_for(_review_for(snapshot, file, function), group, [])
         finding_hashes = sorted({finding_fingerprint(item) for item in group})
     else:
         lines = _lines_for(_review_for(snapshot, file, function, review_id), [],
-                           [observed[case_id] for case_id in probes])
+                           [observed[case_id] for case_id in coverage_probes])
         finding_hashes = []
     if not lines:
         raise ValueError("A source line for the confirmed boundary is required")
     luna_hashes = ([boundary_fingerprint(file, function)]
                    if isinstance(luna_unit, dict) and luna_unit.get("verdict") == "LEAK" else [])
-    block = {"version": 2, "findings_sha256": finding_hashes,
+    block = {"version": 3, "findings_sha256": finding_hashes,
              "luna_sha256": luna_hashes,
              "probe_sha256": sorted({probe_fingerprint(case_id) for case_id in probes}),
+             "coverage_probe_sha256": sorted({probe_fingerprint(case_id) for case_id in coverage_probes}),
              "policy_sha256": policy_sha, "revision_sha": base_sha, "content_sha256": content,
              "allowlisted_file": allowlisted_file, "target_directory": target_directory,
              "file": file, "function": function, "sink": sink}
@@ -181,14 +187,15 @@ def draft(snapshot: dict, manifest: dict, allowlisted_file: str, base_sha: str,
         exposure = (f"Luna flagged the source-backed boundary `{function}` in `{file}`, and "
                     f"{len(probes)} runtime probe(s) independently observed {source_text} reaching `{sink}` at {where}. "
                     "This is limited to the configured synthetic probe and does not claim a general finding.")
-        static_acceptance = "- The bound Luna boundary is CLEAR on the repair revision and remains fully reviewed.\n"
+        static_acceptance = ("- The exact repair revision has a complete required Luna review; every bound probe "
+                             "passes without an observed violation. Luna's verdict alone does not approve or reject it.\n")
     return (
         f"## Exposure finding\n\n{exposure}\n\n"
         f"{luna_line}Analyzed commit `{base_sha}`; policy SHA-256 `{policy_sha}`. "
         f"Only `{allowlisted_file}` may change. Probe IDs are recorded as hashes; probe values are never included.\n\n"
         "## Acceptance criteria\n\n"
         f"{static_acceptance}"
-        "- Every bound probe passes its functional check with no observed violation.\n"
+        "- Every configured probe for this boundary passes its functional check with no observed violation on the repair revision.\n"
         f"{keep}"
         "- Policy, tests, probes and CI stay unchanged.\n\n"
         f"{_START}{json.dumps(block, sort_keys=True, separators=(',', ':'))}{_END}\n"

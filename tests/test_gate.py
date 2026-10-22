@@ -24,14 +24,27 @@ class ReleaseGateTest(unittest.TestCase):
 
     def test_advice_and_unexecuted_evidence_cannot_open_gate(self):
         approved = {"status": "approved"}
+        coverage = {"analyzed_files": 1, "parse_errors": [], "unsupported_constructs": [], "language": "Python"}
+        runtime = {"status": "COMPLETED", "passed": True, "functional_passed": True,
+                   "cases": [{"passed": True, "violations": []}]}
+        luna = {"mode": "required", "status": "DECIDED", "reasons": [],
+                "probe_evidence": {"status": "COMPLETE", "complete": True, "boundaries": []}}
         self.assertFalse(release_gate([], {"status": "NOT_RUN", "passed": False}, approved)["passed"])
         self.assertFalse(release_gate([], {"status": "ERROR", "passed": True}, approved)["passed"])
         self.assertFalse(release_gate([{"status": "POSSIBLE"}], {"status": "COMPLETED", "passed": True}, approved)["passed"])
         self.assertFalse(release_gate([], {"status": "COMPLETED", "passed": True}, {"status": "draft"})["passed"])
-        self.assertTrue(release_gate([], {"status": "COMPLETED", "passed": True}, approved)["passed"])
+        self.assertFalse(release_gate([], runtime, approved, coverage)["passed"])  # no complete Luna review
+        self.assertTrue(release_gate([], runtime, approved, coverage, luna)["passed"])
+        false_positive = {**luna, "flagged": [{"file": "safe.py", "function": "safe"}]}
+        self.assertTrue(release_gate([], runtime, approved, coverage, false_positive)["passed"])
+        missing_probe = {**false_positive,
+                         "probe_evidence": {"status": "INCOMPLETE", "complete": False, "boundaries": []}}
+        blocked = release_gate([], runtime, approved, coverage, missing_probe)
+        self.assertFalse(blocked["passed"])
+        self.assertTrue(any("probes" in reason.lower() for reason in blocked["reasons"]))
         for coverage in ({"analyzed_files": 0}, {"analyzed_files": 1, "parse_errors": [{"error": "SyntaxError"}]},
                          {"analyzed_files": 1, "unsupported_constructs": [{"kind": "Lambda"}]}):
-            self.assertFalse(release_gate([], {"status": "COMPLETED", "passed": True}, approved, coverage)["passed"])
+            self.assertFalse(release_gate([], runtime, approved, coverage, luna)["passed"])
 
     def test_confirmation_requires_exact_function_and_source_scope(self):
         for function, symbol, expected in (("app.expose", "record.email", "CONFIRMED_IN_TEST"),

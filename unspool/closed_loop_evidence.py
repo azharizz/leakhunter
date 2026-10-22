@@ -109,7 +109,8 @@ def bind_diff(diff: dict, head: dict, *, head_sha: str, base: dict | None = None
     """Combine exact Git revisions with complete head and baseline evidence.
 
     Both model runs are retained. Baseline gates may fail because they reproduce the
-    exposure; the candidate head must pass its Luna, runtime and deterministic gate.
+    exposure; the candidate head must pass its evidence gate, required-review
+    completeness, configured probe coverage and runtime checks. Luna verdicts are triage.
     """
     if (not isinstance(diff, dict) or not isinstance(head, dict)
             or not isinstance(diff.get("base_sha"), str) or not _SHA1.fullmatch(diff["base_sha"])

@@ -19,7 +19,10 @@ from leakhunter.execution.runtime import load_manifest, run_suite
 from leakhunter.languages import LANGUAGES, extensions, finding_function, manifest_entrypoints, manifest_language, runtime_image
 from leakhunter.policy.engine import Policy, load_policy
 from leakhunter.providers.context import build_review_contexts
-from leakhunter.providers.probes import baseline_manifest, calibration_report, merge_runtime, select_targeted_probes
+from leakhunter.providers.evidence import aggregate_evidence
+from leakhunter.providers.probes import (baseline_manifest, calibration_report, merge_runtime,
+                                         probe_evidence_complete, probe_evidence_report,
+                                         select_targeted_probes)
 from leakhunter.providers.reviews import review_contexts
 from leakhunter.providers.verdict import MODES as DECISION_MODES, decide
 from leakhunter.repairs.engine import propose_and_verify, resolve_context_findings
@@ -177,24 +180,34 @@ def attach_evidence(findings: list[dict], runtime: dict, manifest: dict | None, 
 
 def release_gate(findings: list[dict], runtime: dict, policy_record: dict, coverage: dict | None = None,
                  luna: dict | None = None) -> dict:
-    """``luna`` is the Luna verdict from ``providers.verdict.decide``; its reasons block release."""
+    """Require complete configured evidence; Luna triages but cannot approve or veto alone."""
     reasons = []
-    if policy_record["status"] != "approved":
+    if not isinstance(policy_record, dict) or policy_record.get("status") != "approved":
         reasons.append("Policy is not approved")
     if findings:
         reasons.append("Unresolved static candidates require review or repair")
-    if runtime.get("status") != "COMPLETED" or not runtime.get("passed"):
+    cases = runtime.get("cases") if isinstance(runtime, dict) else None
+    if (not isinstance(runtime, dict) or runtime.get("status") != "COMPLETED"
+            or runtime.get("passed") is not True or runtime.get("functional_passed") is not True
+            or not isinstance(cases, list) or not cases
+            or any(not isinstance(case, dict) or case.get("passed") is not True or case.get("error")
+                   or case.get("violations") != [] for case in cases)):
         reasons.append("Runtime security and functional verification has not passed")
-    if coverage is not None and (coverage.get("parse_errors") or coverage.get("unsupported_constructs") or not coverage.get("analyzed_files")):
+    if (not isinstance(coverage, dict) or coverage.get("parse_errors")
+            or coverage.get("unsupported_constructs") or not coverage.get("analyzed_files")):
         reasons.append("Static coverage is incomplete or contains unsupported constructs")
-    if luna is not None:
-        reasons.extend(luna.get("reasons", []))
+    if isinstance(luna, dict) and luna.get("mode") == "required":
+        if luna.get("status") != "DECIDED":
+            reasons.extend(luna.get("reasons") or ["Required Luna review is incomplete"])
+        probe_evidence = luna.get("probe_evidence")
+        if not probe_evidence_complete(probe_evidence):
+            reasons.append("Configured probes for non-clear Luna boundaries are incomplete or failed")
+    elif luna is None:
+        reasons.append("Required Luna triage evidence is missing")
     language = coverage.get("language", "Python") if coverage else "Python"
-    decided = (" Luna decided each reviewed boundary." if luna and luna.get("mode") == "required"
-               and luna.get("status") == "DECIDED" else "")
     return {"passed": not reasons, "status": "PASSED" if not reasons else "BLOCKED", "reasons": reasons,
-            "scope": f"Configured {language} analysis, Luna boundary decisions and executed synthetic cases only;"
-                     f" no automatic merge or deployment.{decided}"}
+            "scope": f"Configured {language} analysis, complete required review and configured synthetic probes only;"
+                     " Luna verdicts are triage signals, not standalone approval or rejection. No automatic merge or deployment."}
 
 
 @exclusive(OPERATIONS)
@@ -231,19 +244,25 @@ def analyze(*, branch: str = "main", base_snapshot_id: str | None = None) -> dic
         runtime = merge_runtime(runtime, targeted_runtime)
         attach_evidence(findings, runtime, MANIFEST, revision)
         contextual = resolve_context_findings(findings, runtime, MANIFEST, policy)
+        updated_contexts = build_review_contexts(REPOSITORY, result, policy, runtime, MANIFEST, revision)
+        context_by_id = {review.get("review_id"): review for review in updated_contexts.get("reviews", [])
+                         if isinstance(review, dict)}
+        for review in decision.get("reviews", []):
+            updated = context_by_id.get(review.get("review_id")) if isinstance(review, dict) else None
+            if updated:
+                review["post_probe_evidence"] = aggregate_evidence(updated)
     decision["targeted_runtime"] = targeted_runtime or {"status": "NOT_SELECTED", "cases": []}
     decision["calibration"] = calibration_report(decision, runtime, MANIFEST)
-    # Luna's verdict decides each boundary: it blocks plausible leaks and clears static-only noise.
+    # Luna triages boundaries; configured probe and static/runtime evidence decide the gate.
     luna = decide(decision, findings, DECISION_MODE)
     decision["luna"] = luna
+    luna["probe_evidence"] = probe_evidence_report(decision, MANIFEST, runtime)
     verdicts = {(unit["file"], unit["function"]): unit for unit in luna["units"]}
     for finding in findings:
         unit = verdicts.get((finding.get("file"), finding.get("function")))
         if unit:
             finding["luna"] = {key: unit[key] for key in ("verdict", "disclosure", "basis")}
-        if finding["id"] in luna["dismissed"]:
-            finding["status"] = "CLEARED_BY_LUNA"
-    unresolved = [item for item in contextual["unresolved"] if item["id"] not in luna["dismissed"]]
+    unresolved = contextual["unresolved"]
     metric = {
         "timestamp": now(),
         "duration_ms": round((time.perf_counter() - started) * 1000),

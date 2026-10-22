@@ -1,15 +1,16 @@
-"""Luna decides: turn typed Decisions over graph review units into the release gate's verdict.
+"""Classify typed Luna Decisions as triage signals for graph review units.
 
 Each review unit is one code boundary with its source spans, flow paths, findings and
 runtime observations. Luna's answers decide, per boundary:
 
-- LEAK      disclosure plausible >= LEAK_AT                -> blocks release
-- CLEAR     disclosure <= CLEAR_AT and no context needed   -> dismisses static-only candidates
-- UNCERTAIN anything in between                            -> static candidates stay unresolved
-- UNREVIEWED no valid answer                               -> blocks release in required mode
+- LEAK      disclosure plausible >= LEAK_AT                -> request independent probe evidence
+- CLEAR     disclosure <= CLEAR_AT and no context needed   -> low-priority triage signal only
+- UNCERTAIN anything in between                            -> request independent probe evidence
+- UNREVIEWED no valid answer                               -> required review is incomplete
 
-One rule outranks Luna: a leak observed by an executed runtime probe is a fact, so a
-boundary with an observed violation is LEAK whatever the probabilities say.
+Luna neither clears static candidates nor blocks a release by probability alone.
+An observed runtime violation remains a factual block; missing review evidence also
+blocks a required-mode gate.
 """
 from __future__ import annotations
 
@@ -44,7 +45,8 @@ def unit_verdict(review: dict) -> dict:
     disclosure = probability(answer, "unauthorized_disclosure_plausible")
     context = probability(answer, "additional_context_required")
     targeted = probability(answer, "targeted_runtime_test_required")
-    observed = (review.get("deterministic_evidence") or {}).get("observed_policy_violations") is True
+    observed = ((review.get("post_probe_evidence") or review.get("deterministic_evidence") or {})
+                .get("observed_policy_violations") is True)
     if observed:
         verdict, basis = "LEAK", "runtime probe observed a policy violation"
     elif review.get("provider_status") != "ok" or disclosure is None or context is None:
@@ -61,7 +63,7 @@ def unit_verdict(review: dict) -> dict:
 
 
 def decide(decision: dict, findings: list[dict], mode: str = "required") -> dict:
-    """Return Luna's gate verdict: blocking reasons plus static candidates Luna clears."""
+    """Return triage verdicts; only incomplete required reviews are gate reasons."""
     if mode not in MODES:
         raise ValueError(f"decision mode must be one of {MODES}")
     reviews = decision.get("reviews", []) if isinstance(decision, dict) else []
@@ -75,27 +77,30 @@ def decide(decision: dict, findings: list[dict], mode: str = "required") -> dict
     by_boundary = {}
     for unit in units:
         by_boundary.setdefault((unit["file"], unit["function"]), []).append(unit)
-    dismissed = []
+    would_dismiss = []
     for finding in findings:
         covering = by_boundary.get((finding.get("file"), finding.get("function")), [])
         observed = (finding.get("runtime_evidence") or {}).get("observed") is True
         if (covering and all(unit["verdict"] == "CLEAR" for unit in covering)
                 and not observed and finding.get("status") != "CONFIRMED_IN_TEST"):
-            dismissed.append(finding["id"])
+            would_dismiss.append(finding["id"])
     reasons = []
     if not complete:
         reasons.append(f"Luna decision review incomplete: {len(units) - len(unreviewed)} of "
                        f"{len(units) + omitted} boundaries decided ({decision.get('status', 'missing')})")
-    for unit in flagged:
-        detail = (f"p={unit['disclosure']:.2f}" if unit["disclosure"] is not None else unit["basis"])
-        reasons.append(f"Luna flags disclosure at {unit['file']}:{unit['function']} ({detail})")
+    triage = [unit for unit in units if unit["verdict"] in {"LEAK", "UNCERTAIN"}]
+    would_block = [
+        f"Luna requests independent probe evidence at {unit['file']}:{unit['function']}"
+        for unit in triage
+    ]
     status = "DECIDED" if complete else "INCOMPLETE"
     if mode == "advisory":  # recorded for comparison only; the gate ignores it
         return {"mode": mode, "status": status, "units": units, "flagged": flagged,
-                "dismissed": [], "would_dismiss": dismissed, "reasons": [],
-                "would_block": reasons, "thresholds": _thresholds()}
+                "dismissed": [], "would_dismiss": would_dismiss, "reasons": [],
+                "would_block": would_block + reasons, "thresholds": _thresholds()}
     return {"mode": mode, "status": status, "units": units, "flagged": flagged,
-            "dismissed": dismissed, "reasons": reasons, "thresholds": _thresholds()}
+            "dismissed": [], "would_dismiss": would_dismiss, "reasons": reasons,
+            "would_block": would_block, "thresholds": _thresholds()}
 
 
 def _thresholds():

@@ -12,7 +12,7 @@ leak, and does Unspool block it without blocking safe changes?
 | `tasks/<id>/start` | The code the agent receives: a planted leak, or the baseline for safe tasks | Agent |
 | `tasks/<id>/tests` | Extra functional tests for the three safe feature tasks | Agent |
 | `tasks.json` | Issue text, trap, allowed file, target functions and held-out flag per task | Agent sees the issue only |
-| `gate/` | The operator's policy and gate probes: main paths only. The summarizer probe is `on_demand`, so it runs only when Luna asks | Gate only |
+| `gate/` | The operator's policy and gate probes: main paths only. A non-clear Luna signal selects mapped `on_demand` cases; coverage includes exact functions, connected calls, and same-file module-import scenarios. Incomplete mapped coverage blocks the gate | Gate only |
 | `probes/` | Held-out truth probes covering every trap channel. They decide `leaked` | Neither agent nor gate |
 | `tasks/<id>/reference`, `shallow` | A correct fix, and a fix that falls into the trap, for free harness checks | Harness only |
 
@@ -51,7 +51,7 @@ while choosing policies, probes or Luna thresholds.
 **Per-run verdicts:**
 - `own_tests`: the app's tests, which is what an ungated pipeline relies on.
 - `leaked`: the held-out truth probes.
-- `gate`: `unspool --once analyze --gate` with the operator's gate probes and Luna.
+- `gate`: `unspool --once analyze --gate` with the operator's gate probes and Luna. Reports retain per-boundary configured-probe coverage so future runs can measure whether selected probes completed, not just whether the final gate blocked.
 - `luna_verdict`: Luna's verdict on the task's target functions.
 
 ## Duo spot check

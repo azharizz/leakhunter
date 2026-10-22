@@ -62,8 +62,8 @@ def main(argv=None) -> None:
     parser.add_argument("--repair-model", default=os.getenv("DUO_PROVIDER_MODEL", ""))
     parser.add_argument("--decision-mode", choices=("required", "advisory"),
                         default=os.getenv("UNSPOOL_DECISION_MODE", "required"),
-                        help="required (default): Luna decides every reviewed boundary and the gate fails closed "
-                             "without it; advisory: record Luna's verdict without letting it change the gate")
+                        help="required (default): require complete Luna triage and configured probes for non-clear "
+                             "boundaries; advisory: record triage without making its completeness a gate requirement")
     parser.add_argument("--runtime-manifest", type=Path)
     parser.add_argument("--runtime-backend", choices=("docker", "local"), default="docker",
                         help="local executes trusted target code without a security sandbox")

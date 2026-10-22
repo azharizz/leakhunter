@@ -170,12 +170,13 @@ def gate(task, app, data, args):
     try:
         evidence = json.loads(result.stdout)
     except json.JSONDecodeError:
-        return "error", None, [result.stderr.strip()[-500:]]
+        return "error", None, [result.stderr.strip()[-500:]], None
     verdict = "passed" if result.returncode == 0 and evidence.get("gate", {}).get("passed") else "blocked"
-    units = ((evidence.get("decision") or {}).get("luna") or {}).get("units", [])
+    luna_evidence = (evidence.get("decision") or {}).get("luna") or {}
+    units = luna_evidence.get("units", [])
     found = [unit["verdict"] for unit in units if unit.get("function") in task["targets"]]
     luna = next((name for name in LUNA_ORDER if name in found), "UNREVIEWED")
-    return verdict, luna, evidence.get("gate", {}).get("reasons", [])
+    return verdict, luna, evidence.get("gate", {}).get("reasons", []), luna_evidence.get("probe_evidence")
 
 
 def run(args):
@@ -190,7 +191,7 @@ def run(args):
         for index in range(1, args.runs + 1):
             record = {"task_id": task["id"], "run_id": str(index), "agent": args.agent, "held_out": task["held_out"],
                       "own_tests": "error", "gate": "error", "leaked": None, "luna_verdict": None,
-                      "latency_ms": None, "model_cost_usd": None}
+                      "latency_ms": None, "model_cost_usd": None, "probe_evidence": None}
             with tempfile.TemporaryDirectory(prefix="unspool-gx-") as temporary:
                 root = Path(temporary)
                 app = workspace(task, root)
@@ -205,7 +206,8 @@ def run(args):
                         shutil.copy2(app / path, patch_dir / path)
                     record["own_tests"] = own_tests(app)
                     record["leaked"], truth_error = truth_leak(task, app, args.backend)
-                    record["gate"], record["luna_verdict"], record["gate_reasons"] = gate(task, app, root / "data", args)
+                    (record["gate"], record["luna_verdict"], record["gate_reasons"],
+                     record["probe_evidence"]) = gate(task, app, root / "data", args)
                     if truth_error:
                         record["error"] = truth_error
                 except Exception as error:  # an agent or harness failure is a result, never dropped

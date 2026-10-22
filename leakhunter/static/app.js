@@ -629,8 +629,8 @@ function renderDecisions() {
   const verdicts = new Map(array(luna.units).map((unit) => [unit.review_id, unit]));
   target.append(
     element("p", `Review status: ${advice.status} · ${advice.reviews.length} selected · ${scope.omitted_review_units || 0} omitted`),
-    element("p", `Luna (${luna.mode || "not run"}): ${luna.status || "no verdict"} · ${array(luna.flagged).length} boundaries flagged · ${array(luna.dismissed).length} static candidates cleared`),
-    element("p", "Luna decides each reviewed boundary; a leak observed by an executed probe always blocks. Neither covers code outside the reviewed boundaries.", "help"),
+    element("p", `Luna triage (${luna.mode || "not run"}): ${luna.status || "no verdict"} · ${array(luna.flagged).length} LEAK signals · scores do not approve or dismiss findings`),
+    element("p", "Non-clear signals select configured probes. Incomplete review or probe evidence blocks; an observed runtime violation always blocks. Results cover only reviewed boundaries and configured probes.", "help"),
   );
   if (scope.selection_complete === false)
     target.append(element("p", "Review coverage is incomplete; inspect selection limits and per-review evidence omissions.", "warn"));

@@ -6,14 +6,18 @@ import json
 import posixpath
 import re
 
+from leakhunter.providers.probes import probe_evidence_complete
+
 _START_V1 = "<!-- unspool:finding:v1\n"
-_START = "<!-- unspool:finding:v2\n"
+_START_V2 = "<!-- unspool:finding:v2\n"
+_START = "<!-- unspool:finding:v3\n"
 _END = "\n-->"
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _SHA1 = re.compile(r"[0-9a-f]{40}")
 _FIELDS_V1 = {"version", "findings_sha256", "probe_sha256", "policy_sha256", "revision_sha",
               "content_sha256", "allowlisted_file", "target_directory", "file", "function", "sink"}
 _FIELDS = _FIELDS_V1 | {"luna_sha256"}
+_FIELDS_V3 = _FIELDS | {"coverage_probe_sha256"}
 
 
 def finding_fingerprint(finding: dict) -> str:
@@ -52,7 +56,8 @@ def parse_issue_binding(description: str) -> dict | None:
     """Return the issue's finding block, or None. Issue text is data: it can only add checks."""
     if not isinstance(description, str):
         return None
-    starts = [(marker, version) for marker, version in ((_START, 2), (_START_V1, 1)) if marker in description]
+    starts = [(marker, version) for marker, version in ((_START, 3), (_START_V2, 2), (_START_V1, 1))
+              if marker in description]
     if not starts:
         return None
     if len(starts) != 1 or description.count(starts[0][0]) != 1:
@@ -72,7 +77,7 @@ def parse_issue_binding(description: str) -> dict | None:
         return value
 
     block = json.loads(raw, object_pairs_hook=unique)
-    fields = _FIELDS if version == 2 else _FIELDS_V1
+    fields = _FIELDS_V3 if version == 3 else _FIELDS if version == 2 else _FIELDS_V1
     if (not isinstance(block, dict) or set(block) != fields
             or type(block.get("version")) is not int or block["version"] != version
             or any(not isinstance(block.get(key), str) or not _SHA256.fullmatch(block[key])
@@ -81,14 +86,18 @@ def parse_issue_binding(description: str) -> dict | None:
             or any(not isinstance(block.get(key), str) or not block[key].strip()
                    for key in ("allowlisted_file", "target_directory", "file", "function", "sink"))):
         raise ValueError("Invalid Unspool finding block")
-    _hashes(block["findings_sha256"], "finding hashes", empty=version == 2)
+    _hashes(block["findings_sha256"], "finding hashes", empty=version in {2, 3})
     _hashes(block["probe_sha256"], "probe hashes")
-    if version == 2:
+    if version in {2, 3}:
         _hashes(block["luna_sha256"], "Luna boundary hashes", empty=True)
         if not block["findings_sha256"] and not block["luna_sha256"]:
-            raise ValueError("A v2 finding block must bind a static finding or a Luna boundary")
+            raise ValueError("Finding block must bind a static finding or a Luna boundary")
     else:
         block["luna_sha256"] = []
+    if version == 3:
+        _hashes(block["coverage_probe_sha256"], "configured coverage probe hashes")
+    else:
+        block["coverage_probe_sha256"] = list(block["probe_sha256"])
     return block
 
 
@@ -153,8 +162,18 @@ def validate_issue_evidence(evidence: dict, block: dict, *, base_sha: str, allow
     for key in block["luna_sha256"]:
         if key not in base_units or base_units[key].get("verdict") != "LEAK":
             raise ValueError("Issue Luna boundary was not flagged in the exact analyzed base revision")
-        if key not in head_units or head_units[key].get("verdict") != "CLEAR":
-            raise ValueError("Issue Luna boundary is not clearly resolved in the merge-request revision")
+        if key not in head_units:
+            raise ValueError("Issue Luna boundary is missing from the complete repair-revision review")
+    head_probe_evidence = head_luna.get("probe_evidence")
+    if not probe_evidence_complete(head_probe_evidence):
+        raise ValueError("Repair evidence lacks complete configured probes for non-clear Luna boundaries")
+    reported = {(item.get("file"), item.get("function")): item
+                for item in head_probe_evidence.get("boundaries", []) if isinstance(item, dict)}
+    for key in block["luna_sha256"]:
+        unit = head_units[key]
+        identity = (unit.get("file"), unit.get("function"))
+        if unit.get("verdict") in {"LEAK", "UNCERTAIN"} and reported.get(identity, {}).get("status") != "PASS":
+            raise ValueError("A non-clear repair-revision Luna boundary lacks passing configured probe evidence")
 
     base_runtime = evidence.get("base_runtime")
     baseline_cases = base_runtime.get("cases") if isinstance(base_runtime, dict) else None
@@ -166,15 +185,31 @@ def validate_issue_evidence(evidence: dict, block: dict, *, base_sha: str, allow
             or runtime.get("passed") is not True or not isinstance(cases, list)):
         raise ValueError("Issue-bound base and head runtime probe evidence is missing")
     bound_probes = set(block["probe_sha256"])
-    leaked = {probe_fingerprint(case["id"]) for case in baseline_cases
-              if isinstance(case, dict) and isinstance(case.get("id"), str)
-              and isinstance(case.get("violations"), list)
-              and any(isinstance(item, dict) and item.get("sink") == block["sink"]
-                      for item in case["violations"])}
-    if not bound_probes <= leaked:
-        raise ValueError("Bound probes did not observe the reported baseline exposure")
-    clean = {probe_fingerprint(case["id"]) for case in cases
-             if isinstance(case, dict) and isinstance(case.get("id"), str)
-             and case.get("passed") is True and not case.get("error") and case.get("violations") == []}
-    if not bound_probes <= clean:
-        raise ValueError("One or more issue-bound probes did not pass cleanly")
+    coverage_probes = set(block["coverage_probe_sha256"])
+    if not bound_probes <= coverage_probes:
+        raise ValueError("Every leak-proving probe must be included in configured boundary coverage")
+    for probe_hash in bound_probes:
+        base_matches = [case for case in baseline_cases if isinstance(case, dict)
+                        and isinstance(case.get("id"), str)
+                        and probe_fingerprint(case["id"]) == probe_hash]
+        head_matches = [case for case in cases if isinstance(case, dict)
+                        and isinstance(case.get("id"), str)
+                        and probe_fingerprint(case["id"]) == probe_hash]
+        if (len(base_matches) != 1 or base_matches[0].get("passed") is not True
+                or not isinstance(base_matches[0].get("violations"), list)
+                or not any(isinstance(item, dict) and item.get("sink") == block["sink"]
+                           for item in base_matches[0]["violations"])):
+            raise ValueError("Bound probe did not uniquely observe the reported baseline exposure")
+    for probe_hash in coverage_probes:
+        base_matches = [case for case in baseline_cases if isinstance(case, dict)
+                        and isinstance(case.get("id"), str)
+                        and probe_fingerprint(case["id"]) == probe_hash]
+        head_matches = [case for case in cases if isinstance(case, dict)
+                        and isinstance(case.get("id"), str)
+                        and probe_fingerprint(case["id"]) == probe_hash]
+        if (len(base_matches) != 1 or base_matches[0].get("passed") is not True
+                or base_matches[0].get("error") or not isinstance(base_matches[0].get("violations"), list)):
+            raise ValueError("Every configured boundary probe must be present exactly once in baseline evidence")
+        if (len(head_matches) != 1 or head_matches[0].get("passed") is not True
+                or head_matches[0].get("error") or head_matches[0].get("violations") != []):
+            raise ValueError("Every configured boundary probe must pass cleanly exactly once on the repair revision")

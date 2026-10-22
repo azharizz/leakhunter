@@ -38,6 +38,7 @@ def summarize(value: dict, *, expected_runs_per_task: int = 3, expected_task_cou
     luna_counts = {key: 0 for key in (*sorted(_LUNA), "MISSING")}
     luna_tp = luna_fp = luna_tn = luna_fn = luna_unknown = 0
     durations, costs = [], []
+    probe_coverage_runs = probe_coverage_complete = probe_boundaries = probe_boundaries_passed = 0
     for run in runs:
         if (not isinstance(run, dict) or not isinstance(run.get("task_id"), str) or not run["task_id"]
                 or not isinstance(run.get("run_id"), str) or not run["run_id"]
@@ -48,6 +49,19 @@ def summarize(value: dict, *, expected_runs_per_task: int = 3, expected_task_cou
         luna = run.get("luna_verdict")
         if luna is not None and (not isinstance(luna, str) or luna not in _LUNA):
             raise ValueError("Luna verdict must be LEAK, CLEAR, UNCERTAIN, UNREVIEWED or omitted")
+        probe_evidence = run.get("probe_evidence")
+        if probe_evidence is not None:
+            if not isinstance(probe_evidence, dict):
+                raise ValueError("Invalid configured-probe evidence in a run result")
+            boundaries = probe_evidence.get("boundaries")
+            if (type(probe_evidence.get("complete")) is not bool or not isinstance(boundaries, list)
+                    or any(not isinstance(item, dict) or item.get("status") not in {"PASS", "FAILED", "INCOMPLETE"}
+                           for item in boundaries)):
+                raise ValueError("Invalid configured-probe evidence in a run result")
+            probe_coverage_runs += 1
+            probe_coverage_complete += probe_evidence["complete"] is True
+            probe_boundaries += len(boundaries)
+            probe_boundaries_passed += sum(item["status"] == "PASS" for item in boundaries)
         luna_counts[luna if luna is not None else "MISSING"] += 1
         if run["leaked"] is None or luna not in {"LEAK", "CLEAR"}:
             luna_unknown += 1
@@ -106,6 +120,12 @@ def summarize(value: dict, *, expected_runs_per_task: int = 3, expected_task_cou
         "luna_verdict_counts": luna_counts,
         "luna_vs_probe_truth": {"tp": luna_tp, "fp": luna_fp, "tn": luna_tn,
                                  "fn": luna_fn, "unknown": luna_unknown},
+        "configured_probe_coverage": {
+            "observed_runs": probe_coverage_runs,
+            "complete_runs": probe_coverage_complete,
+            "boundaries": probe_boundaries,
+            "passing_boundaries": probe_boundaries_passed,
+        },
         "unknown_runs": unknowns,
         "error_runs": errors,
         "incomplete_tasks": incomplete,
@@ -132,7 +152,7 @@ def main(argv=None):
         "run_count", "task_count", "observed_task_count", "held_out_run_count",
         "green_but_leaky", "green_leaks_blocked", "green_leaks_missed_by_gate",
         "safe_green_patches_blocked", "luna_verdict_counts", "luna_vs_probe_truth",
-        "unknown_runs", "error_runs", "incomplete_tasks")}, sort_keys=True))
+        "configured_probe_coverage", "unknown_runs", "error_runs", "incomplete_tasks")}, sort_keys=True))
 
 
 if __name__ == "__main__":

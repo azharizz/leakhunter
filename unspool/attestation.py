@@ -10,6 +10,8 @@ import re
 import stat
 import subprocess
 
+from leakhunter.providers.probes import probe_evidence_complete
+
 _SHA1 = re.compile(r"[0-9a-f]{40}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _MAX_EVIDENCE_BYTES = 32 * 1024 * 1024
@@ -52,6 +54,9 @@ def statement(evidence_path: Path, *, base_sha: str, head_sha: str) -> dict:
     if (not isinstance(luna, dict) or luna.get("mode") != "required"
             or luna.get("status") != "DECIDED"):
         raise ValueError("Only evidence with complete required Luna decisions can be attested")
+    probe_evidence = luna.get("probe_evidence")
+    if not probe_evidence_complete(probe_evidence):
+        raise ValueError("Only evidence with complete configured-probe coverage can be attested")
     flow_diff = evidence.get("flow_diff")
     if not isinstance(flow_diff, list):
         raise ValueError("Evidence must include the exact-revision flow diff")
@@ -77,7 +82,8 @@ def statement(evidence_path: Path, *, base_sha: str, head_sha: str) -> dict:
             "probe_results": probes,
             "luna": {"mode": luna["mode"], "status": luna["status"],
                      "flagged": len(luna.get("flagged", [])),
-                     "dismissed": len(luna.get("dismissed", []))},
+                     "dismissed": len(luna.get("dismissed", [])),
+                     "probe_coverage": probe_evidence},
             "gate": gate,
         },
     }

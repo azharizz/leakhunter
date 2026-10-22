@@ -33,7 +33,7 @@ unspool-verify:
     UNSPOOL_MANIFEST_PATH: "$[[ inputs.manifest_path ]]"
     UNSPOOL_TARGET_DIRECTORY: "$[[ inputs.target_directory ]]"
     UNSPOOL_COMPONENT_SHA: "$[[ component.sha ]]"
-    # Luna decides every reviewed boundary; the gate fails closed without the API key.
+    # Required Luna triage selects configured probes; non-clear boundaries need complete clean evidence.
     AGENT_PROVIDER_URL: https://openrouter.ai/api/v1/chat/completions
     AGENT_PROVIDER_MODEL: "$[[ inputs.decision_model ]]"
   rules:
