@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from unspool.handoff import complete, from_issue, validate_pipeline, validate_scope
+from unspool.handoff import complete, from_issue, validate_delivery_pipeline, validate_pipeline, validate_scope
 from unspool.smoke import check
 
 
@@ -28,7 +28,7 @@ class HandoffTest(unittest.TestCase):
 
     def test_skipped_allowed_failure_and_stale_checks_do_not_pass(self):
         jobs = [{"name": name, "status": "success"} for name in
-                ("python-tests", "dashboard-tests", "verify-exposure", "sign-evidence", "verify-attestation")]
+                ("python-tests", "dashboard-tests", "verify-exposure")]
         validate_pipeline(self.mr()["head_pipeline"], jobs, "a" * 40)
         for status in ("skipped", "failed"):
             jobs[-1]["status"] = status
@@ -39,6 +39,16 @@ class HandoffTest(unittest.TestCase):
             validate_pipeline(self.mr()["head_pipeline"], jobs, "a" * 40)
         with self.assertRaises(ValueError):
             validate_pipeline(self.mr()["head_pipeline"], jobs, "b" * 40)
+
+    def test_delivery_requires_main_signature_and_attestation(self):
+        pipeline = {"sha": "b" * 40, "status": "success", "ref": "main"}
+        jobs = [{"name": name, "status": "success"} for name in
+                ("verify-exposure", "sign-evidence", "verify-attestation", "deploy-pages",
+                 "production-smoke", "deploy-cloud-run")]
+        validate_delivery_pipeline(pipeline, jobs, "b" * 40)
+        jobs[1]["status"] = "skipped"
+        with self.assertRaises(ValueError):
+            validate_delivery_pipeline(pipeline, jobs, "b" * 40)
 
     def test_failed_pipeline_never_calls_merge(self):
         mr = self.mr()
@@ -73,6 +83,7 @@ class HandoffTest(unittest.TestCase):
                     "decision": {"luna": luna}, "gate": {"passed": True},
                     "runtime": {"status": "COMPLETED", "passed": True,
                                 "cases": [{"id": "probe", "passed": True, "violations": []}]}}
+        delivered_evidence = dict(evidence, base_sha="c" * 40, head_sha="b" * 40)
 
         class API:
             include_cloud = True
@@ -87,22 +98,25 @@ class HandoffTest(unittest.TestCase):
                 if "/repository/branches/" in path:
                     if path.endswith("/main"):
                         return {"protected": True, "commit": {"id": "b" * 40}}
-                    return {"protected": True, "commit": {"id": "a" * 40}}
+                    return {"protected": False, "commit": {"id": "a" * 40}}
                 if method == "PUT":
                     return merged
                 if path.endswith("/artifacts/evidence.json"):
-                    return evidence
+                    return delivered_evidence if "/jobs/1/" in path else evidence
                 if path.endswith("/artifacts/public/health.json"):
-                    return {"status": "ok", "commit": "a" * 40, "verified": self.health_verified}
+                    commit = "b" * 40 if "/jobs/1/" in path else "a" * 40
+                    return {"status": "ok", "commit": commit, "verified": self.health_verified}
                 if path.endswith("/artifacts/attestation.statement.json"):
                     return {"statement": True}
                 if path.endswith("/artifacts/attestation.bundle.json"):
                     return {"bundle": True}
                 if "/pipelines?" in path:
-                    return [{"id": 3, "source": "push", "status": "success", "web_url": "https://gitlab.com/pipeline/3"}]
+                    return [{"id": 3, "source": "push", "ref": "main", "sha": "b" * 40,
+                             "status": "success", "web_url": "https://gitlab.com/pipeline/3"}]
                 if "/pipelines/" in path:
-                    names = (("deploy-pages", "production-smoke", "deploy-cloud-run") if "/3/" in path else
-                             ("python-tests", "dashboard-tests", "verify-exposure", "sign-evidence", "verify-attestation"))
+                    names = (("verify-exposure", "sign-evidence", "verify-attestation", "deploy-pages",
+                              "production-smoke", "deploy-cloud-run") if "/3/" in path else
+                             ("python-tests", "dashboard-tests", "verify-exposure"))
                     if not self.include_cloud:
                         names = tuple(name for name in names if name != "deploy-cloud-run")
                     return [{"id": index + 1, "name": name, "status": "success"} for index, name in enumerate(names)]

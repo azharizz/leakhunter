@@ -159,8 +159,7 @@ sign-evidence:
     paths: [attestation.bundle.json]
     expire_in: 90 days
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
 
 verify-attestation:
   stage: verify-attestation
@@ -177,8 +176,7 @@ verify-attestation:
     - test "$CI_COMMIT_REF_PROTECTED" = "true"
     - python -m unspool.attestation verify --evidence evidence.json --statement attestation.statement.json --bundle attestation.bundle.json --expected-identity "$CI_PROJECT_URL//.gitlab-ci.yml@refs/heads/$CI_COMMIT_REF_NAME" --expected-head-sha "$CI_COMMIT_SHA"
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
 
 deploy-pages:
   stage: deploy

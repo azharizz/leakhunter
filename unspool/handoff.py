@@ -20,7 +20,7 @@ from unspool.handoff_state import HandoffCanceled, JournalAPI, RunJournal, trigg
 from unspool.smoke import NoRedirect
 
 
-REQUIRED_JOBS = {"python-tests", "dashboard-tests", "verify-exposure", "sign-evidence", "verify-attestation"}
+REQUIRED_JOBS = {"python-tests", "dashboard-tests", "verify-exposure"}
 ALLOWED_PATH = "demo/target/service.py"
 
 
@@ -104,26 +104,20 @@ def validate_pipeline(pipeline, jobs, sha, config=None):
     passed = {job["name"] for job in jobs if isinstance(job, dict) and isinstance(job.get("name"), str)
               and job.get("status") == "success" and not job.get("allow_failure")}
     required = set(config.verification_jobs if config else REQUIRED_JOBS)
-    if not config or config.verification_profile == "unspool_closed_loop":
-        required.update((config.attestation_job, config.attestation_verify_job) if config else
-                        ("sign-evidence", "verify-attestation"))
     if not required <= passed:
         raise ValueError("All mandatory verification jobs must pass, not skip or allow failure")
 
 
-def _verify_attestation(api, project, project_path, mr, jobs, evidence, config, evidence_job,
-                        *, require_protected_branch=True):
+def _verify_attestation(api, project, project_path, branch_name, expected_sha, jobs, evidence, config, evidence_job):
     from unspool.attestation import verify
 
-    source_branch = mr.get("source_branch")
-    if not isinstance(source_branch, str) or not re.fullmatch(r"[A-Za-z0-9_./-]+", source_branch):
+    if not isinstance(branch_name, str) or not re.fullmatch(r"[A-Za-z0-9_./-]+", branch_name):
         raise ValueError("The signing branch is not a valid Git ref")
-    if require_protected_branch:
-        branch = api.request("GET", f"projects/{project}/repository/branches/{quote(source_branch, safe='')}")
-        commit = branch.get("commit") if isinstance(branch, dict) else None
-        if (not isinstance(commit, dict) or branch.get("protected") is not True
-                or commit.get("id") != mr.get("sha")):
-            raise ValueError("Evidence must be signed by a protected source branch at the exact MR revision")
+    branch = api.request("GET", f"projects/{project}/repository/branches/{quote(branch_name, safe='')}")
+    commit = branch.get("commit") if isinstance(branch, dict) else None
+    if (not isinstance(commit, dict) or branch.get("protected") is not True
+            or commit.get("id") != expected_sha):
+        raise ValueError("Evidence must be signed by a protected branch at the exact delivery revision")
     attestation_job = config.attestation_job if config else "sign-evidence"
     job = next((item for item in jobs if item.get("name") == attestation_job and item.get("status") == "success"
                 and not item.get("allow_failure")), None)
@@ -141,15 +135,30 @@ def _verify_attestation(api, project, project_path, mr, jobs, evidence, config, 
     bundle_value = api.request("GET", f"projects/{project}/jobs/{job_id}/artifacts/{quote(bundle_path, safe='/')}")
     if not isinstance(statement_value, dict) or not isinstance(bundle_value, dict):
         raise ValueError("Signed evidence artifacts are missing or malformed")
-    expected_identity = f"https://gitlab.com/{project_path}//.gitlab-ci.yml@refs/heads/{source_branch}"
+    expected_identity = f"https://gitlab.com/{project_path}//.gitlab-ci.yml@refs/heads/{branch_name}"
     with tempfile.TemporaryDirectory(prefix="unspool-attestation-") as directory:
         root = Path(directory)
         evidence_file, statement_file, bundle_file = (root / "evidence.json", root / "statement.json", root / "bundle.json")
         for path, value in ((evidence_file, evidence), (statement_file, statement_value), (bundle_file, bundle_value)):
             path.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")), encoding="utf-8")
         verify(evidence_file, statement_file, bundle_file, expected_identity=expected_identity,
-               expected_head_sha=mr["sha"])
+               expected_head_sha=expected_sha)
     return expected_identity
+
+
+def validate_delivery_pipeline(pipeline, jobs, sha, config=None):
+    if (not isinstance(pipeline, dict) or pipeline.get("sha") != sha
+            or pipeline.get("status") != "success" or not isinstance(jobs, list)):
+        raise ValueError("The exact merged revision has not passed its delivery pipeline")
+    passed = {job["name"] for job in jobs if isinstance(job, dict) and isinstance(job.get("name"), str)
+              and job.get("status") == "success" and not job.get("allow_failure")}
+    required = set(config.deployment_jobs if config else
+                   ("deploy-pages", "production-smoke", "deploy-cloud-run"))
+    if not config or config.verification_profile == "unspool_closed_loop":
+        required.update((config.evidence_job, config.attestation_job, config.attestation_verify_job) if config else
+                        ("verify-exposure", "sign-evidence", "verify-attestation"))
+    if not required <= passed:
+        raise ValueError("Protected-main evidence signing, attestation, deployment, and smoke checks must pass")
 
 
 def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, journal=None,
@@ -172,7 +181,6 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
         validate_scope(mr, changes, project, config)
         if mr["state"] == "merged":
             if config and config.mode == "review":
-                # A person merges in review mode; report whether it was the revision this controller verified.
                 reviewed = (journal is not None and journal.data.get("merge_request") == iid
                             and journal.data.get("source_sha") == mr.get("sha"))
                 status = "MERGED_AFTER_REVIEW" if reviewed else "ALREADY_MERGED"
@@ -183,7 +191,10 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
                         "verification_profile": config.verification_profile}
             if (not journal or journal.data.get("promotion_authorized_sha") != mr.get("sha")
                     or journal.data.get("merge_request") != iid):
-                raise ValueError("MR was merged before this controller authorized its exact revision")
+                if not (config and config.mode == "review" and journal
+                        and journal.data.get("merge_request") == iid
+                        and journal.data.get("source_sha") == mr.get("sha")):
+                    raise ValueError("MR was merged before this controller authorized its exact revision")
         pipeline = mr.get("head_pipeline") or {}
         if pipeline.get("status") in {"failed", "canceled", "skipped", "manual"}:
             raise ValueError("Repair verification failed or requires intervention; promotion stopped")
@@ -231,10 +242,8 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
                     or not isinstance(health, dict) or health.get("verified") is not True
                     or health != {"status": "ok", "commit": mr["sha"], "verified": True}):
                 raise ValueError("Independent exposure evidence is missing, failed, or for another revision")
-            # External profiles are bound below by their pinned HTTP contract instead of a signature.
-            signer_identity = _verify_attestation(
-                api, project, project_path, mr, jobs, evidence, config, evidence_job,
-                require_protected_branch=mr["state"] != "merged") if closed_loop else None
+            # Signing runs on protected main after merge, before any deployment job.
+            signer_identity = None
             if config:
                 if config.http_contract:
                     validate_bound_evidence(evidence, mr["sha"], dict(config.http_contract))
@@ -305,10 +314,38 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
             if deployed.get("status") == "success":
                 jobs = api.request("GET", f"{prefix}/pipelines/{deployed['id']}/jobs?per_page=100")
                 jobs += api.request("GET", f"{prefix}/pipelines/{deployed['id']}/bridges?per_page=100")
-                passed = {job["name"] for job in jobs if job.get("status") == "success" and not job.get("allow_failure")}
-                required = set(config.deployment_jobs if config else ("deploy-pages", "production-smoke", "deploy-cloud-run"))
-                if not required <= passed:
-                    raise ValueError("The deployment and live revision smoke check must both pass")
+                target_branch = config.target_branch if config else "main"
+                if deployed.get("ref") != target_branch:
+                    raise ValueError("Delivery pipeline did not run on the configured protected branch")
+                validate_delivery_pipeline(deployed, jobs, merged_sha, config)
+                if not config or config.verification_profile == "unspool_closed_loop":
+                    evidence_job = next((job for job in jobs if isinstance(job, dict)
+                                         and job.get("name") == (config.evidence_job if config else "verify-exposure")
+                                         and job.get("status") == "success" and not job.get("allow_failure")), None)
+                    if not evidence_job or type(evidence_job.get("id")) is not int or evidence_job["id"] <= 0:
+                        raise ValueError("The protected-main evidence job has no valid artifact ID")
+                    evidence_path = quote(config.evidence_path if config else "evidence.json", safe="/")
+                    health_path = quote(config.health_path if config else "public/health.json", safe="/")
+                    delivered_evidence = api.request("GET", f"{prefix}/jobs/{evidence_job['id']}/artifacts/{evidence_path}")
+                    delivered_health = api.request("GET", f"{prefix}/jobs/{evidence_job['id']}/artifacts/{health_path}")
+                    runtime = delivered_evidence.get("runtime") if isinstance(delivered_evidence, dict) else None
+                    gate = delivered_evidence.get("gate") if isinstance(delivered_evidence, dict) else None
+                    decision = delivered_evidence.get("decision") if isinstance(delivered_evidence, dict) else None
+                    luna = decision.get("luna") if isinstance(decision, dict) else None
+                    if (not isinstance(delivered_evidence, dict) or delivered_evidence.get("head_sha") != merged_sha
+                            or (not config or config.verification_profile == "unspool_closed_loop")
+                            and (not isinstance(luna, dict) or luna.get("mode") != "required"
+                                 or luna.get("status") != "DECIDED")
+                            or not isinstance(gate, dict) or gate.get("passed") is not True
+                            or not isinstance(runtime, dict) or runtime.get("status") != "COMPLETED"
+                            or runtime.get("passed") is not True or not runtime.get("cases")
+                            or any(not isinstance(case, dict) or case.get("passed") is not True or case.get("error")
+                                   or case.get("violations") for case in runtime["cases"])
+                            or delivered_health != {"status": "ok", "commit": merged_sha, "verified": True}):
+                        raise ValueError("Protected-main evidence or live health is missing, failed, or for another revision")
+                    if not config or config.verification_profile == "unspool_closed_loop":
+                        _verify_attestation(api, project, project_path, target_branch, merged_sha, jobs,
+                                            delivered_evidence, config, evidence_job)
                 summary = f"Unspool completed the verified repair.\n\nMerged revision: `{merged_sha}`\n\nAll configured mandatory deployment and smoke-check jobs passed.\n\nPipeline: {deployed['web_url']}"
                 notes = api.request("GET", mr_path + "/notes?per_page=100")
                 if not any(note.get("body") == summary for note in notes):

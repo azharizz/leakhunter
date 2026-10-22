@@ -35,6 +35,12 @@ synthetic exposure case before publishing an immutable, read-only graph to
 Cloud Run and GitLab Pages. The full local app retains annotation CRUD. A
 published report does not expose repository execution or repair endpoints.
 
+MR pipelines require passing tests and independent exposure evidence. Evidence
+signing and attestation run on protected `main` after merge and remain required
+before deployment; the local controller reports completion only after that
+attestation, delivery jobs, and exact-revision smoke checks pass. This keeps
+promotion within Developer access without weakening the protected-branch gate.
+
 ## Verified workflow and evidence
 
 On 20 October 2026, a fresh run completed without intermediate human edits,

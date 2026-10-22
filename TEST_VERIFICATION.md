@@ -8,6 +8,13 @@ changes are committed as `a45ea8defd0923ab03c38ba9cb97da416c6f7b54`; local and
 GitLab results for that head are recorded separately below. A fixture, unit
 test, or successful build does not count as a live workflow result.
 
+The current change moves signing and attestation from the unprotected MR source
+branch to protected `main`. MR checks still require tests and independent
+exposure evidence. The controller then requires the exact merged revision's
+main evidence, signature, attestation, deployment jobs, and live health check
+before recording success. Local verification and the resulting GitLab pipeline
+will be recorded after this change is pushed.
+
 ## Completed checks
 
 | Step | Result | Evidence |
