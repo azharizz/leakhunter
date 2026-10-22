@@ -1,0 +1,1 @@
+14 of 36 patches that passed the app's own tests still leaked; Unspool blocked 14, missed 0, and wrongly blocked 22 safe patches (0 unknown, 0 errors).

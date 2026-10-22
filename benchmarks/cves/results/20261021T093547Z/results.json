@@ -1,0 +1,554 @@
+{
+ "decision_model": "openai/gpt-6-luna-decisions",
+ "cases_sha256": "2533f9de0e55348b975c561a9e09ff37b1ecd850c14b6a7525ce392afb8e74af",
+ "rows": [
+  {
+   "id": "GHSA-635v-pc42-fr74",
+   "cve": null,
+   "advisory": "https://github.com/advisories/GHSA-635v-pc42-fr74",
+   "vulnerable": {
+    "static_flagged": true,
+    "findings": [
+     {
+      "function": "src.sagemaker_training.modules.install_requirements",
+      "source": "*.authorizationToken",
+      "sink": "APPLICATION_LOG",
+      "line": 151,
+      "exposure": "FIELD"
+     },
+     {
+      "function": "src.sagemaker_training.modules.install",
+      "source": "*.authorizationToken",
+      "sink": "APPLICATION_LOG",
+      "line": 131,
+      "exposure": "FIELD"
+     }
+    ],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "308950c38a59f82b1a5dba5a",
+      "file": "src/sagemaker_training/modules.py",
+      "function": "src.sagemaker_training.modules.install",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     },
+     {
+      "review_id": "7dfc39b7ac7608f3b12d61b4",
+      "file": "src/sagemaker_training/modules.py",
+      "function": "src.sagemaker_training.modules.install_requirements",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "986931b7fc3ed3c612b33969fce1f12342738019"
+   },
+   "fixed": {
+    "static_flagged": false,
+    "findings": [],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "308950c38a59f82b1a5dba5a",
+      "file": "src/sagemaker_training/modules.py",
+      "function": "src.sagemaker_training.modules.install",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     },
+     {
+      "review_id": "787475e65539dbd9a9ff6a66",
+      "file": "src/sagemaker_training/modules.py",
+      "function": "src.sagemaker_training.modules.install_requirements",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "d8e56c90fa7fcc7421c0f7193bf9650fc2967213"
+   },
+   "static_outcome": "HIT",
+   "luna_outcome": "UNKNOWN",
+   "runtime": "Not attempted: executing this project's code needs its third-party dependencies and credentials; only static analysis and Luna review are measured."
+  },
+  {
+   "id": "GHSA-2wx6-wc87-rmjm",
+   "cve": "CVE-2020-5262",
+   "advisory": "https://github.com/advisories/GHSA-2wx6-wc87-rmjm",
+   "vulnerable": {
+    "static_flagged": true,
+    "findings": [
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "HTTP_RESPONSE",
+      "line": 179,
+      "exposure": "FIELD"
+     },
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "APPLICATION_LOG",
+      "line": 177,
+      "exposure": "FIELD"
+     },
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "HTTP_RESPONSE",
+      "line": 179,
+      "exposure": "WHOLE_RECORD"
+     },
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "APPLICATION_LOG",
+      "line": 165,
+      "exposure": "FIELD"
+     },
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "APPLICATION_LOG",
+      "line": 177,
+      "exposure": "WHOLE_RECORD"
+     },
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "APPLICATION_LOG",
+      "line": 165,
+      "exposure": "WHOLE_RECORD"
+     }
+    ],
+    "parse_errors": [],
+    "luna_verdict": "LEAK",
+    "luna_units": [
+     {
+      "review_id": "b3177fac68342ef1c46469d7",
+      "file": "easybuild/base/rest.py",
+      "function": "easybuild.base.rest.Client.request",
+      "verdict": "LEAK",
+      "basis": "Luna: unauthorized disclosure plausible",
+      "disclosure": 0.92,
+      "context_required": 1.0,
+      "targeted_test": 0.98
+     }
+    ],
+    "commit": "75f0f5927b79c1fa3b6c2e522b5f1caaf1de8cf3"
+   },
+   "fixed": {
+    "static_flagged": true,
+    "findings": [
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "HTTP_RESPONSE",
+      "line": 186,
+      "exposure": "WHOLE_RECORD"
+     },
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "APPLICATION_LOG",
+      "line": 184,
+      "exposure": "WHOLE_RECORD"
+     },
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "APPLICATION_LOG",
+      "line": 184,
+      "exposure": "FIELD"
+     },
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "HTTP_RESPONSE",
+      "line": 186,
+      "exposure": "FIELD"
+     },
+     {
+      "function": "easybuild.base.rest.Client.request",
+      "source": "*.Authorization",
+      "sink": "APPLICATION_LOG",
+      "line": 171,
+      "exposure": "WHOLE_RECORD"
+     }
+    ],
+    "parse_errors": [],
+    "luna_verdict": "LEAK",
+    "luna_units": [
+     {
+      "review_id": "5582f08b86faadfc09ea0e86",
+      "file": "easybuild/base/rest.py",
+      "function": "easybuild.base.rest.Client.request",
+      "verdict": "LEAK",
+      "basis": "Luna: unauthorized disclosure plausible",
+      "disclosure": 0.82,
+      "context_required": 1.0,
+      "targeted_test": 0.95
+     }
+    ],
+    "commit": "210743d0e3618a8ac0a56eb9c0f4fa4fd8ae53b9"
+   },
+   "static_outcome": "FALSE_ALARM_ON_FIX",
+   "luna_outcome": "FALSE_ALARM_ON_FIX",
+   "runtime": "Not attempted: executing this project's code needs its third-party dependencies and credentials; only static analysis and Luna review are measured."
+  },
+  {
+   "id": "GHSA-7rcj-2493-83x3",
+   "cve": "CVE-2026-9073",
+   "advisory": "https://github.com/advisories/GHSA-7rcj-2493-83x3",
+   "vulnerable": {
+    "static_flagged": true,
+    "findings": [
+     {
+      "function": "src.foreman_mcp_server.middleware.logging.LoggingMiddleware._sanitize_headers",
+      "source": "*.authorization",
+      "sink": "HTTP_RESPONSE",
+      "line": 48,
+      "exposure": "WHOLE_RECORD"
+     },
+     {
+      "function": "src.foreman_mcp_server.middleware.logging.LoggingMiddleware._sanitize_headers",
+      "source": "*.Authorization",
+      "sink": "HTTP_RESPONSE",
+      "line": 48,
+      "exposure": "WHOLE_RECORD"
+     }
+    ],
+    "parse_errors": [],
+    "luna_verdict": "LEAK",
+    "luna_units": [
+     {
+      "review_id": "00c7a8f5fa7f8293f45dfe72",
+      "file": "src/foreman_mcp_server/middleware/logging.py",
+      "function": "src.foreman_mcp_server.middleware.logging.LoggingMiddleware._log_client_info",
+      "verdict": "LEAK",
+      "basis": "Luna: unauthorized disclosure plausible",
+      "disclosure": 0.67,
+      "context_required": 0.96,
+      "targeted_test": 0.95
+     },
+     {
+      "review_id": "5f6ced2d05019458f7f1bd08",
+      "file": "src/foreman_mcp_server/middleware/logging.py",
+      "function": "src.foreman_mcp_server.middleware.logging.LoggingMiddleware._sanitize_headers",
+      "verdict": "LEAK",
+      "basis": "Luna: unauthorized disclosure plausible",
+      "disclosure": 0.81,
+      "context_required": 0.96,
+      "targeted_test": 0.97
+     }
+    ],
+    "commit": "0ab639f7851996b4675863e87644159732527bda"
+   },
+   "fixed": {
+    "static_flagged": true,
+    "findings": [
+     {
+      "function": "src.foreman_mcp_server.middleware.logging.LoggingMiddleware._sanitize_headers",
+      "source": "*.authorization",
+      "sink": "HTTP_RESPONSE",
+      "line": 56,
+      "exposure": "WHOLE_RECORD"
+     },
+     {
+      "function": "src.foreman_mcp_server.middleware.logging.LoggingMiddleware._sanitize_headers",
+      "source": "*.Authorization",
+      "sink": "HTTP_RESPONSE",
+      "line": 56,
+      "exposure": "WHOLE_RECORD"
+     }
+    ],
+    "parse_errors": [],
+    "luna_verdict": "LEAK",
+    "luna_units": [
+     {
+      "review_id": "5b9033e16dd5c0d54437ad68",
+      "file": "src/foreman_mcp_server/middleware/logging.py",
+      "function": "src.foreman_mcp_server.middleware.logging.LoggingMiddleware._log_client_info",
+      "verdict": "LEAK",
+      "basis": "Luna: unauthorized disclosure plausible",
+      "disclosure": 0.71,
+      "context_required": 0.99,
+      "targeted_test": 0.96
+     },
+     {
+      "review_id": "11fc4db2d965179661b01b45",
+      "file": "src/foreman_mcp_server/middleware/logging.py",
+      "function": "src.foreman_mcp_server.middleware.logging.LoggingMiddleware._sanitize_headers",
+      "verdict": "LEAK",
+      "basis": "Luna: unauthorized disclosure plausible",
+      "disclosure": 0.8,
+      "context_required": 0.96,
+      "targeted_test": 0.96
+     }
+    ],
+    "commit": "0f166d7e3e8ec554e669da17211fdffd14740e2f"
+   },
+   "static_outcome": "FALSE_ALARM_ON_FIX",
+   "luna_outcome": "FALSE_ALARM_ON_FIX",
+   "runtime": "Not attempted: executing this project's code needs its third-party dependencies and credentials; only static analysis and Luna review are measured."
+  },
+  {
+   "id": "GHSA-r297-p3v4-wp8m",
+   "cve": "CVE-2026-32633",
+   "advisory": "https://github.com/advisories/GHSA-r297-p3v4-wp8m",
+   "vulnerable": {
+    "static_flagged": false,
+    "findings": [],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "edc153c80598e9b0abc39e06",
+      "file": "glances/outputs/glances_restful_api.py",
+      "function": "glances.outputs.glances_restful_api.GlancesRestfulApi._api_servers_list",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "4139b10c5c3a98afc67a19ae67d66d2d94d7db6a"
+   },
+   "fixed": {
+    "static_flagged": false,
+    "findings": [],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "9bb67e2ec6e5921f5e108903",
+      "file": "glances/outputs/glances_restful_api.py",
+      "function": "glances.outputs.glances_restful_api.GlancesRestfulApi._api_servers_list",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "879ef8688ffa1630839549751d3c7ef9961d361e"
+   },
+   "static_outcome": "MISS",
+   "luna_outcome": "UNKNOWN",
+   "runtime": "Not attempted: executing this project's code needs its third-party dependencies and credentials; only static analysis and Luna review are measured."
+  },
+  {
+   "id": "GHSA-cvwp-r2g2-j824",
+   "cve": "CVE-2026-32609",
+   "advisory": "https://github.com/advisories/GHSA-cvwp-r2g2-j824",
+   "vulnerable": {
+    "static_flagged": false,
+    "findings": [],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "2c1bd2262f85ead2244ae2e3",
+      "file": "glances/outputs/glances_restful_api.py",
+      "function": "glances.outputs.glances_restful_api.GlancesRestfulApi._api_args",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "5850c564ee10804fdf884823b9c210eb954dd1f9"
+   },
+   "fixed": {
+    "static_flagged": false,
+    "findings": [],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "b543acf6ebd0f8270ccd8ee8",
+      "file": "glances/outputs/glances_restful_api.py",
+      "function": "glances.outputs.glances_restful_api.GlancesRestfulApi._api_args",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "ff14eb9780ee10ec018c754754b1c8c7bfb6c44f"
+   },
+   "static_outcome": "MISS",
+   "luna_outcome": "UNKNOWN",
+   "runtime": "Not attempted: executing this project's code needs its third-party dependencies and credentials; only static analysis and Luna review are measured."
+  },
+  {
+   "id": "GHSA-xmfj-7pp5-fxr6",
+   "cve": "CVE-2026-25211",
+   "advisory": "https://github.com/advisories/GHSA-xmfj-7pp5-fxr6",
+   "vulnerable": {
+    "static_flagged": true,
+    "findings": [
+     {
+      "function": "src.llama_stack.providers.remote.vector_io.pgvector.pgvector.PGVectorVectorIOAdapter.initialize",
+      "source": "*.password",
+      "sink": "APPLICATION_LOG",
+      "line": 360,
+      "exposure": "FIELD"
+     }
+    ],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "11183662df42389f8aae34c1",
+      "file": "src/llama_stack/providers/remote/vector_io/pgvector/pgvector.py",
+      "function": "src.llama_stack.providers.remote.vector_io.pgvector.pgvector.PGVectorVectorIOAdapter.initialize",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "752a6836a02e5c23303ce6781e7698e35b52eae7"
+   },
+   "fixed": {
+    "static_flagged": true,
+    "findings": [
+     {
+      "function": "src.llama_stack.providers.remote.vector_io.pgvector.pgvector.PGVectorVectorIOAdapter.initialize",
+      "source": "*.password",
+      "sink": "APPLICATION_LOG",
+      "line": 362,
+      "exposure": "FIELD"
+     }
+    ],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "11183662df42389f8aae34c1",
+      "file": "src/llama_stack/providers/remote/vector_io/pgvector/pgvector.py",
+      "function": "src.llama_stack.providers.remote.vector_io.pgvector.pgvector.PGVectorVectorIOAdapter.initialize",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "b709bd77b6c1fad68a30a4888baa6f2337eaef6f"
+   },
+   "static_outcome": "FALSE_ALARM_ON_FIX",
+   "luna_outcome": "UNKNOWN",
+   "runtime": "Not attempted: executing this project's code needs its third-party dependencies and credentials; only static analysis and Luna review are measured."
+  },
+  {
+   "id": "GHSA-v853-p72q-4cfw",
+   "cve": null,
+   "advisory": "https://github.com/advisories/GHSA-v853-p72q-4cfw",
+   "vulnerable": {
+    "static_flagged": false,
+    "findings": [],
+    "parse_errors": [],
+    "luna_verdict": "UNCERTAIN",
+    "luna_units": [
+     {
+      "review_id": "cf6a3c97b36cda2e8caf0bf7",
+      "file": "src/quart/wrappers/request.py",
+      "function": "src.quart.wrappers.request.Body.__await__",
+      "verdict": "UNCERTAIN",
+      "basis": "Luna: neither plausible nor clearly implausible",
+      "disclosure": 0.25,
+      "context_required": 1.0,
+      "targeted_test": 0.97
+     }
+    ],
+    "commit": "adc30b2a3ca3eb1d464cbecd36ae6bcc87217537"
+   },
+   "fixed": {
+    "static_flagged": false,
+    "findings": [],
+    "parse_errors": [],
+    "luna_verdict": "UNCERTAIN",
+    "luna_units": [
+     {
+      "review_id": "cf6a3c97b36cda2e8caf0bf7",
+      "file": "src/quart/wrappers/request.py",
+      "function": "src.quart.wrappers.request.Body.__await__",
+      "verdict": "UNCERTAIN",
+      "basis": "Luna: neither plausible nor clearly implausible",
+      "disclosure": 0.09,
+      "context_required": 1.0,
+      "targeted_test": 0.95
+     }
+    ],
+    "commit": "e8eb3b8a0cb98e7574bf3841312fc7f96883d055"
+   },
+   "static_outcome": "MISS",
+   "luna_outcome": "UNKNOWN",
+   "runtime": "Not attempted: executing this project's code needs its third-party dependencies and credentials; only static analysis and Luna review are measured."
+  },
+  {
+   "id": "GHSA-gh7p-78x6-jw6m",
+   "cve": "CVE-2026-59222",
+   "advisory": "https://github.com/advisories/GHSA-gh7p-78x6-jw6m",
+   "vulnerable": {
+    "static_flagged": false,
+    "findings": [],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "e121ae349aa8fc5eea618661",
+      "file": "backend/open_webui/routers/channels.py",
+      "function": "backend.open_webui.routers.channels.get_channel_members_by_id",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "ec86ce5cf735a1a064d8963d18bb44a61c3728e0"
+   },
+   "fixed": {
+    "static_flagged": false,
+    "findings": [],
+    "parse_errors": [],
+    "luna_verdict": "UNREVIEWED",
+    "luna_units": [
+     {
+      "review_id": "5e713a4908c9e1354170d406",
+      "file": "backend/open_webui/routers/channels.py",
+      "function": "backend.open_webui.routers.channels.get_channel_members_by_id",
+      "verdict": "UNREVIEWED",
+      "basis": "no valid Luna decision (context_unavailable)",
+      "disclosure": null,
+      "context_required": null,
+      "targeted_test": null
+     }
+    ],
+    "commit": "fbcdcf146b99b5002705060a8243eee769108f9e"
+   },
+   "static_outcome": "MISS",
+   "luna_outcome": "UNKNOWN",
+   "runtime": "Not attempted: executing this project's code needs its third-party dependencies and credentials; only static analysis and Luna review are measured."
+  }
+ ]
+}

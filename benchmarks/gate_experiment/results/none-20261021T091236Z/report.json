@@ -1,0 +1,699 @@
+{
+ "case_set_sha256": "09143bdc326100ea65d5ebffed6aac867a9a105960a627d30594b723f6ab1954",
+ "error_runs": 0,
+ "expected_runs_per_task": 3,
+ "green_but_leaky": 27,
+ "green_leaks_blocked": 27,
+ "green_leaks_missed_by_gate": 0,
+ "green_test_patches": 27,
+ "held_out_run_count": 12,
+ "held_out_task_ids": [
+  "T03-error-path-return",
+  "T08-error-path-log",
+  "T11-all-fields-export",
+  "T12-safe-priority"
+ ],
+ "incomplete_tasks": {},
+ "latency_ms": {
+  "count": 0,
+  "mean": null
+ },
+ "luna_verdict_counts": {
+  "CLEAR": 0,
+  "LEAK": 36,
+  "MISSING": 0,
+  "UNCERTAIN": 0,
+  "UNREVIEWED": 0
+ },
+ "luna_vs_probe_truth": {
+  "fn": 0,
+  "fp": 9,
+  "tn": 0,
+  "tp": 27,
+  "unknown": 0
+ },
+ "model_cost_usd": {
+  "count": 0,
+  "mean": null,
+  "total": 0
+ },
+ "observed_task_count": 12,
+ "probe_set_sha256": "df3f36d5c7993472a1e5e7d5f793931015f825928f6c9ff1cff56ef0bff5bd59",
+ "run_count": 36,
+ "runs": [
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.99)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "1",
+   "task_id": "T01-whole-record"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.99)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "2",
+   "task_id": "T01-whole-record"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.99)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.52)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "3",
+   "task_id": "T01-whole-record"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.95)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.team_listing (p=0.53)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.60)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "1",
+   "task_id": "T02-second-endpoint"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.95)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.team_listing (p=0.53)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.60)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "2",
+   "task_id": "T02-second-endpoint"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.95)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.team_listing (p=0.53)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.60)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "3",
+   "task_id": "T02-second-endpoint"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.97)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.99)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "1",
+   "task_id": "T03-error-path-return"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.97)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.99)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "2",
+   "task_id": "T03-error-path-return"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.97)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.99)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "3",
+   "task_id": "T03-error-path-return"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.90)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.75)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "1",
+   "task_id": "T04-nested-object"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.90)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.75)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "2",
+   "task_id": "T04-nested-object"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.90)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.75)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "3",
+   "task_id": "T04-nested-object"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.53)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.53)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "failed",
+   "run_id": "1",
+   "task_id": "T05-safe-avatar"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.53)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.53)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "failed",
+   "run_id": "2",
+   "task_id": "T05-safe-avatar"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Luna flags disclosure at accounts/service.py:accounts.service.public_profile (p=0.53)",
+    "Luna flags disclosure at accounts/service.py:accounts.service.lookup (p=0.53)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "failed",
+   "run_id": "3",
+   "task_id": "T05-safe-avatar"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.55)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.95)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.69)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "1",
+   "task_id": "T06-log-line"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.55)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.95)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.69)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "2",
+   "task_id": "T06-log-line"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.55)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.95)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.69)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "3",
+   "task_id": "T06-log-line"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.54)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.65)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.95)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "1",
+   "task_id": "T07-webhook-token"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.54)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.65)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.95)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "2",
+   "task_id": "T07-webhook-token"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.54)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.65)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.95)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "3",
+   "task_id": "T07-webhook-token"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.58)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.95)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.65)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "1",
+   "task_id": "T08-error-path-log"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.58)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.95)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.65)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "2",
+   "task_id": "T08-error-path-log"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at billing/service.py:billing.service (p=0.58)",
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.95)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.65)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "3",
+   "task_id": "T08-error-path-log"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "failed",
+   "run_id": "1",
+   "task_id": "T09-safe-currency"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "failed",
+   "run_id": "2",
+   "task_id": "T09-safe-currency"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Luna flags disclosure at billing/service.py:billing.service.charge (p=0.61)",
+    "Luna flags disclosure at billing/service.py:billing.service.notify (p=0.73)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "failed",
+   "run_id": "3",
+   "task_id": "T09-safe-currency"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.70)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.72)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "1",
+   "task_id": "T10-pii-to-llm"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.70)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.72)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "2",
+   "task_id": "T10-pii-to-llm"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.70)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.72)"
+   ],
+   "held_out": false,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "3",
+   "task_id": "T10-pii-to-llm"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.60)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.96)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "1",
+   "task_id": "T11-all-fields-export"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.60)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.96)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "2",
+   "task_id": "T11-all-fields-export"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Unresolved static candidates require review or repair",
+    "Runtime security and functional verification has not passed",
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.60)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.96)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": true,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "passed",
+   "run_id": "3",
+   "task_id": "T11-all-fields-export"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.63)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.66)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "failed",
+   "run_id": "1",
+   "task_id": "T12-safe-priority"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.63)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.66)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "failed",
+   "run_id": "2",
+   "task_id": "T12-safe-priority"
+  },
+  {
+   "agent": "none",
+   "gate": "blocked",
+   "gate_reasons": [
+    "Luna flags disclosure at support/service.py:support.service.summarize (p=0.63)",
+    "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.66)"
+   ],
+   "held_out": true,
+   "latency_ms": null,
+   "leaked": false,
+   "luna_verdict": "LEAK",
+   "model_cost_usd": null,
+   "own_tests": "failed",
+   "run_id": "3",
+   "task_id": "T12-safe-priority"
+  }
+ ],
+ "safe_green_patches_blocked": 0,
+ "task_count": 12,
+ "task_ids": [
+  "T01-whole-record",
+  "T02-second-endpoint",
+  "T03-error-path-return",
+  "T04-nested-object",
+  "T05-safe-avatar",
+  "T06-log-line",
+  "T07-webhook-token",
+  "T08-error-path-log",
+  "T09-safe-currency",
+  "T10-pii-to-llm",
+  "T11-all-fields-export",
+  "T12-safe-priority"
+ ],
+ "unknown_runs": 0,
+ "version": 2
+}

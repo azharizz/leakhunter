@@ -1,0 +1,68 @@
+version: 1
+cases:
+- id: profile
+  module: accounts.service
+  callable: public_profile
+  args:
+  - &id001
+    user_id: u-1
+    display_name: Ada
+    plan: team
+    password_hash: SYNTHETIC_GX_PASSWORD_7c1e
+    api_token: SYNTHETIC_GX_APITOKEN_2b9d
+    email: SYNTHETIC_GX_EMAIL_5a03
+    team:
+      team_id: t-1
+      name: Core
+      billing_token: SYNTHETIC_GX_BILLING_e84f
+  kwargs: {}
+  sensitive:
+  - marker: SYNTHETIC_GX_PASSWORD_7c1e
+    class: SECRET
+    symbol: user.password_hash
+  - marker: SYNTHETIC_GX_APITOKEN_2b9d
+    class: SECRET
+    symbol: user.api_token
+  - marker: SYNTHETIC_GX_EMAIL_5a03
+    class: PII
+    symbol: user.email
+  - marker: SYNTHETIC_GX_BILLING_e84f
+    class: SECRET
+    symbol: user.billing_token
+  context:
+    synthetic: true
+  expect: &id002
+    user_id: u-1
+    display_name: Ada
+    plan: team
+  finding:
+    file: accounts/service.py
+    function: public_profile
+    sink: HTTP_RESPONSE
+- id: lookup
+  module: accounts.service
+  callable: lookup
+  args:
+  - - *id001
+  - u-1
+  kwargs: {}
+  sensitive:
+  - marker: SYNTHETIC_GX_PASSWORD_7c1e
+    class: SECRET
+    symbol: user.password_hash
+  - marker: SYNTHETIC_GX_APITOKEN_2b9d
+    class: SECRET
+    symbol: user.api_token
+  - marker: SYNTHETIC_GX_EMAIL_5a03
+    class: PII
+    symbol: user.email
+  - marker: SYNTHETIC_GX_BILLING_e84f
+    class: SECRET
+    symbol: user.billing_token
+  context:
+    synthetic: true
+  expect: *id002
+  finding:
+    file: accounts/service.py
+    function: lookup
+    sink: HTTP_RESPONSE

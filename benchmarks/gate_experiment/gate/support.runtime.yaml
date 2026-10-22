@@ -1,0 +1,66 @@
+version: 1
+cases:
+- id: export
+  module: support.service
+  callable: export_ticket
+  args:
+  - &id001
+    ticket_id: s-1
+    subject: Billing
+    body: Please update my plan
+    status: open
+    priority: high
+    email: SYNTHETIC_GX_TICKETEMAIL_3c55
+    phone: SYNTHETIC_GX_PHONE_a190
+    internal_notes: SYNTHETIC_GX_NOTES_d4e2
+  kwargs: {}
+  sensitive:
+  - marker: SYNTHETIC_GX_TICKETEMAIL_3c55
+    class: PII
+    symbol: ticket.email
+  - marker: SYNTHETIC_GX_PHONE_a190
+    class: PII
+    symbol: ticket.phone
+  - marker: SYNTHETIC_GX_NOTES_d4e2
+    class: SECRET
+    symbol: ticket.internal_notes
+  context:
+    synthetic: true
+  expect:
+    ticket_id: s-1
+    status: open
+  finding:
+    file: support/service.py
+    function: export_ticket
+    sink: HTTP_RESPONSE
+- id: summarize
+  module: support.service
+  callable: summarize
+  args:
+  - *id001
+  kwargs: {}
+  sensitive:
+  - marker: SYNTHETIC_GX_TICKETEMAIL_3c55
+    class: PII
+    symbol: ticket.email
+  - marker: SYNTHETIC_GX_PHONE_a190
+    class: PII
+    symbol: ticket.phone
+  - marker: SYNTHETIC_GX_NOTES_d4e2
+    class: SECRET
+    symbol: ticket.internal_notes
+  context:
+    synthetic: true
+  expect:
+    ticket_id: s-1
+    summary: A synthetic summary
+  finding:
+    file: support/service.py
+    function: summarize
+    sink: AI_PROMPT
+  capture_calls:
+  - module: support.llm
+    callable: complete
+    sink: AI_PROMPT
+    return_value: A synthetic summary
+  on_demand: true

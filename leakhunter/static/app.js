@@ -620,14 +620,17 @@ function renderDecisions() {
       ? advice
       : advice
         ? json(advice)
-        : "No model advice recorded. Advice is never verification.";
+        : "No Luna decision recorded.";
   const target = $("decisionReviews");
   target.replaceChildren();
   if (!advice || !Array.isArray(advice.reviews)) return;
   const scope = advice.scope || {};
+  const luna = advice.luna || {};
+  const verdicts = new Map(array(luna.units).map((unit) => [unit.review_id, unit]));
   target.append(
     element("p", `Review status: ${advice.status} · ${advice.reviews.length} selected · ${scope.omitted_review_units || 0} omitted`),
-    element("p", "All model assessments remain UNRESOLVED. The scoped deterministic gate is separate; neither establishes whole-application safety.", "warn"),
+    element("p", `Luna triage (${luna.mode || "not run"}): ${luna.status || "no verdict"} · ${array(luna.flagged).length} LEAK signals · scores do not approve or dismiss findings`),
+    element("p", "Non-clear signals select configured probes. Incomplete review or probe evidence blocks; an observed runtime violation always blocks. Results cover only reviewed boundaries and configured probes.", "help"),
   );
   if (scope.selection_complete === false)
     target.append(element("p", "Review coverage is incomplete; inspect selection limits and per-review evidence omissions.", "warn"));
@@ -639,14 +642,14 @@ function renderDecisions() {
     const article = element("article", null, "case");
     article.append(
       element("h4", `${boundary.function || boundary.kind || review.review_id} · ${boundary.file || "source unavailable"}:${boundary.line || "?"}`),
-      element("p", `Verification: ${review.verification} · provider: ${review.provider_status}`),
+      element("p", `Luna verdict: ${verdicts.get(review.review_id)?.verdict || "UNREVIEWED"} · ${verdicts.get(review.review_id)?.basis || "no decision"} · provider: ${review.provider_status}`),
       element("p", `Evidence: ${array(review.evidence_refs).join(", ") || "No source evidence available"}`, "help"),
     );
     const answers = review.decision?.answers;
     if (answers) {
       const list = element("ul");
       for (const [name, answer] of Object.entries(answers))
-        list.append(element("li", `${name}: ${answer.noul} (model assessment, not measured exploit probability)`));
+        list.append(element("li", `${name}: ${answer.noul}`));
       article.append(list);
     } else if (typeof review.decision === "string") {
       article.append(element("p", review.decision, "warn"));

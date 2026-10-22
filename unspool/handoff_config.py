@@ -49,12 +49,27 @@ class HandoffConfig:
     poll_interval: int = 10
     version: int = 1
     http_contract: tuple = ()
+    attestation_job: str = "sign-evidence"
+    attestation_statement_path: str = "attestation.statement.json"
+    attestation_bundle_path: str = "attestation.bundle.json"
+    attestation_verify_job: str = "verify-attestation"
+
+    @property
+    def verification_profile(self):
+        """External apps are verified by their pinned HTTP contract; Unspool-owned flows by Luna-decided,
+        base/head-bound and signed evidence."""
+        return "external_http_contract" if self.http_contract else "unspool_closed_loop"
 
     @property
     def digest(self):
         value = asdict(self)
         if not self.http_contract:
             value.pop("http_contract")
+        # Optional fields left at their defaults must not change existing journal identities.
+        for name in ("attestation_job", "attestation_statement_path", "attestation_bundle_path",
+                     "attestation_verify_job"):
+            if value[name] == type(self).__dataclass_fields__[name].default:
+                value.pop(name)
         return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
     @classmethod
@@ -88,7 +103,8 @@ class HandoffConfig:
         if not isinstance(data, dict):
             raise ValueError("Configuration must be a JSON object")
         allowed = set(cls.__dataclass_fields__)
-        required = allowed - {"mode", "timeout", "poll_interval", "http_contract"}
+        required = allowed - {"mode", "timeout", "poll_interval", "http_contract", "attestation_job",
+                             "attestation_statement_path", "attestation_bundle_path", "attestation_verify_job"}
         if set(data) - allowed or required - set(data):
             raise ValueError("Configuration has missing or unknown fields")
         if type(data["version"]) is not int or data["version"] != 1:
@@ -120,6 +136,19 @@ class HandoffConfig:
             raise ValueError("evidence_job must be a mandatory verification job")
         for name in ("evidence_path", "health_path"):
             repository_path(data[name])
+        for name, default in (("attestation_statement_path", "attestation.statement.json"),
+                              ("attestation_bundle_path", "attestation.bundle.json")):
+            repository_path(data.get(name, default))
+        for name, default in (("attestation_job", "sign-evidence"),
+                              ("attestation_verify_job", "verify-attestation")):
+            value = data.get(name, default)
+            if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,100}", value):
+                raise ValueError(f"Invalid {name}")
+        if data.get("attestation_job", "sign-evidence") == data.get("attestation_verify_job", "verify-attestation"):
+            raise ValueError("Evidence signing and verification must be separate mandatory jobs")
+        if data.get("evidence_job") in {data.get("attestation_job", "sign-evidence"),
+                                         data.get("attestation_verify_job", "verify-attestation")}:
+            raise ValueError("Evidence collection, signing, and verification must use separate jobs")
         pins = data["protected_files"]
         if not isinstance(pins, dict) or len(pins) > 32:
             raise ValueError("protected_files must map repository paths to SHA-256 digests")
@@ -173,5 +202,6 @@ def preflight(config, api):
     return {"status": "PREFLIGHT_PASSED", "project": config.project_path,
             "project_id": config.project_id, "target_branch": config.target_branch,
             "mode": config.mode, "configuration_sha256": config.digest,
+            "verification_profile": config.verification_profile,
             "target_sha": sha,
             "limitations": ["Runner isolation, trigger availability, CI contracts and deployment permissions require separate execution evidence"]}

@@ -1,4 +1,4 @@
-"""Bounded, source-backed advisory Decisions; probabilities never verify safety."""
+"""Bounded, source-backed Luna Decisions over graph review units for probe triage."""
 from __future__ import annotations
 
 import json
@@ -42,7 +42,9 @@ INSTRUCTIONS = (
     "Distinguish explicit public or business-approved disclosure evidence from policy-unmatched "
     "fields and default PUBLIC classifications; do not infer approval from absent policy matches. "
     "Missing evidence and omissions remain unknown; runtime observations cover only their stated cases. "
-    "Answer the three typed questions as advisory probabilities, not proof, verification, or release approval."
+    "Answer the three typed questions as calibrated probabilities based on the supplied evidence. "
+    "These scores prioritize operator-written probes; they do not approve or reject a release. "
+    "When evidence is ambiguous, report that uncertainty without rounding toward either outcome."
 )
 
 
@@ -65,7 +67,7 @@ def _serialized(value: dict) -> str:
 
 
 def review_contexts(contexts: dict, call_model: Callable, model: str) -> tuple[dict, int, str]:
-    """Retain typed answers and coverage gaps without making security conclusions."""
+    """Ask Luna about every review unit and return the source-backed triage results."""
     units = contexts.get("reviews", [])
     scope = contexts.get("scope", {})
     scope_blocked = False

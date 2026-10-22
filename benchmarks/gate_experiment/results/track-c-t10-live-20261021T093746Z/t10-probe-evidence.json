@@ -1,0 +1,63 @@
+{
+  "task_id": "T10-pii-to-llm",
+  "agent": "shallow",
+  "decision_model": "openai/gpt-6-luna-decisions",
+  "decision_mode": "required",
+  "own_tests": "passed",
+  "independent_truth_leaked": true,
+  "truth_error": null,
+  "exit_code": 1,
+  "luna": {
+    "status": "DECIDED",
+    "units": [
+      {
+        "file": "support/llm.py",
+        "function": "support.llm.complete",
+        "verdict": "LEAK",
+        "disclosure": 0.51,
+        "targeted_test": 0.97
+      },
+      {
+        "file": "support/service.py",
+        "function": "support.service.summarize",
+        "verdict": "LEAK",
+        "disclosure": 0.64,
+        "targeted_test": 0.96
+      },
+      {
+        "file": "support/service.py",
+        "function": "support.service.export_ticket",
+        "verdict": "LEAK",
+        "disclosure": 0.57,
+        "targeted_test": 0.93
+      }
+    ]
+  },
+  "targeted_runtime": {
+    "status": "COMPLETED",
+    "cases": [
+      {
+        "id": "summarize",
+        "passed": true,
+        "violation_count": 2,
+        "violation_kinds": [
+          "AI_PROMPT"
+        ]
+      }
+    ]
+  },
+  "gate": {
+    "passed": false,
+    "reasons": [
+      "Runtime security and functional verification has not passed",
+      "Luna flags disclosure at support/llm.py:support.llm.complete (p=0.51)",
+      "Luna flags disclosure at support/service.py:support.service.summarize (p=0.64)",
+      "Luna flags disclosure at support/service.py:support.service.export_ticket (p=0.57)"
+    ],
+    "scope": "Configured Python analysis, Luna boundary decisions and executed synthetic cases only; no automatic merge or deployment. Luna decided each reviewed boundary.",
+    "status": "BLOCKED"
+  },
+  "case_set_sha256": "09143bdc326100ea65d5ebffed6aac867a9a105960a627d30594b723f6ab1954",
+  "probe_set_sha256": "df3f36d5c7993472a1e5e7d5f793931015f825928f6c9ff1cff56ef0bff5bd59",
+  "captured_at": "2026-10-21T09:37:52.030525+00:00"
+}

@@ -1,0 +1,19 @@
+{
+ "case_set_sha256": "09143bdc326100ea65d5ebffed6aac867a9a105960a627d30594b723f6ab1954",
+ "probe_set_sha256": "df3f36d5c7993472a1e5e7d5f793931015f825928f6c9ff1cff56ef0bff5bd59",
+ "frozen_at": "2026-10-21T08:32:08+00:00",
+ "task_ids": [
+  "T01-whole-record",
+  "T02-second-endpoint",
+  "T03-error-path-return",
+  "T04-nested-object",
+  "T05-safe-avatar",
+  "T06-log-line",
+  "T07-webhook-token",
+  "T08-error-path-log",
+  "T09-safe-currency",
+  "T10-pii-to-llm",
+  "T11-all-fields-export",
+  "T12-safe-priority"
+ ]
+}

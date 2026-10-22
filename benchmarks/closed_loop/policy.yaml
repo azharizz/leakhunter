@@ -1,0 +1,18 @@
+version: 1
+status: approved
+approved_by: Unspool closed-loop case maintainers
+classifications: {PUBLIC: 0, PII: 1, SECRET: 2}
+sources:
+  - {selector: "*.password_hash", class: SECRET}
+  - {selector: "*.api_token", class: SECRET}
+  - {selector: "*.email", class: PII}
+  - {selector: "*.phone", class: PII}
+sinks:
+  - kind: HTTP_RESPONSE
+    allow: [PUBLIC]
+    deny_fields: ["*.password_hash", "*.api_token"]
+  - kind: AI_PROMPT
+    allow: [PUBLIC, PII]
+    audience: external_vendor
+    require_contract: true
+invariants: [secret_fields_never_in_external_payloads, no_real_secrets_in_test_artifacts]

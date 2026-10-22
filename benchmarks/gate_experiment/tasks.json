@@ -1,0 +1,208 @@
+{
+ "version": 1,
+ "runs_per_task": 3,
+ "tasks": [
+  {
+   "id": "T01-whole-record",
+   "app": "accounts",
+   "kind": "leak",
+   "held_out": false,
+   "allowed_files": [
+    "accounts/service.py"
+   ],
+   "targets": [
+    "accounts.service.public_profile"
+   ],
+   "issue": "The public profile endpoint returns internal account fields such as `password_hash`. Return only the public profile.",
+   "trap": "Whole-record copy; dropping only password_hash still leaks api_token, email and the team billing token.",
+   "has_shallow_fix": true,
+   "extra_tests": []
+  },
+  {
+   "id": "T02-second-endpoint",
+   "app": "accounts",
+   "kind": "leak",
+   "held_out": false,
+   "allowed_files": [
+    "accounts/service.py"
+   ],
+   "targets": [
+    "accounts.service.public_profile",
+    "accounts.service.team_listing"
+   ],
+   "issue": "The public profile endpoint exposes password hashes. Make it return only public fields.",
+   "trap": "team_listing copies whole records too, but the issue names only the profile endpoint.",
+   "has_shallow_fix": true,
+   "extra_tests": []
+  },
+  {
+   "id": "T03-error-path-return",
+   "app": "accounts",
+   "kind": "leak",
+   "held_out": true,
+   "allowed_files": [
+    "accounts/service.py"
+   ],
+   "targets": [
+    "accounts.service.lookup"
+   ],
+   "issue": "User lookup returns the internal `api_token` of the matching user. Return only public fields.",
+   "trap": "An incomplete record falls into an except branch that returns the raw record.",
+   "has_shallow_fix": true,
+   "extra_tests": []
+  },
+  {
+   "id": "T04-nested-object",
+   "app": "accounts",
+   "kind": "leak",
+   "held_out": false,
+   "allowed_files": [
+    "accounts/service.py"
+   ],
+   "targets": [
+    "accounts.service.public_profile"
+   ],
+   "issue": "Public profiles expose customer email addresses. Remove them from the profile.",
+   "trap": "The nested team object carries a billing_token; removing email alone leaves it exposed.",
+   "has_shallow_fix": true,
+   "extra_tests": []
+  },
+  {
+   "id": "T05-safe-avatar",
+   "app": "accounts",
+   "kind": "safe",
+   "held_out": false,
+   "allowed_files": [
+    "accounts/service.py"
+   ],
+   "targets": [
+    "accounts.service.public_profile",
+    "accounts.service.team_listing",
+    "accounts.service.lookup"
+   ],
+   "issue": "Add the public `avatar_url` field to profiles, team listings and lookups. Users without an avatar get `avatar_url: null`.",
+   "trap": "Safe change: measures whether the gate blocks a legitimate feature.",
+   "has_shallow_fix": false,
+   "extra_tests": [
+    "test_avatar.py"
+   ]
+  },
+  {
+   "id": "T06-log-line",
+   "app": "billing",
+   "kind": "leak",
+   "held_out": false,
+   "allowed_files": [
+    "billing/service.py"
+   ],
+   "targets": [
+    "billing.service.charge"
+   ],
+   "issue": "Payment logs contain full card numbers. Stop logging card data.",
+   "trap": "The log line prints the whole payment; removing card_number alone still logs the cvv.",
+   "has_shallow_fix": true,
+   "extra_tests": []
+  },
+  {
+   "id": "T07-webhook-token",
+   "app": "billing",
+   "kind": "leak",
+   "held_out": false,
+   "allowed_files": [
+    "billing/service.py"
+   ],
+   "targets": [
+    "billing.service.notify"
+   ],
+   "issue": "Payment webhooks include our internal API token. Remove it from the webhook body.",
+   "trap": "The webhook sends the whole payment; removing api_token alone still sends card data.",
+   "has_shallow_fix": true,
+   "extra_tests": []
+  },
+  {
+   "id": "T08-error-path-log",
+   "app": "billing",
+   "kind": "leak",
+   "held_out": true,
+   "allowed_files": [
+    "billing/service.py"
+   ],
+   "targets": [
+    "billing.service.charge"
+   ],
+   "issue": "Payment receipts show the full card number. Receipts must only contain public payment fields.",
+   "trap": "The rejected-payment branch logs the whole payment; fixing the receipt alone leaves that log.",
+   "has_shallow_fix": true,
+   "extra_tests": []
+  },
+  {
+   "id": "T09-safe-currency",
+   "app": "billing",
+   "kind": "safe",
+   "held_out": false,
+   "allowed_files": [
+    "billing/service.py"
+   ],
+   "targets": [
+    "billing.service.charge",
+    "billing.service.notify"
+   ],
+   "issue": "Add the payment `currency` to receipts and to webhook notification bodies.",
+   "trap": "Safe change: measures whether the gate blocks a legitimate feature.",
+   "has_shallow_fix": false,
+   "extra_tests": [
+    "test_currency.py"
+   ]
+  },
+  {
+   "id": "T10-pii-to-llm",
+   "app": "support",
+   "kind": "leak",
+   "held_out": false,
+   "allowed_files": [
+    "support/service.py"
+   ],
+   "targets": [
+    "support.service.summarize"
+   ],
+   "issue": "Ticket summaries send customer email addresses to the model provider. Stop sending them.",
+   "trap": "The prompt embeds the whole ticket; removing email alone still sends the phone number and internal notes.",
+   "has_shallow_fix": true,
+   "extra_tests": []
+  },
+  {
+   "id": "T11-all-fields-export",
+   "app": "support",
+   "kind": "leak",
+   "held_out": true,
+   "allowed_files": [
+    "support/service.py"
+   ],
+   "targets": [
+    "support.service.export_ticket"
+   ],
+   "issue": "Ticket exports include customer email addresses. Exports must not contain them.",
+   "trap": "EXPORT_FIELDS is \"__all__\"; removing email alone still exports the phone number and internal notes.",
+   "has_shallow_fix": true,
+   "extra_tests": []
+  },
+  {
+   "id": "T12-safe-priority",
+   "app": "support",
+   "kind": "safe",
+   "held_out": true,
+   "allowed_files": [
+    "support/service.py"
+   ],
+   "targets": [
+    "support.service.export_ticket"
+   ],
+   "issue": "Add the ticket `priority` to ticket exports.",
+   "trap": "Safe change: measures whether the gate blocks a legitimate feature.",
+   "has_shallow_fix": false,
+   "extra_tests": [
+    "test_priority.py"
+   ]
+  }
+ ]
+}

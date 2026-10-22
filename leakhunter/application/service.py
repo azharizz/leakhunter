@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import hashlib
+import math
 import os
 import shutil
 import threading
@@ -18,20 +19,50 @@ from leakhunter.execution.runtime import load_manifest, run_suite
 from leakhunter.languages import LANGUAGES, extensions, finding_function, manifest_entrypoints, manifest_language, runtime_image
 from leakhunter.policy.engine import Policy, load_policy
 from leakhunter.providers.context import build_review_contexts
+from leakhunter.providers.evidence import aggregate_evidence
+from leakhunter.providers.probes import (baseline_manifest, calibration_report, merge_runtime,
+                                         probe_evidence_complete, probe_evidence_report,
+                                         select_targeted_probes)
 from leakhunter.providers.reviews import review_contexts
+from leakhunter.providers.verdict import MODES as DECISION_MODES, decide
 from leakhunter.repairs.engine import propose_and_verify, resolve_context_findings
 from leakhunter.storage.knowledge import KnowledgeBank, encoded, now, policy_digest
 
 
 MODEL_CALL = None
 LANGUAGE = "python"
+DECISION_MODE = "required"
 LOCK = threading.RLock()
 OPERATIONS = threading.Lock()
+MODEL_USAGE = threading.local()
+
+
+def _reset_model_usage() -> None:
+    MODEL_USAGE.calls = 0
+    MODEL_USAGE.priced_calls = 0
+    MODEL_USAGE.cost_usd = 0.0
+
+
+def record_model_usage(usage: dict | None) -> None:
+    """Keep provider-reported cost totals for the current analysis or repair operation."""
+    MODEL_USAGE.calls = getattr(MODEL_USAGE, "calls", 0) + 1
+    cost = usage.get("cost") if isinstance(usage, dict) else None
+    if (isinstance(cost, (int, float)) and not isinstance(cost, bool)
+            and math.isfinite(cost) and cost >= 0):
+        MODEL_USAGE.priced_calls = getattr(MODEL_USAGE, "priced_calls", 0) + 1
+        MODEL_USAGE.cost_usd = getattr(MODEL_USAGE, "cost_usd", 0.0) + float(cost)
+
+
+def _model_cost() -> dict:
+    calls = getattr(MODEL_USAGE, "calls", 0)
+    priced = getattr(MODEL_USAGE, "priced_calls", 0)
+    return {"calls": calls, "priced_calls": priced,
+            "total_usd": round(MODEL_USAGE.cost_usd, 8) if calls and priced == calls else None}
 
 
 def configure(args: argparse.Namespace, model_call) -> None:
     global REPOSITORY, POLICY_FILE, DATA, BANK, API_URL, API_KEY, DECISION_MODEL, DUO_MODEL
-    global MANIFEST, MANIFEST_FILE, RUNTIME_BACKEND, TIMEOUT, MODEL_CALL, LANGUAGE
+    global MANIFEST, MANIFEST_FILE, RUNTIME_BACKEND, TIMEOUT, MODEL_CALL, LANGUAGE, DECISION_MODE
     REPOSITORY = args.repository.resolve(strict=True)
     POLICY_FILE = args.policy.resolve(strict=True)
     DATA = args.data_dir.resolve()
@@ -53,6 +84,9 @@ def configure(args: argparse.Namespace, model_call) -> None:
         raise ValueError("Runtime timeout must be between 1 and 600 seconds")
     API_URL, API_KEY = args.provider_url, os.getenv("AGENT_PROVIDER_API_KEY", "")
     DECISION_MODEL, DUO_MODEL = args.decision_model, args.repair_model
+    DECISION_MODE = getattr(args, "decision_mode", "required")
+    if DECISION_MODE not in DECISION_MODES:
+        raise ValueError(f"Decision mode must be one of {DECISION_MODES}")
     MODEL_CALL = model_call
     if API_URL:
         url = urlsplit(API_URL)
@@ -144,19 +178,36 @@ def attach_evidence(findings: list[dict], runtime: dict, manifest: dict | None, 
         finding["runtime_evidence"] = evidence
 
 
-def release_gate(findings: list[dict], runtime: dict, policy_record: dict, coverage: dict | None = None) -> dict:
+def release_gate(findings: list[dict], runtime: dict, policy_record: dict, coverage: dict | None = None,
+                 luna: dict | None = None) -> dict:
+    """Require complete configured evidence; Luna triages but cannot approve or veto alone."""
     reasons = []
-    if policy_record["status"] != "approved":
+    if not isinstance(policy_record, dict) or policy_record.get("status") != "approved":
         reasons.append("Policy is not approved")
     if findings:
         reasons.append("Unresolved static candidates require review or repair")
-    if runtime.get("status") != "COMPLETED" or not runtime.get("passed"):
+    cases = runtime.get("cases") if isinstance(runtime, dict) else None
+    if (not isinstance(runtime, dict) or runtime.get("status") != "COMPLETED"
+            or runtime.get("passed") is not True or runtime.get("functional_passed") is not True
+            or not isinstance(cases, list) or not cases
+            or any(not isinstance(case, dict) or case.get("passed") is not True or case.get("error")
+                   or case.get("violations") != [] for case in cases)):
         reasons.append("Runtime security and functional verification has not passed")
-    if coverage is not None and (coverage.get("parse_errors") or coverage.get("unsupported_constructs") or not coverage.get("analyzed_files")):
+    if (not isinstance(coverage, dict) or coverage.get("parse_errors")
+            or coverage.get("unsupported_constructs") or not coverage.get("analyzed_files")):
         reasons.append("Static coverage is incomplete or contains unsupported constructs")
+    if isinstance(luna, dict) and luna.get("mode") == "required":
+        if luna.get("status") != "DECIDED":
+            reasons.extend(luna.get("reasons") or ["Required Luna review is incomplete"])
+        probe_evidence = luna.get("probe_evidence")
+        if not probe_evidence_complete(probe_evidence):
+            reasons.append("Configured probes for non-clear Luna boundaries are incomplete or failed")
+    elif luna is None:
+        reasons.append("Required Luna triage evidence is missing")
     language = coverage.get("language", "Python") if coverage else "Python"
     return {"passed": not reasons, "status": "PASSED" if not reasons else "BLOCKED", "reasons": reasons,
-            "scope": f"Configured {language} analysis and executed synthetic cases only; no automatic merge or deployment"}
+            "scope": f"Configured {language} analysis, complete required review and configured synthetic probes only;"
+                     " Luna verdicts are triage signals, not standalone approval or rejection. No automatic merge or deployment."}
 
 
 @exclusive(OPERATIONS)
@@ -164,6 +215,7 @@ def analyze(*, branch: str = "main", base_snapshot_id: str | None = None) -> dic
     if not isinstance(branch, str) or not branch.strip() or len(branch) > 200:
         raise ValueError("Invalid branch name")
     started = time.perf_counter()
+    _reset_model_usage()
     policy, record = current_policy()
     previous = BANK.snapshot(base_snapshot_id) if base_snapshot_id else BANK.snapshot(branch=branch)
     if base_snapshot_id and previous is None:
@@ -174,13 +226,43 @@ def analyze(*, branch: str = "main", base_snapshot_id: str | None = None) -> dic
                              entrypoints=manifest_entrypoints(MANIFEST), language=language)
     if revision != revision_sha(REPOSITORY):
         raise RuntimeError("Repository changed during static analysis; run analysis again")
-    runtime = run_suite(REPOSITORY, MANIFEST, policy, backend=RUNTIME_BACKEND, timeout=TIMEOUT) if MANIFEST else {
-        "status": "NOT_RUN", "passed": False, "cases": [], "reason": "No runtime manifest configured"}
+    baseline = baseline_manifest(MANIFEST)
+    runtime = run_suite(REPOSITORY, baseline, policy, backend=RUNTIME_BACKEND, timeout=TIMEOUT) if baseline and baseline["cases"] else {
+        "status": "NOT_RUN", "passed": False, "cases": [],
+        "reason": "No always-run runtime cases configured" if MANIFEST else "No runtime manifest configured"}
     findings = result["findings"]
     attach_evidence(findings, runtime, MANIFEST, revision)
     contextual = resolve_context_findings(findings, runtime, MANIFEST, policy)
     contexts = build_review_contexts(REPOSITORY, result, policy, runtime, MANIFEST, revision)
     decision, decision_ms, decision_status = review_contexts(contexts, MODEL_CALL, DECISION_MODEL)
+    targeted_cases = select_targeted_probes(decision, MANIFEST) if MANIFEST else []
+    targeted_runtime = None
+    if targeted_cases:
+        targeted_runtime = run_suite(REPOSITORY, dict(MANIFEST, cases=targeted_cases), policy,
+                                     backend=RUNTIME_BACKEND, timeout=TIMEOUT)
+        # Model-selected probes are ordinary runtime evidence once executed.
+        runtime = merge_runtime(runtime, targeted_runtime)
+        attach_evidence(findings, runtime, MANIFEST, revision)
+        contextual = resolve_context_findings(findings, runtime, MANIFEST, policy)
+        updated_contexts = build_review_contexts(REPOSITORY, result, policy, runtime, MANIFEST, revision)
+        context_by_id = {review.get("review_id"): review for review in updated_contexts.get("reviews", [])
+                         if isinstance(review, dict)}
+        for review in decision.get("reviews", []):
+            updated = context_by_id.get(review.get("review_id")) if isinstance(review, dict) else None
+            if updated:
+                review["post_probe_evidence"] = aggregate_evidence(updated)
+    decision["targeted_runtime"] = targeted_runtime or {"status": "NOT_SELECTED", "cases": []}
+    decision["calibration"] = calibration_report(decision, runtime, MANIFEST)
+    # Luna triages boundaries; configured probe and static/runtime evidence decide the gate.
+    luna = decide(decision, findings, DECISION_MODE)
+    decision["luna"] = luna
+    luna["probe_evidence"] = probe_evidence_report(decision, MANIFEST, runtime)
+    verdicts = {(unit["file"], unit["function"]): unit for unit in luna["units"]}
+    for finding in findings:
+        unit = verdicts.get((finding.get("file"), finding.get("function")))
+        if unit:
+            finding["luna"] = {key: unit[key] for key in ("verdict", "disclosure", "basis")}
+    unresolved = contextual["unresolved"]
     metric = {
         "timestamp": now(),
         "duration_ms": round((time.perf_counter() - started) * 1000),
@@ -194,6 +276,13 @@ def analyze(*, branch: str = "main", base_snapshot_id: str | None = None) -> dic
         "decision_review_status": decision["status"],
         "decision_reviews": len(decision["reviews"]),
         "decision_omitted_reviews": decision["scope"]["omitted_review_units"],
+        "targeted_probe_cases": len(targeted_cases),
+        "decision_mode": DECISION_MODE,
+        "luna_status": luna["status"],
+        "luna_flagged": len(luna["flagged"]),
+        "luna_cleared_findings": len(luna["dismissed"]),
+        "decision_calibration_samples": decision["calibration"]["sample_count"],
+        "model_cost": _model_cost(),
         "runtime_status": runtime["status"],
         "runtime_duration_ms": runtime.get("duration_ms"),
         "runtime_confirmation_rate": (sum(f["status"] == "CONFIRMED_IN_TEST" for f in findings) / len(findings))
@@ -201,7 +290,7 @@ def analyze(*, branch: str = "main", base_snapshot_id: str | None = None) -> dic
         "incremental": result.get("incremental", {})}
     value = dict(result, revision_sha=revision, runtime=runtime, decision=decision, metric=metric, last_run=now(),
                  policy=record, runtime_config=runtime_config(), context_evidence=contextual,
-                 gate=release_gate(contextual["unresolved"], runtime, record, result["coverage"]))
+                 gate=release_gate(unresolved, runtime, record, result["coverage"], luna))
     if revision != revision_sha(REPOSITORY):
         raise RuntimeError("Repository changed during verification; run analysis again")
     with LOCK:
@@ -222,8 +311,10 @@ def repair(allowed_paths: list[str] | None = None) -> dict:
         raise ValueError("Policy changed; run analysis again before repair")
     if baseline["revision_sha"] != revision_sha(REPOSITORY):
         raise ValueError("Repository changed; run analysis again before repair")
+    _reset_model_usage()
     result = propose_and_verify(REPOSITORY, DATA, policy, MANIFEST, baseline, MODEL_CALL, DUO_MODEL,
                                 backend=RUNTIME_BACKEND, timeout=TIMEOUT, allowed_paths=allowed_paths)
+    result["model_cost"] = _model_cost()
     result["baseline_snapshot_id"] = baseline["snapshot_id"]
     result = BANK.append("repairs", result)
     BANK.append("metrics", {"kind": "repair", "repair_id": result["id"],

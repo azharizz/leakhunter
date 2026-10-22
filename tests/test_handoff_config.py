@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from unspool.handoff import complete, validate_scope
 from unspool.handoff_config import HandoffConfig, preflight
@@ -98,22 +99,36 @@ class ConfigTest(unittest.TestCase):
                 if path == "projects/42":
                     return {"id": 42, "path_with_namespace": "another-team/invoices", "merge_method": merge_method}
                 if "/branches/" in path:
+                    if "security%2Frepair-1" in path:
+                        return {"protected": True, "commit": {"id": "a" * 40}}
                     return {"protected": True, "commit": {"id": "b" * 40}}
                 if "/repository/files/" in path:
                     return {"encoding": "base64", "content": base64.b64encode(contract).decode()}
                 if path.endswith("/changes"):
                     return {"sha": "a" * 40, "overflow": False, "changes": [{"old_path": "src/invoice.py", "new_path": "src/invoice.py"}]}
                 if "/pipelines/" in path:
-                    return [{"id": 2, "name": name, "status": "success"} for name in ("tests", "exposure")]
+                    names = ("deploy", "smoke") if "/pipelines/3/" in path else (
+                        "tests", "exposure", "sign-evidence", "verify-attestation")
+                    return [{"id": index + 1, "name": name, "status": "success"}
+                            for index, name in enumerate(names)]
                 if path.endswith("/artifacts/evidence.json"):
-                    return {"gate": {"passed": True}, "runtime": {"status": "COMPLETED", "passed": True, "cases": [{"passed": True}]}}
+                    return {"base_sha": "b" * 40, "head_sha": "a" * 40,
+                            "policy": {"base_sha256": "c" * 64, "head_sha256": "c" * 64},
+                            "decision": {"luna": {"mode": "required", "status": "DECIDED", "units": []}},
+                            "gate": {"passed": True},
+                            "runtime": {"status": "COMPLETED", "passed": True,
+                                        "cases": [{"id": "probe", "passed": True, "violations": []}]}}
                 if path.endswith("/artifacts/public/health.json"):
                     return {"status": "ok", "verified": True, "commit": "a" * 40}
+                if path.endswith("/artifacts/attestation.statement.json"):
+                    return {"statement": True}
+                if path.endswith("/artifacts/attestation.bundle.json"):
+                    return {"bundle": True}
                 if method != "GET":
                     raise AssertionError("Review or failed validation must never mutate GitLab")
                 return {"source_project_id": 42, "target_project_id": 42, "target_branch": "release",
                         "source_branch": "security/repair-1", "state": "opened", "sha": "a" * 40,
-                        "diff_refs": {"base_sha": "b" * 40},
+                        "diff_refs": {"base_sha": "b" * 40, "head_sha": "a" * 40},
                         "head_pipeline": {"id": 1, "sha": "a" * 40, "status": "success"}}
 
         return API(), calls
@@ -131,12 +146,13 @@ class ConfigTest(unittest.TestCase):
     def test_other_repository_can_verify_without_merging(self):
         config = self.load(self.data())
         api, calls = self.api()
-        result = complete(42, 1, api=api, config=config)
+        with patch("unspool.attestation.verify", return_value={}):
+            result = complete(42, 1, api=api, config=config)
         self.assertEqual(result["status"], "READY_FOR_REVIEW")
         self.assertEqual(result["sha"], "a" * 40)
         self.assertTrue(all(method == "GET" for method, _ in calls))
         api, calls = self.api(contract=b"changed contract")
-        with self.assertRaises(ValueError):
+        with patch("unspool.attestation.verify", return_value={}), self.assertRaises(ValueError):
             complete(42, 1, api=api, config=config)
         self.assertTrue(all(method == "GET" for method, _ in calls))
 
@@ -151,12 +167,12 @@ class ConfigTest(unittest.TestCase):
         original = api.request
 
         def changed_target(method, path, body=None):
-            if "/branches/" in path:
+            if "/branches/release" in path:
                 return {"protected": True, "commit": {"id": "c" * 40}}
             return original(method, path, body)
 
         api.request = changed_target
-        with self.assertRaisesRegex(ValueError, "Target branch changed"):
+        with patch("unspool.attestation.verify", return_value={}), self.assertRaisesRegex(ValueError, "Target branch changed"):
             complete(42, 1, api=api, config=config)
         self.assertTrue(all(method == "GET" for method, _ in calls))
 
@@ -187,12 +203,12 @@ class ConfigTest(unittest.TestCase):
                             result["state"] = "closed"
                         elif change == "missing_base":
                             result.pop("diff_refs")
-                    if observed_evidence and "/branches/" in path and change == "target":
+                    if observed_evidence and "/branches/release" in path and change == "target":
                         result["commit"]["id"] = "c" * 40
                     return result
 
                 api.request = changed
-                with self.assertRaises(ValueError):
+                with patch("unspool.attestation.verify", return_value={}), self.assertRaises(ValueError):
                     complete(42, 1, api=api, config=config)
                 self.assertTrue(observed_evidence)
                 self.assertTrue(all(method == "GET" for method, _ in calls))
@@ -206,13 +222,54 @@ class ConfigTest(unittest.TestCase):
         def unprotected(method, path, body=None):
             nonlocal branch_reads
             result = original(method, path, body)
-            if "/branches/" in path:
+            if "/branches/release" in path:
                 branch_reads += 1
                 result["protected"] = branch_reads == 1
             return result
 
         api.request = unprotected
-        with self.assertRaisesRegex(ValueError, "protected target"):
+        with patch("unspool.attestation.verify", return_value={}), self.assertRaisesRegex(ValueError, "protected target"):
             complete(42, 1, api=api, config=config)
         self.assertEqual(branch_reads, 2)
+        self.assertTrue(all(method == "GET" for method, _ in calls))
+
+
+class ReviewMergeAndProfileTest(unittest.TestCase):
+    def merged_api(self):
+        api, calls = ConfigTest().api()
+        original = api.request
+
+        def request(method, path, body=None):
+            value = original(method, path, body)
+            if path == "projects/42/merge_requests/1" and isinstance(value, dict):
+                value = dict(value, state="merged")
+            return value
+
+        api.request = request
+        return api, calls
+
+    def test_a_person_merging_in_review_mode_is_reported_not_treated_as_an_error(self):
+        fixture = ConfigTest()
+        config = fixture.load(fixture.data())
+        self.assertEqual(config.verification_profile, "unspool_closed_loop")
+
+        class Journal:
+            def __init__(self, data):
+                self.data = data
+                self.saved = []
+
+            def save(self, state, **values):
+                self.saved.append(state)
+                self.data.update(values, state=state)
+
+            def check_stop(self):
+                pass
+
+        api, calls = self.merged_api()
+        reviewed = Journal({"merge_request": 1, "source_sha": "a" * 40})
+        with patch("unspool.handoff.JournalAPI", lambda inner, journal: inner):
+            self.assertEqual(complete(42, 1, api=api, config=config, journal=reviewed)["status"], "MERGED_AFTER_REVIEW")
+            other = Journal({"merge_request": 1, "source_sha": "f" * 40})
+            self.assertEqual(complete(42, 1, api=api, config=config, journal=other)["status"], "ALREADY_MERGED")
+        self.assertEqual(complete(42, 1, api=api, config=config)["status"], "ALREADY_MERGED")
         self.assertTrue(all(method == "GET" for method, _ in calls))

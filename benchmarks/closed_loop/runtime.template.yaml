@@ -1,0 +1,33 @@
+version: 1
+cases:
+  - id: account-summary-secret-probe
+    module: accounts
+    callable: account_summary
+    args:
+      - {customer_id: cust-1, display_name: "  Synthetic   Account ", plan: team, password_hash: unset, api_token: unset}
+    kwargs: {}
+    sensitive:
+      - {marker_env: UNSPOOL_CLOSED_LOOP_PASSWORD_HASH, class: SECRET, symbol: account.password_hash}
+      - {marker_env: UNSPOOL_CLOSED_LOOP_API_TOKEN, class: SECRET, symbol: account.api_token}
+    context: {synthetic: true}
+    expect: {customer_id: cust-1, display_name: Synthetic Account, plan: team}
+    expected_violation: true
+    finding: {file: accounts.py, function: account_summary, sink: HTTP_RESPONSE}
+  - id: support-ticket-pii-to-model
+    module: support_summary
+    callable: summarize_ticket
+    args:
+      - {ticket_id: ticket-7, email: unset, subject: Billing question, body: Please update my plan}
+    kwargs: {}
+    sensitive:
+      - {marker_env: UNSPOOL_CLOSED_LOOP_SUPPORT_EMAIL, class: PII, symbol: ticket.email}
+    context: {synthetic: true, recipient: external-model, audience: external_vendor}
+    expect: {summary: synthetic model response}
+    expected_violation: true
+    on_demand: true
+    finding: {file: support_summary.py, function: summarize_ticket, sink: AI_PROMPT, symbol: ticket.email}
+    capture_calls:
+      - module: openai
+        callable: chat.completions.create
+        sink: AI_PROMPT
+        return_value: {summary: synthetic model response}

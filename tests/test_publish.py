@@ -13,6 +13,8 @@ class PublishTest(unittest.TestCase):
     def evidence(self):
         return {"gate": {"passed": True}, "runtime": {"status": "COMPLETED", "passed": True,
                 "cases": [{"id": "demo", "passed": True, "raw_payload": "must not publish"}]},
+                "decision": {"calibration": {"sample_count": 0, "unknown_count": 0,
+                                               "brier_score": None, "reliability": []}},
                 "nodes": [{"id": "n", "label": "profile", "kind": "FunctionDef", "source": "private source"}],
                 "edges": [], "provider_key": "must not publish"}
 

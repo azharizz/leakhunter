@@ -1,6 +1,7 @@
 """Qualify the installed wheel from an empty cwd, never importing checkout code."""
 import argparse
 import hashlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.metadata import distributions, version
 import json
 import os
@@ -10,6 +11,7 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+from threading import Thread
 
 import leakhunter
 import unspool
@@ -63,11 +65,39 @@ def main():
         records = list(state.glob("*.json"))
         if len(records) != 1 or json.loads(records[0].read_text()).get("state") != "CANCELED":
             raise RuntimeError("Installed controller did not persist cancellation")
+
+        class DecisionsHandler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                context = json.loads(request["state"]).get("context", {})
+                disclosure = 0.95 if context.get("findings") else 0.05
+                answers = {name: {"type": "noul", "noul": disclosure if name == "unauthorized_disclosure_plausible" else 0.1}
+                           for name in request["questions"]}
+                payload = json.dumps({"model": request["model"], "answers": answers}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def log_message(self, *_args):
+                pass
+
+        # The install smoke test uses a loopback Decisions API, never a real model credential.
+        decisions = ThreadingHTTPServer(("127.0.0.1", 0), DecisionsHandler)
+        Thread(target=decisions.serve_forever, daemon=True).start()
         command = [sys.executable, "-I", "-m", "unspool", "--repository", str(source / "demo/target"),
                    "--policy", str(source / "demo/policy.yaml"), "--runtime-manifest", str(source / "demo/runtime.yaml"),
-                   "--runtime-backend", "local", "--provider-url", "", "--data-dir", str(work / "data"),
+                   "--runtime-backend", "local",
+                   "--provider-url", f"http://127.0.0.1:{decisions.server_port}/api/v1/chat/completions",
+                   "--decision-model", "test/luna-decisions", "--data-dir", str(work / "data"),
                    "--once", "analyze", "--gate"]
-        result = subprocess.run(command, cwd=work, env=env, capture_output=True, text=True, timeout=60)
+        try:
+            result = subprocess.run(command, cwd=work, env={**env, "AGENT_PROVIDER_API_KEY": "loopback-test"},
+                                    capture_output=True, text=True, timeout=60)
+        finally:
+            decisions.shutdown()
+            decisions.server_close()
         if result.returncode:
             raise RuntimeError("Installed synthetic workflow failed")
         evidence = json.loads(result.stdout)
