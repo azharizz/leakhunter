@@ -25,11 +25,24 @@ class DemoGateTest(unittest.TestCase):
 
 
 class ProbeLibraryTest(unittest.TestCase):
-    def test_on_demand_edge_probes_pass_on_the_current_service(self):
+    """Check the on-demand library itself on fixed fixtures; candidates are judged by the gate."""
+
+    def run_library(self, source):
         demo = Path(__file__).resolve().parents[1] / "demo"
         manifest = load_manifest(demo / "runtime.yaml")
         library = [case for case in manifest["cases"] if case.get("on_demand")]
         self.assertGreaterEqual(len(library), 4)
-        result = run_suite(demo / "target", dict(manifest, cases=library), load_policy(demo / "policy.yaml"),
-                           backend="local")
-        self.assertTrue(result["passed"], result)
+        with tempfile.TemporaryDirectory() as directory:
+            (Path(directory) / "service.py").write_text(source)
+            return run_suite(Path(directory), dict(manifest, cases=library), load_policy(demo / "policy.yaml"),
+                             backend="local")
+
+    def test_edge_probes_pass_on_a_safe_profile_and_catch_a_whole_record(self):
+        safe = self.run_library(
+            'def profile(record):\n'
+            '    name = " ".join(record["display_name"].replace("\\u200b", " ").split())\n'
+            '    return {"customer_id": record["customer_id"], "display_name": name or record["customer_id"]}\n')
+        self.assertTrue(safe["passed"], safe)
+        leaking = self.run_library("def profile(record):\n    return dict(record)\n")
+        self.assertFalse(leaking["passed"])
+        self.assertTrue(all(case["violations"] for case in leaking["cases"]))
