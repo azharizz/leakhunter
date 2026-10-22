@@ -1,12 +1,12 @@
 # Test Verification
 
-Updated: 21 October 2026 (Asia/Jakarta)
+Updated: 22 October 2026 (Asia/Jakarta)
 
 This log records evidence for the referenced test plan against MR !25. The
-raw MR !25 pipeline results below are tied to their listed commits. The current
-worktree has additional, uncommitted Luna triage and configured-probe coverage
-changes; its local checks are recorded separately below. A fixture, unit test,
-or successful build does not count as a live workflow result.
+raw MR !25 pipeline results below are tied to their listed commits. Current
+changes are committed as `a45ea8defd0923ab03c38ba9cb97da416c6f7b54`; local and
+GitLab results for that head are recorded separately below. A fixture, unit
+test, or successful build does not count as a live workflow result.
 
 ## Completed checks
 
@@ -14,6 +14,7 @@ or successful build does not count as a live workflow result.
 | --- | --- | --- |
 | Read the referenced plan and inspect the current MR | Done | The plan requires live checks for Tracks A–H, then separate production-readiness checks. It recommends separating core, workflow, component, and benchmark changes. |
 | Review CI for the tested source-code head | **Blocked** | [MR !25 pipeline 2971284425](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2971284425) on evidence commit `5e5ad2b8b0edef51da3fbe9cb4c0e29a389ea159` (the source code under test is unchanged by later documentation-only edits): `python-tests`, `dashboard-tests`, `security-audit`, and `build-wheel` passed. Both `installed-wheel` jobs (Python 3.10 and 3.12) failed with `Installed synthetic workflow failed`; `verify-exposure`, `sign-evidence`, and `verify-attestation` were skipped. |
+| Run the GitLab MR pipeline for the current pushed head | **Blocked at protected-ref signing** | [Pipeline 2974810741](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2974810741) on commit `a45ea8defd0923ab03c38ba9cb97da416c6f7b54`: Python tests, dashboard tests, security audit, build, both installed-wheel jobs, and `verify-exposure` passed. `sign-evidence` failed because GitLab marked the MR source ref unprotected; `verify-attestation` was skipped. This head is not eligible for promotion while the configured signing requirement is unmet. |
 | Run the exact CI Python test command locally | **Passed on current worktree** | `python3 -m unittest discover -s tests`: 144 tests passed in 23.951 seconds. This includes required-mode probe completeness, false-positive Luna triage, connected-helper and module-import probe mapping, issue-bound all-configured-probe checks, and handoff fail-closed/recovery tests. |
 | Recheck dashboard and security audit on current worktree | **Passed locally** | `node --check leakhunter/static/app.js && node tests/test_dashboard.cjs` passed. `python3 ci/security_audit.py` reported 0 dependency advisories and Bandit findings of 22 LOW and 6 MEDIUM under the repository's existing review policy. |
 | Replay the updated Luna gate against the saved paid Track B patches | **Passed with two safe-patch blocks** | Live required-mode Luna recheck of the same frozen 36 patches from `model-20261021T092318Z`, saved in `benchmarks/gate_experiment/results/model-gate-recheck-20261021T160424Z/`. All 36 app tests passed; independent truth probes found 14 leaks and 22 clean patches. Unspool blocked all 14 leaks (0 misses), passed 20/22 clean patches, and blocked 2 clean T05 avatar patches because unresolved static candidates remain. No unknown or harness-error runs. Luna token cost was not captured. This is a re-evaluation of the same synthetic patches, not a new repair-model sample or production accuracy estimate. |
