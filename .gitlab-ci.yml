@@ -82,6 +82,8 @@ verify-exposure:
   extends: .python-bootstrap
   stage: evidence
   image: python:3.12-slim
+  # Produce exposure evidence even when another verify job fails.
+  needs: []
   variables:
     GIT_DEPTH: "0"
     GCP_PROJECT_NUMBER: "398376578726"

@@ -19,7 +19,7 @@ from leakhunter.providers.probes import (calibration_report, merge_runtime, prob
                                          select_targeted_probes)
 from leakhunter.providers.verdict import decide
 from unspool.attestation import statement, verify
-from unspool.closed_loop_evidence import bind_diff
+from unspool.closed_loop_evidence import bind_diff, main as bind_main, verification_note
 from unspool.exposure_diff import diff_revisions, sast_report
 from unspool.gate_experiment import summarize
 from unspool.issue_binding import parse_issue_binding, validate_issue_evidence
@@ -169,6 +169,38 @@ class ClosedLoopEndToEndTest(unittest.TestCase):
 
 
 class ClosedLoopUnitTest(unittest.TestCase):
+    def test_blocked_note_explains_luna_triage_and_the_probe_that_saw_the_secret(self):
+        note = verification_note({
+            "head_sha": "b" * 40, "base_sha": "a" * 40,
+            "gate": {"passed": False, "reasons": ["Configured probes for non-clear Luna boundaries are incomplete or failed"]},
+            "runtime": {"passed": False, "cases": [
+                {"id": "baseline", "passed": True, "violations": []},
+                {"id": "csv-import-row-probe", "passed": True, "violations": [
+                    {"sink": "HTTP_RESPONSE", "symbol": "customer.password_hash"}]}]},
+            "decision": {"luna": {"status": "DECIDED",
+                                  "units": [{"file": "service.py", "function": "service.profile",
+                                             "verdict": "UNCERTAIN", "disclosure": 0.41}],
+                                  "probe_evidence": {"boundaries": [{
+                                      "file": "service.py", "function": "service.profile", "status": "FAILED",
+                                      "probe_ids": ["baseline", "csv-import-row-probe"],
+                                      "executed_probe_ids": ["baseline", "csv-import-row-probe"]}]}}}})
+        self.assertIn("Gate: **blocked or incomplete**", note)
+        self.assertIn("- Configured probes for non-clear Luna boundaries are incomplete or failed", note)
+        self.assertIn("| `service.py:service.profile` | UNCERTAIN (0.41) | 2/2 | **FAILED**: "
+                      "`csv-import-row-probe` observed `customer.password_hash` → HTTP_RESPONSE |", note)
+
+    def test_cli_reports_a_blocked_candidate_without_a_traceback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("diff", "head", "base"):
+                (root / f"{name}.json").write_text("{}")
+            with self.assertRaises(SystemExit) as stopped:
+                bind_main(["--diff", str(root / "diff.json"), "--head-evidence", str(root / "head.json"),
+                           "--base-evidence", str(root / "base.json"), "--base-sha", "a" * 40,
+                           "--head-sha", "b" * 40, "--output", str(root / "out.json")])
+            self.assertTrue(str(stopped.exception.code).startswith("Unspool blocked revision bbbbbbbbbbbb: "))
+            self.assertFalse((root / "out.json").exists())
+
     def test_issue_binding_requires_clean_probes_not_just_functional_success(self):
         finding = {"file": "accounts.py", "function": "accounts.account_summary", "source": "*.api_token",
                    "sink": "HTTP_RESPONSE", "line": 3, "classification": "SECRET", "policy_violation": True,
