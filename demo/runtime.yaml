@@ -1,4 +1,7 @@
 version: 1
+# Always-on case first. Cases marked on_demand form the operator's edge-case probe
+# library: they run only when Luna triage marks a profile boundary as not clearly safe.
+# They cover input shapes seen in production, not any particular patch.
 cases:
   - id: public-profile-secret-probe
     module: service
@@ -10,5 +13,59 @@ cases:
       - {marker: SYNTHETIC_UNSPOOL_SECRET_81b4, class: SECRET, symbol: customer.password_hash}
     context: {synthetic: true}
     expect: {customer_id: demo-customer, display_name: Demo Customer}
+    expected_violation: false
+    finding: {file: service.py, function: profile, sink: HTTP_RESPONSE}
+  - id: empty-name-probe
+    on_demand: true
+    module: service
+    callable: profile
+    args:
+      - {customer_id: edge-empty, display_name: "", password_hash: SYNTHETIC_UNSPOOL_SECRET_e1a0}
+    kwargs: {}
+    sensitive:
+      - {marker: SYNTHETIC_UNSPOOL_SECRET_e1a0, class: SECRET, symbol: customer.password_hash}
+    context: {synthetic: true}
+    expect: {customer_id: edge-empty}
+    expected_violation: false
+    finding: {file: service.py, function: profile, sink: HTTP_RESPONSE}
+  - id: whitespace-name-probe
+    on_demand: true
+    module: service
+    callable: profile
+    args:
+      - {customer_id: edge-space, display_name: " \t  ", password_hash: SYNTHETIC_UNSPOOL_SECRET_5b72}
+    kwargs: {}
+    sensitive:
+      - {marker: SYNTHETIC_UNSPOOL_SECRET_5b72, class: SECRET, symbol: customer.password_hash}
+    context: {synthetic: true}
+    expect: {customer_id: edge-space}
+    expected_violation: false
+    finding: {file: service.py, function: profile, sink: HTTP_RESPONSE}
+  - id: invisible-name-probe
+    on_demand: true
+    module: service
+    callable: profile
+    args:
+      - {customer_id: edge-invisible, display_name: "​​", password_hash: SYNTHETIC_UNSPOOL_SECRET_9c3d}
+    kwargs: {}
+    sensitive:
+      - {marker: SYNTHETIC_UNSPOOL_SECRET_9c3d, class: SECRET, symbol: customer.password_hash}
+    context: {synthetic: true}
+    expect: {customer_id: edge-invisible}
+    expected_violation: false
+    finding: {file: service.py, function: profile, sink: HTTP_RESPONSE}
+  - id: csv-import-row-probe
+    on_demand: true
+    module: service
+    callable: profile
+    args:
+      # Rows from the legacy CSV importer: no display name, plus the importer's column list.
+      - {customer_id: edge-import, display_name: "", columns: [customer_id, display_name, password_hash],
+         password_hash: SYNTHETIC_UNSPOOL_SECRET_4f1c}
+    kwargs: {}
+    sensitive:
+      - {marker: SYNTHETIC_UNSPOOL_SECRET_4f1c, class: SECRET, symbol: customer.password_hash}
+    context: {synthetic: true}
+    expect: {customer_id: edge-import}
     expected_violation: false
     finding: {file: service.py, function: profile, sink: HTTP_RESPONSE}

@@ -99,8 +99,39 @@ def verification_note(evidence: dict) -> str:
             f"Static flow changes: {len(flow_diff)}  \n"
             f"New Luna LEAK decisions: {len(luna_diff)}  \n"
             f"Luna review: `{luna.get('status', 'missing')}`  \n"
-            f"Runtime probes: {passed}/{len(cases)} passed without observed violations.\n\n"
-            "Probe values are excluded. Results cover only the configured synthetic probes.\n")
+            f"Runtime probes: {passed}/{len(cases)} passed without observed violations.\n"
+            + _why(gate, luna, cases) +
+            "\nProbe values are excluded. Results cover only the configured synthetic probes.\n")
+
+
+def _why(gate, luna, cases):
+    """Explain the verdict per boundary: Luna's triage, the probes it selected, what they observed."""
+    reasons = gate.get("reasons", []) if isinstance(gate, dict) else []
+    lines = [f"- {reason}" for reason in reasons if isinstance(reason, str)]
+    units = {(unit.get("file"), unit.get("function")): unit for unit in luna.get("units", [])
+             if isinstance(unit, dict)} if isinstance(luna, dict) else {}
+    results = {case.get("id"): case for case in cases if isinstance(case, dict)}
+    rows = []
+    boundaries = (luna.get("probe_evidence") or {}).get("boundaries", []) if isinstance(luna, dict) else []
+    for item in boundaries:
+        if not isinstance(item, dict):
+            continue
+        unit = units.get((item.get("file"), item.get("function")), {})
+        disclosure = unit.get("disclosure")
+        triage = f"{unit.get('verdict', '?')} ({disclosure:.2f})" if isinstance(disclosure, float) else unit.get("verdict", "?")
+        seen = sorted({f"`{v.get('symbol')}` → {v.get('sink')}" for case_id in item.get("probe_ids", [])
+                       for v in (results.get(case_id) or {}).get("violations") or [] if isinstance(v, dict)})
+        failed = [f"`{case_id}`" for case_id in item.get("probe_ids", [])
+                  if (results.get(case_id) or {}).get("violations")]
+        outcome = (f"**{item.get('status')}**: {', '.join(failed)} observed {', '.join(seen)}" if seen
+                   else f"**{item.get('status')}**")
+        rows.append(f"| `{item.get('file')}:{item.get('function')}` | {triage} | "
+                    f"{len(item.get('executed_probe_ids', []))}/{len(item.get('probe_ids', []))} | {outcome} |")
+    text = ("\n### Why\n\n" + "\n".join(lines) + "\n") if lines else ""
+    if rows:
+        text += ("\n### Probes selected by Luna triage\n\n| Boundary | Luna (disclosure) | Probes run | Result |\n"
+                 "| --- | --- | --- | --- |\n" + "\n".join(rows) + "\n")
+    return text
 
 
 def bind_diff(diff: dict, head: dict, *, head_sha: str, base: dict | None = None,
@@ -168,7 +199,8 @@ def bind_diff(diff: dict, head: dict, *, head_sha: str, base: dict | None = None
     runtime = _runtime(head, "Head", require_pass=False)
     gate = head.get("gate")
     if not isinstance(gate, dict) or gate.get("passed") is not True:
-        raise ValueError("Head revision lacks a passing deterministic gate")
+        reasons = gate.get("reasons") if isinstance(gate, dict) else None
+        raise ValueError("candidate gate blocked: " + "; ".join(reasons or ["no passing gate"]))
     _runtime(head, "Head", require_pass=True)
     return combined
 
@@ -184,11 +216,22 @@ def main(argv=None):
     parser.add_argument("--sast-output", type=Path)
     parser.add_argument("--note-output", type=Path)
     args = parser.parse_args(argv)
-    value = bind_diff(json.loads(args.diff.read_text(encoding="utf-8")),
-                      json.loads(args.head_evidence.read_text(encoding="utf-8")), head_sha=args.head_sha,
-                      base=json.loads(args.base_evidence.read_text(encoding="utf-8")),
-                      base_sha=args.base_sha, sast_output=args.sast_output, note_output=args.note_output)
+    try:
+        value = bind_diff(json.loads(args.diff.read_text(encoding="utf-8")),
+                          json.loads(args.head_evidence.read_text(encoding="utf-8")), head_sha=args.head_sha,
+                          base=json.loads(args.base_evidence.read_text(encoding="utf-8")),
+                          base_sha=args.base_sha, sast_output=args.sast_output, note_output=args.note_output)
+    except ValueError as error:
+        _print_note(args.note_output)
+        raise SystemExit(f"Unspool blocked revision {args.head_sha[:12]}: {error}") from None
     args.output.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    _print_note(args.note_output)
+
+
+def _print_note(path):
+    """Show the verdict in the job log, not only in an artifact."""
+    if path and Path(path).is_file():
+        print(Path(path).read_text(encoding="utf-8").split("\n", 1)[-1])
 
 
 if __name__ == "__main__":

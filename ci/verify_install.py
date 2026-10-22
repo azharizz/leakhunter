@@ -17,6 +17,16 @@ import leakhunter
 import unspool
 
 
+SAFE_PROFILE = '''PUBLIC_FIELDS = ("customer_id", "display_name")
+
+
+def profile(record):
+    public = {field: record[field] for field in PUBLIC_FIELDS}
+    public["display_name"] = " ".join(public["display_name"].replace("\\u200b", " ").split())
+    return public
+'''
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True)
@@ -86,7 +96,12 @@ def main():
         # The install smoke test uses a loopback Decisions API, never a real model credential.
         decisions = ThreadingHTTPServer(("127.0.0.1", 0), DecisionsHandler)
         Thread(target=decisions.serve_forever, daemon=True).start()
-        command = [sys.executable, "-I", "-m", "unspool", "--repository", str(source / "demo/target"),
+        # Gate a fixed safe fixture: this job checks the installed workflow, not the candidate's code,
+        # which verify-exposure judges on its own.
+        fixture = work / "fixture"
+        fixture.mkdir()
+        (fixture / "service.py").write_text(SAFE_PROFILE, encoding="utf-8")
+        command = [sys.executable, "-I", "-m", "unspool", "--repository", str(fixture),
                    "--policy", str(source / "demo/policy.yaml"), "--runtime-manifest", str(source / "demo/runtime.yaml"),
                    "--runtime-backend", "local",
                    "--provider-url", f"http://127.0.0.1:{decisions.server_port}/api/v1/chat/completions",
