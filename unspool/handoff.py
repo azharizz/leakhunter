@@ -251,7 +251,7 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
                 verify_contracts(config, api, mr["sha"])
             current = api.request("GET", mr_path)
             current_changes = api.request("GET", mr_path + "/changes")
-            validate_scope(current, current_changes, project, config)
+            validate_scope(current, current_changes, project, config, any_branch)
             current_pipeline = current.get("head_pipeline") or {}
             current_refs = current.get("diff_refs") if isinstance(current, dict) else None
             if (current.get("state") != mr.get("state") or current.get("sha") != mr.get("sha")
