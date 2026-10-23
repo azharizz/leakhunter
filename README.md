@@ -22,6 +22,9 @@ The [GitLab project](https://gitlab.com/gitlab-ai-hackathon/transcend-october-20
 contains the redesign, MIT history, actual GitLab Duo integration, and CI delivery.
 The [Cloud Run report](https://unspool-398376578726.us-central1.run.app) and
 [Pages fallback](https://unspool-site-1032c3.gitlab.io) are read-only; graph CRUD runs locally.
+The [live demo](https://unspool-demo-398376578726.us-central1.run.app) opens the real Unspool UI with
+recorded MR !30 analyses (leak candidate, GitLab Duo's fix, a no-policy run); it is read-only and
+scales to zero ([deploy/demo-ui](deploy/demo-ui)).
 See [HANDOFF.md](HANDOFF.md) for the one-command issue workflow, deployment project,
 verification boundaries, and required local glab authentication. The older local
 repair engine described below remains a separate simulation of remote MR creation.
