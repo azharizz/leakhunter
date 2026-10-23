@@ -57,8 +57,7 @@ package. Read `/health.json` to identify the currently served report revision.
 The history finding is `generic-api-key` at `ADOPTION.md:61` in
 `d3e801b798a13e5c9f03efb91d358edecbb705e9`: prose about rejecting
 credential-bearing URLs and malformed JSON, not an issued credential. No scanner
-rule was disabled. The original GitHub history was separately reviewed before
-its authorized publication.
+rule was disabled.
 Scanning the retained bundle reports the same prose false positive in its
 `ADOPTION.md:64–65`; that finding was also reviewed and remains disclosed.
 

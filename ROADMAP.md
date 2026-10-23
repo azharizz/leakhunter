@@ -42,7 +42,7 @@ not prerequisites for presenting this release as an evaluated prototype.
 - README, the judge guide, submission text and [release record](RELEASE.md) identify
   that package and separate it from historical evidence. The historical external
   GitLab verifier has not silently gained the new opt-in HTTP contract.
-- Public GitLab/GitHub originals and MIT detection were checked without credentials.
+- Public GitLab project and MIT detection were checked without credentials.
   Cloud Run served the release SHA; remote CI job `17328074132` verified Pages for
   that SHA. Local Jamf redirection is not counted as fallback health.
 - Path B was reviewed against Section 4 of the current official rules: an original
@@ -301,14 +301,11 @@ steps without triggering remote automation.
 
 Unauthenticated HTTP checks returned public GitLab project/MR/pipeline/license
 data and a healthy Cloud Run revision `7d36585ff1c7d19872c119c131ba1577424b79bd`.
-GitHub's original `azharizz/leakhunter` initially returned 404 without credentials.
-After explicit owner authorization, mirrored all advertised refs: one main branch,
-two commits, no tags. Gitleaks 8.30.1 (official release checksum verified) scanned
-both commits with zero findings; manual review of credential-related code found
+Gitleaks 8.30.1 (official release checksum verified) scanned the two original
+commits with zero findings; manual review of credential-related code found
 environment-variable handling, detection patterns and synthetic fixtures. Both
-original commits are retained in GitLab main. Made the original public and
-verified unauthenticated GitHub API HTTP 200, `private: false` and MIT license.
-Its history starts 19 October, with MIT added 20 October. Path B classification
+original commits are retained in GitLab main.
+The history starts 19 October, with MIT added 20 October. Path B classification
 remains unresolved; publication alone does not establish eligibility. No history
 was altered. Pages redirected to the local
 Jamf block page, so that request does not establish judge availability. The
@@ -1024,7 +1021,7 @@ independent verification or required submission material.
   Organizer eligibility decisions and the author's personal attestations remain external.
 - [x] Review source/history and retained artifacts for credentials and private
   material; preserve licenses and the synthetic/lab scope. Evidence: release
-  audit records and original GitHub review; scanner findings are disclosed.
+  audit records and original history review; scanner findings are disclosed.
 - [ ] Review the author's final video for credentials/private material and asset
   permissions before upload. The video is not created by this engineering workflow.
 - [x] Designate the maintainer as availability owner and verify billing is enabled.
