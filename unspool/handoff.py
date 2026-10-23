@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import tempfile
 import subprocess
 import time
@@ -287,6 +288,9 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
                         "configuration_sha256": config.digest, "pipeline_id": pipeline["id"],
                         "verification_profile": config.verification_profile,
                         "attestation_identity": signer_identity}
+            if (not config or config.verification_profile == "unspool_closed_loop") and shutil.which("cosign") is None:
+                # Delivery ends by verifying signed protected-main evidence; find out now, not after the merge.
+                raise RuntimeError("cosign is required to verify signed evidence after promotion; nothing was merged")
             if journal:
                 journal.save("PROMOTION_AUTHORIZED", merge_request=iid, source_sha=mr["sha"],
                              promotion_authorized_sha=mr["sha"], pipeline_id=pipeline["id"])
