@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unspool demo</title>
+<style>
+  :root { --paper:#f3f3f0; --ink:#20251f; --muted:#60675d; --line:#dcdfd6; --thread:#28765a; --leak:#c2382f; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 56px 20px 64px; }
+  h1 { font-size: clamp(34px, 5vw, 52px); letter-spacing: -.03em; margin: 0 0 8px; }
+  .lede { color: var(--muted); max-width: 680px; margin: 0 0 32px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  a.card { display:block; background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px; color:inherit; text-decoration:none; }
+  a.card:hover { border-color: var(--thread); box-shadow: 0 12px 30px -18px rgba(32,37,31,.35); }
+  .tag { font: 600 12px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.12em; text-transform:uppercase; }
+  .red { color: var(--leak); } .green { color: var(--thread); }
+  .card h2 { font-size: 21px; margin: 8px 0 6px; letter-spacing: -.01em; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  code { font: 14px ui-monospace,SFMono-Regular,Menlo,monospace; background:#eceee8; padding:1px 6px; border-radius:6px; }
+  .note { margin-top: 32px; font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; }
+  .note a { color: var(--thread); }
+</style>
+</head>
+<body>
+<main>
+  <div class="tag green">Unspool · live demo · recorded analyses</div>
+  <h1>Follow the data.</h1>
+  <p class="lede">The real Unspool interface, loaded with recorded analyses from merge request !30. Open one, press
+    <b>Analyze</b>, browse the graph, then open <b>Analysis results &amp; policy</b> to see the probes and the typed decision.</p>
+  <div class="grid">
+    <a class="card" href="/app/?d=leak">
+      <div class="tag red">Blocked</div>
+      <h2>The leak candidate</h2>
+      <p>Legacy profiles fall back to <code>record.get("columns")</code>. Static analysis finds nothing; the
+        <code>csv-import-row-probe</code> sees <code>password_hash</code> leave in the response.</p>
+    </a>
+    <a class="card" href="/app/?d=fix">
+      <div class="tag green">Passed</div>
+      <h2>GitLab Duo's fix</h2>
+      <p>Duo's commit keeps the fallback inside the allowlist. The probes run again and all five come back clean.</p>
+    </a>
+    <a class="card" href="/app/?d=nopolicy">
+      <div class="tag red">No policy file</div>
+      <h2>Built-in catalogue</h2>
+      <p>A checkout service nobody wrote a policy for: <code>card_number</code> to a log and <code>email</code> to a
+        response are still caught.</p>
+    </a>
+  </div>
+  <p class="note">Read-only: these are recorded responses, so edits and repairs are disabled.
+    Source, pipelines and the merge request:
+    <a href="https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool">gitlab.com/…/unspool</a> ·
+    <a href="https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/30">MR !30</a></p>
+</main>
+</body>
+</html>

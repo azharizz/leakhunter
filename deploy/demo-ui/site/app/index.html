@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Unspool · Graph workspace</title>
+    <link rel="stylesheet" href="./static/styles.css">
+  </head>
+  <body>
+    <a class="skip" href="#graphSection">Skip to knowledge graph</a>
+
+    <main>
+      <!-- Component: application header and primary actions. -->
+      <header class="top">
+        <div class="brand">
+          <svg class="brandmark" viewBox="0 0 32 32" aria-hidden="true"><path d="M8 9v14h16M8 16h8l8-7M16 16l8 7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="9" r="2"/><circle cx="24" cy="9" r="2"/><circle cx="24" cy="23" r="2"/></svg>
+          <span>Unspool</span>
+          <span class="workspace-name">Graph workspace</span>
+        </div>
+
+        <div class="actions">
+          <button id="workspaceToggle" type="button" aria-controls="workspaceSettings" aria-expanded="false">Workspace</button>
+          <button id="run" class="primary" type="button">Analyze</button>
+        </div>
+      </header>
+
+      <div id="activity" class="notice" role="status" aria-live="polite"></div>
+      <div id="error" class="notice error" role="alert" tabindex="-1"></div>
+
+      <details id="workspaceSettings" class="secondary workspace-settings">
+        <summary>Workspace settings &amp; snapshots</summary>
+      <!-- Component: runtime and provider configuration. -->
+      <section class="panel" aria-labelledby="configurationTitle">
+        <h2 id="configurationTitle">Configuration &amp; prerequisites</h2>
+        <div id="configuration" class="break">Loading configuration…</div>
+      </section>
+
+      <!-- Component: immutable snapshot navigation. -->
+      <section id="historyPanel" class="panel" aria-labelledby="historyTitle">
+        <h2 id="historyTitle">Immutable snapshot history</h2>
+        <div class="fields">
+          <label>
+            Snapshot
+            <select id="snapshotSelect">
+              <option value="">Select a saved snapshot</option>
+            </select>
+          </label>
+
+          <div class="actions">
+            <button id="inspectSnapshot" type="button">Inspect snapshot</button>
+            <button id="liveView" type="button">Return to live knowledge</button>
+            <button id="refresh" type="button">Refresh live data</button>
+          </div>
+        </div>
+
+        <details>
+          <summary>Snapshot provenance / analysis coverage</summary>
+          <pre id="provenance">No analysis recorded.</pre>
+        </details>
+      </section>
+      </details>
+
+      <div class="workspace-heading">
+        <div><h1>Follow the data.</h1><p class="muted">Explore connections. Keep what matters.</p></div>
+        <div id="viewStatus" class="view-status" role="status" aria-live="polite">Loading workspace…</div>
+      </div>
+
+      <!-- Component: filtered SVG knowledge graph. -->
+      <section id="graphSection" class="panel" aria-labelledby="graphTitle">
+        <div class="graph-toolbar">
+          <div class="segmented" role="group" aria-label="Record editor">
+            <button id="nodesMode" type="button" aria-pressed="true" aria-controls="nodeInspector">Nodes</button>
+            <button id="edgesMode" type="button" aria-pressed="false" aria-controls="edgeInspector">Edges</button>
+          </div>
+          <label class="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>
+            <input id="graphSearch" type="search" aria-label="Search graph" placeholder="Search labels, IDs, files…">
+          </label>
+          <button id="filtersToggle" type="button" aria-expanded="false" aria-controls="graphFilters">Filters</button>
+          <button id="addRecord" class="primary" type="button">Add node</button>
+        </div>
+
+        <div id="graphFilters" class="filters" hidden>
+          <label>
+            Node kinds (multiple selection)
+            <select id="nodeKinds" multiple aria-describedby="filterHelp"></select>
+          </label>
+          <label>
+            Edge types (multiple selection)
+            <select id="edgeTypes" multiple aria-describedby="filterHelp"></select>
+          </label>
+          <label>
+            Node display limit
+            <input id="nodeLimit" type="number" min="1" step="1" value="30" required>
+          </label>
+          <button id="resetFilters" type="button">Reset filters</button>
+          <p id="filterHelp" class="help full">
+          No selected types means all types. Use Ctrl/Command to select multiple options.
+          The explicit node limit applies after filtering; only edges between displayed
+          nodes are drawn.
+          Sources, sinks, functions and calls appear first.
+          </p>
+        </div>
+
+        <div class="workbench">
+        <div class="canvas">
+        <div class="canvas-heading"><h2 id="graphTitle">Knowledge graph</h2><span id="graphStatus" role="status"></span></div>
+        <div class="graph-scroll" tabindex="0" role="region" aria-label="Scrollable knowledge graph">
+          <svg
+            id="graphSvg"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-labelledby="svgTitle svgDescription"
+          >
+            <title id="svgTitle">Knowledge graph</title>
+            <desc id="svgDescription">
+              Filtered nodes and relationships. Full node and edge information is also
+              available in the inspector.
+            </desc>
+          </svg>
+        </div>
+
+        <div class="canvas-bottom">
+          <span class="canvas-hint">Select to inspect · scroll to explore</span>
+          <div class="zoom" role="group" aria-label="Graph zoom">
+            <button id="zoomOut" type="button" aria-label="Zoom out">−</button>
+            <output id="zoomLevel" aria-live="polite">100%</output>
+            <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
+            <button id="fitGraph" type="button" aria-label="Fit graph to canvas width">Fit</button>
+          </div>
+        </div>
+        <div id="graphSelection" class="help" role="status" aria-live="polite">Select a node or connection to inspect it.</div>
+        </div>
+      <aside class="inspector" aria-label="Record inspector">
+        <section id="nodeInspector" aria-labelledby="nodeTitle">
+          <div class="inspector-heading"><h2 id="nodeTitle">Node inspector</h2><button id="newNode" type="button">New</button></div>
+          <p class="help">
+            Select a node on the graph or create an annotation.
+          </p>
+
+          <label>
+            Selected node
+            <select id="nodeSelect">
+              <option value="">New node</option>
+            </select>
+          </label>
+
+          <form id="nodeForm">
+            <fieldset id="nodeFields">
+              <legend id="nodeLegend">Create node</legend>
+              <div class="fields">
+                <label>
+                  ID (optional)
+                  <input name="id" autocomplete="off">
+                </label>
+                <label>
+                  Label
+                  <input name="label" required>
+                </label>
+                <label>
+                  Kind
+                  <input name="kind" list="kindOptions" value="source" required>
+                  <datalist id="kindOptions">
+                    <option value="source">
+                    <option value="transform">
+                    <option value="sink">
+                  </datalist>
+                </label>
+                <label>
+                  Classification
+                  <input name="classification">
+                </label>
+                <label class="full">
+                  File / location
+                  <input name="file" placeholder="relative/path.py:12">
+                </label>
+              </div>
+
+              <div class="actions">
+                <button id="saveNode" class="primary" type="submit">Create node</button>
+                <button id="deleteNode" class="danger" type="button" disabled>
+                  Delete node
+                </button>
+              </div>
+            </fieldset>
+          </form>
+
+          <details>
+            <summary>Complete node record</summary>
+            <pre id="nodeRecord">No node selected.</pre>
+          </details>
+        </section>
+
+        <section id="edgeInspector" aria-labelledby="edgeTitle" hidden>
+          <div class="inspector-heading"><h2 id="edgeTitle">Edge inspector</h2><button id="newEdge" type="button">New</button></div>
+          <p class="help">
+            Connect two nodes or edit an existing relationship.
+          </p>
+
+          <label>
+            Selected edge
+            <select id="edgeSelect">
+              <option value="">New edge</option>
+            </select>
+          </label>
+
+          <form id="edgeForm">
+            <fieldset id="edgeFields">
+              <legend id="edgeLegend">Create edge</legend>
+              <div class="fields">
+                <label>
+                  ID (optional)
+                  <input name="id" autocomplete="off">
+                </label>
+                <label>
+                  Relationship type
+                  <input name="type" value="DATA_FLOW" list="edgeOptions" required>
+                  <datalist id="edgeOptions">
+                    <option value="AST">
+                    <option value="CFG">
+                    <option value="CALLS">
+                    <option value="DATA_FLOW">
+                  </datalist>
+                </label>
+                <label>
+                  Source node
+                  <select name="source" required></select>
+                </label>
+                <label>
+                  Target node
+                  <select name="target" required></select>
+                </label>
+              </div>
+
+              <div class="actions">
+                <button id="saveEdge" class="primary" type="submit">Create edge</button>
+                <button id="deleteEdge" class="danger" type="button" disabled>
+                  Delete edge
+                </button>
+              </div>
+            </fieldset>
+          </form>
+
+          <details>
+            <summary>Complete edge record</summary>
+            <pre id="edgeRecord">No edge selected.</pre>
+          </details>
+        </section>
+      </aside>
+      </div>
+      </section>
+
+      <footer class="workspace-footer"><span>Local workspace · annotations persist across analysis</span><span>Tab to explore · Enter to inspect</span></footer>
+      <!-- Component: live knowledge editors. -->
+
+      <details class="secondary">
+        <summary>Analysis results &amp; policy</summary>
+        <p class="help">
+          Analysis does not repair code. Runtime results cover executed synthetic cases only.
+          Model advice cannot confirm a finding, approve policy, or pass a repair gate.
+          Repairs are isolated local branches and local merge-request simulations, never a push, merge, or deployment.
+        </p>
+        <div class="actions secondary-actions">
+          <button id="runRepair" type="button">Run independently verified repair</button>
+          <button id="runEvaluate" type="button">Evaluate labeled cases</button>
+        </div>
+      <!-- Component: findings and executed runtime evidence. -->
+      <div class="two">
+        <section class="panel" aria-labelledby="findingsTitle">
+          <div class="toolbar">
+            <h2 id="findingsTitle">Findings &amp; locations</h2>
+            <span id="findingCount" class="badge"></span>
+          </div>
+          <label>
+            Filter findings
+            <input
+              id="findingSearch"
+              type="search"
+              placeholder="Status, file, source, sink or classification"
+            >
+          </label>
+          <div id="findings"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="runtimeTitle">
+          <h2 id="runtimeTitle">Executed runtime evidence</h2>
+          <div id="runtime"></div>
+          <details>
+            <summary>Sanitized runtime record</summary>
+            <pre id="runtimeRecord">No runtime evidence recorded.</pre>
+          </details>
+          <h3>Luna boundary decisions</h3>
+          <p class="help">
+            Connected source and graph evidence, including boundaries with no
+            static finding. Probabilities are not leak confirmation or safety
+            approval; missing context remains unresolved.
+          </p>
+          <div id="decisionReviews"></div>
+          <details>
+            <summary>Complete review contexts and typed model responses</summary>
+            <pre id="decision">No Luna decision recorded.</pre>
+          </details>
+        </section>
+      </div>
+
+      <!-- Component: metrics, evaluation, and repair gate. -->
+      <div class="two">
+        <section class="panel" aria-labelledby="metricsTitle">
+          <h2 id="metricsTitle">Run metrics &amp; labeled evaluation</h2>
+          <div id="metrics"></div>
+          <details>
+            <summary>Recent run metric records</summary>
+            <pre id="metricRecords">No runs recorded.</pre>
+          </details>
+          <h3>Measured labeled-case evaluation</h3>
+          <p class="help">
+            Precision/recall are measured only against configured labeled cases, not
+            inferred by the model or from an unlabeled repository.
+          </p>
+          <pre id="evaluation">No labeled evaluation recorded.</pre>
+        </section>
+
+        <section class="panel" aria-labelledby="repairsTitle">
+          <h2 id="repairsTitle">Independent repair gate</h2>
+          <label>
+            Repair history
+            <select id="repairSelect">
+              <option value="">Latest repair</option>
+            </select>
+          </label>
+          <div id="repairGate" class="notice">
+            No repair executed. No verified gate result.
+          </div>
+          <pre id="repairSummary">No repair recorded.</pre>
+          <details>
+            <summary>Independent verification details</summary>
+            <pre id="verification">No verification recorded.</pre>
+          </details>
+          <details>
+            <summary>Proposed / applied isolated diff</summary>
+            <pre id="repairDiff">No diff recorded.</pre>
+          </details>
+        </section>
+      </div>
+
+      <!-- Component: explicit human policy approval. -->
+      <section class="panel" aria-labelledby="policyTitle">
+        <h2 id="policyTitle">Policy lifecycle &amp; explicit operator approval</h2>
+        <p class="help">
+          Policy approval is a human action, separate from model advice and repair
+          verification. Review the exact content before approving. Stored policy versions
+          are immutable; approval does not silently rewrite an existing version or
+          activate a different configured policy file.
+        </p>
+
+        <label>
+          Policy record
+          <select id="policySelect">
+            <option value="">Select a policy</option>
+          </select>
+        </label>
+        <div id="policyStatus" class="notice">No policy record selected.</div>
+        <pre id="policyRecord">No policy loaded.</pre>
+
+        <form id="approvalForm">
+          <fieldset id="approvalFields">
+            <legend>Approve a reviewed policy version</legend>
+            <label>
+              Exact policy JSON to approve (read-only)
+              <textarea
+                id="approvalPolicy"
+                rows="10"
+                required
+                readonly
+                spellcheck="false"
+                aria-describedby="approvalHelp"
+              ></textarea>
+            </label>
+            <p id="approvalHelp" class="help">
+              Only the currently configured policy content and version can be approved.
+              Policy changes require an operator to update the configured policy file with
+              a new version outside this dashboard. No model-generated approval is accepted.
+            </p>
+            <label>
+              Operator identity
+              <input id="approvedBy" autocomplete="name" required>
+            </label>
+            <label class="check">
+              <input id="approvalConsent" type="checkbox" required>
+              <span>
+                I have reviewed this exact policy content and explicitly approve it as the
+                named local operator.
+              </span>
+            </label>
+            <button id="approvePolicy" type="submit">Approve reviewed policy</button>
+          </fieldset>
+        </form>
+      </section>
+      </details>
+    </main>
+
+    <script>
+// Public demo: serve the app's /api calls from recorded responses (?d=leak|fix|nopolicy). Read-only.
+(() => {
+  const set = new URLSearchParams(location.search).get("d") || "leak";
+  const real = window.fetch.bind(window);
+  window.fetch = (input, init = {}) => {
+    const url = typeof input === "string" ? input : input.url;
+    if (!url.startsWith("/api/")) return real(input, init);
+    const name = url.slice(5).split("?")[0];
+    const method = (init.method || "GET").toUpperCase();
+    if (method === "POST" && name === "analyze") return real(`/api-${set}/analyze.json`);
+    if (method !== "GET") return Promise.reject(new Error("This public demo is read-only"));
+    return real(`/api-${set}/${name}`);
+  };
+})();
+</script>
+    <script type="module" src="./static/app.js"></script>
+  </body>
+</html>
