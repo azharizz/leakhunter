@@ -61,17 +61,14 @@ remote recovery and operating limits remain open work.
 Original project: LeakHunter, renamed Unspool with compatible Python imports.
 Its original Git history starts on 19 October 2026; MIT licensing was committed
 on 20 October. It is not a long-established pre-hackathon project.
-The [GitHub original](https://github.com/azharizz/leakhunter) is public under MIT.
-Its two-commit history was scanned with Gitleaks 8.30.1 and reviewed before the
-authorized visibility change on 21 October; no credentials were found. Both
-commits remain in GitLab history. Publication happened after the GitLab import;
-that chronology is disclosed rather than rewritten.
+Its first two commits were scanned with Gitleaks 8.30.1 and reviewed; no
+credentials were found. Both commits remain in GitLab history.
 
 ### Path B basis and provenance
 
 | Event | Exact evidence |
 | --- | --- |
-| Original source, 19 October | GitHub/GitLab commit `3e8c0afffabe2388a1d87db582b3ad641f19cf92` |
+| Original source, 19 October | Commit `3e8c0afffabe2388a1d87db582b3ad641f19cf92` |
 | MIT license, 20 October | Commit `c6ab65f251576790255902c70f2ead497168fb1d` |
 | GitLab automation/delivery additions, 20 October onward | First delivery commit `d327259`; issue/MR/pipeline evidence below |
 | Original made public after credential review, 21 October | Public original URL and preserved two-commit history |
@@ -120,8 +117,6 @@ can be inspected. Do not invent baseline productivity numbers.
   revision. The local network redirects this domain to a Jamf block page;
   that redirect is not a successful health check. Raw job-trace APIs require
   login; public pipeline metadata and retained verification records are provided.
-- Original URL: [LeakHunter GitHub](https://github.com/azharizz/leakhunter), public
-  under MIT; unauthenticated access verified on 21 October 2026.
 - Local execution: CPython 3.10–3.12 qualification, authenticated `glab` for GitLab
   operations, GitLab runner/Duo group enablement and appropriate project roles.
 - Model: GitLab's existing foundational Developer flow performs the remote repair;

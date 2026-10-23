@@ -1,9 +1,8 @@
 # Unspool delivery and hackathon handoff
 
 Unspool is the renamed LeakHunter project. Existing Python imports and the old
-CLI remain compatible. The original MIT-licensed project is
-[azharizz/leakhunter](https://github.com/azharizz/leakhunter); its history is retained
-in the [public GitLab project](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool).
+CLI remain compatible. Its full history is in the
+[public GitLab project](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool).
 
 ## Delivery
 
@@ -67,9 +66,7 @@ Retain the session, MR, pipeline, and live revision links as evidence.
 
 See [SUBMISSION.md](SUBMISSION.md) for the draft description, evidence map,
 provenance issues and video outline, and [JUDGE_GUIDE.md](JUDGE_GUIDE.md) for local
-reproduction. The [original GitHub repository](https://github.com/azharizz/leakhunter)
-was made public on 21 October after owner authorization and a full tracked-history
-credential review. Unauthenticated access and MIT licensing were verified.
+reproduction.
 Path B classification remains unresolved. Do not infer eligibility from this
 document or from a commit message.
 
