@@ -233,6 +233,19 @@ class HandoffTest(unittest.TestCase):
         self.assertEqual(len(started), 1)
         self.assertTrue(finish.call_args.kwargs["any_branch"])
 
+    def test_an_evidence_job_that_failed_without_evidence_stops_instead_of_calling_duo(self):
+        api, started, _ = self.blocked_api([("a" * 40, True)])
+        real = api.request
+
+        def no_evidence(method, path, body=None):
+            if path.endswith("/artifacts/head-evidence.json"):
+                raise ValueError("404: the job failed before the gate ran")
+            return real(method, path, body)
+        api.request = no_evidence
+        with self.assertRaisesRegex(ValueError, "verification failed"):
+            from_merge_request(1, 2, api=api, interval=0)
+        self.assertEqual(started, [])
+
     def test_a_developer_mr_outside_the_allowlist_is_left_alone(self):
         class API:
             def request(self, method, path, body=None):

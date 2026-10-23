@@ -398,7 +398,7 @@ def within_allowlist(changes, config=None):
 
 
 def blocked_by_evidence(api, project, mr, config=None):
-    """Return the failed exposure-evidence job's head evidence when it alone decides the verdict, else None."""
+    """Return the head evidence when the exposure gate itself blocked the revision, else None."""
     pipeline = mr.get("head_pipeline") or {}
     if pipeline.get("status") != "failed" or pipeline.get("sha") != mr.get("sha"):
         return None
@@ -412,7 +412,8 @@ def blocked_by_evidence(api, project, mr, config=None):
         evidence = api.request("GET", f"projects/{project}/jobs/{job['id']}/artifacts/head-evidence.json")
     except (GitLabError, ValueError):
         evidence = None
-    return evidence if isinstance(evidence, dict) else {}
+    # No evidence means the gate never decided (for example, its secret was unavailable): stop, don't ask Duo.
+    return evidence if isinstance(evidence, dict) and isinstance(evidence.get("gate"), dict) else None
 
 
 def verdict_summary(evidence):
