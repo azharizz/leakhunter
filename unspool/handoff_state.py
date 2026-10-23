@@ -114,23 +114,15 @@ class RunJournal:
             self.lock_fd = None
 
 
-def trigger_issue(api, project, iid, body, journal):
-    """Do not retry an ambiguous POST; reconcile its durable marker first."""
+def trigger_issue(start, journal):
+    """Start the Duo session once per intent; an interrupted start is never repeated blindly."""
     journal.check_stop()
-    marker = f"<!-- unspool-intent:{journal.digest} -->"
     if journal.data.get("dispatch_started"):
-        if journal.data.get("trigger_note_id"):
-            return
-        for page in range(1, 11):
-            notes = api.request("GET", f"projects/{project}/issues/{iid}/notes?per_page=100&page={page}")
-            found = next((note for note in notes if marker in note.get("body", "")), None)
-            if found:
-                journal.save("TRIGGERED", trigger_note_id=found["id"])
-                return
-            if len(notes) < 100:
-                break
-        raise RuntimeError("Trigger delivery is uncertain. No duplicate was sent; reconcile the recorded intent with GitLab before recovery")
+        if journal.data.get("duo_session_id"):
+            return journal.data["duo_session_id"]
+        raise RuntimeError("Duo start is uncertain. No duplicate was sent; check the project's agent sessions before recovery")
     journal.save("TRIGGER_INTENT", dispatch_started=True)
     journal.check_stop()
-    note = api.request("POST", f"projects/{project}/issues/{iid}/notes", {"body": body + "\n\n" + marker})
-    journal.save("TRIGGERED", trigger_note_id=note["id"])
+    session = start()
+    journal.save("TRIGGERED", duo_session_id=session["id"])
+    return session["id"]

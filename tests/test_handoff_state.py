@@ -89,42 +89,35 @@ with RunJournal(sys.argv[1], 1, 'main', 'issue:2', 'config') as journal:
                 with RunJournal(directory, 2, "main", "issue:1", "config"):
                     pass
 
-    def test_lost_post_response_is_reconciled_without_duplicate_trigger(self):
-        notes, calls = [], []
+    def test_a_lost_start_response_is_never_repeated(self):
+        calls = []
 
-        class API:
-            def request(self, method, path, body=None):
-                calls.append(method)
-                if method == "POST":
-                    notes.append({"id": 10, "body": body["body"]})
-                    raise TimeoutError("Response lost after GitLab accepted the note")
-                return notes
+        def start():
+            calls.append("POST")
+            raise TimeoutError("Response lost after GitLab accepted the session")
 
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(TimeoutError):
                 with RunJournal(directory, 1, "main", "issue:2", "config") as journal:
-                    trigger_issue(API(), 1, 2, "@agent task", journal)
-            with RunJournal(directory, 1, "main", "issue:2", "config") as resumed:
-                trigger_issue(API(), 1, 2, "@agent task", resumed)
-                self.assertEqual(resumed.data["trigger_note_id"], 10)
-                trigger_issue(API(), 1, 2, "@agent task", resumed)
-        self.assertEqual(calls, ["POST", "GET"])
+                    trigger_issue(start, journal)
+            with self.assertRaisesRegex(RuntimeError, "uncertain"):
+                with RunJournal(directory, 1, "main", "issue:2", "config") as resumed:
+                    trigger_issue(start, resumed)
+        self.assertEqual(calls, ["POST"])
 
-    def test_uncertain_delivery_stops_without_sending_again(self):
+    def test_a_recorded_session_is_reused_without_starting_again(self):
         calls = []
 
-        class API:
-            def request(self, method, path, body=None):
-                calls.append(method)
-                return []
+        def start():
+            calls.append("POST")
+            return {"id": 41}
 
         with tempfile.TemporaryDirectory() as directory:
             with RunJournal(directory, 1, "main", "issue:2", "config") as journal:
-                journal.save("TRIGGER_INTENT", dispatch_started=True)
-            with self.assertRaisesRegex(RuntimeError, "uncertain"):
-                with RunJournal(directory, 1, "main", "issue:2", "config") as resumed:
-                    trigger_issue(API(), 1, 2, "@agent task", resumed)
-        self.assertEqual(calls, ["GET"])
+                self.assertEqual(trigger_issue(start, journal), 41)
+            with RunJournal(directory, 1, "main", "issue:2", "config") as resumed:
+                self.assertEqual(trigger_issue(start, resumed), 41)
+        self.assertEqual(calls, ["POST"])
 
     def test_shared_directory_or_symlink_state_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
