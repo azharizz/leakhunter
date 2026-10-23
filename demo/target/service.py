@@ -15,10 +15,14 @@ WORD_SEPARATORS = (
 
 
 def profile(record):
-    public = {field: record[field] for field in PUBLIC_FIELDS}
-    display_name = public["display_name"]
+    fields = PUBLIC_FIELDS
+    display_name = record["display_name"]
     for separator in WORD_SEPARATORS:
         display_name = display_name.replace(separator, " ")
     display_name = " ".join(display_name.split())
-    public["display_name"] = display_name[:MAX_DISPLAY_NAME_LENGTH].rstrip()
+    if not display_name:
+        # Legacy CSV imports carry their own column list.
+        fields = record.get("columns", fields)
+    public = {field: record[field] for field in fields}
+    public["display_name"] = display_name[:MAX_DISPLAY_NAME_LENGTH].rstrip() or record["customer_id"]
     return public
