@@ -114,8 +114,7 @@ can be inspected. Do not invent baseline productivity numbers.
 - Live GCP report: [Cloud Run](https://unspool-398376578726.us-central1.run.app).
 - Fallback report: [GitLab Pages](https://unspool-site-1032c3.gitlab.io). Remote
   CI verifies the served SHA; [release records](RELEASE.md) identify the delivery
-  revision. The local network redirects this domain to a Jamf block page;
-  that redirect is not a successful health check. Raw job-trace APIs require
+  revision. Raw job-trace APIs require
   login; public pipeline metadata and retained verification records are provided.
 - Local execution: CPython 3.10–3.12 qualification, authenticated `glab` for GitLab
   operations, GitLab runner/Duo group enablement and appropriate project roles.

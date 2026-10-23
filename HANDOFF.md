@@ -47,8 +47,7 @@ user. The main pipeline passes its exact SHA to that downstream pipeline, which
 rebuilds the public source, reruns the fixed exposure gate, publishes the report,
 and checks the live revision. No personal token is stored in CI; the trigger uses
 GitLab's temporary job token. The public report is
-[Unspool](https://unspool-site-1032c3.gitlab.io). The enterprise Jamf policy on this
-Mac blocks browser access to GitLab Pages; remote CI performs the live check.
+[Unspool](https://unspool-site-1032c3.gitlab.io); remote CI performs the live check.
 
 The primary Google Cloud deployment is
 [Unspool on Cloud Run](https://unspool-398376578726.us-central1.run.app).
