@@ -66,7 +66,7 @@ class CancellationTest(unittest.TestCase):
                     with self.assertRaises(HandoffCanceled):
                         guarded.request("PUT", "projects/1/merge_requests/1/merge")
                     with self.assertRaises(HandoffCanceled):
-                        trigger_issue(api, 1, 1, "@agent", journal)
+                        trigger_issue(lambda: api.request("POST", "ai/duo_workflows/workflows"), journal)
                     journal.save("DEPLOYED_AND_VERIFIED")
             self.assertEqual(api.request.call_count, 1)
             with RunJournal(root, 1, "main", "issue:1", "config") as resumed:

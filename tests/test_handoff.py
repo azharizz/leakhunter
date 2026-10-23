@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from unspool.handoff import complete, from_issue, validate_delivery_pipeline, validate_pipeline, validate_scope, watch
+from unspool.handoff import (complete, from_issue, from_merge_request, validate_delivery_pipeline,
+                             validate_pipeline, validate_scope, watch)
 from unspool.smoke import check
 
 
@@ -169,25 +170,29 @@ class HandoffTest(unittest.TestCase):
 
     def blocked_api(self, revisions):
         """A repair MR whose exposure job blocks each revision in turn until the list runs out."""
-        test, posted, state = self, [], {"index": 0, "notes": []}
+        test, started, notes, state = self, [], [], {"index": 0}
 
         class API:
             def request(self, method, path, body=None):
                 if path == "projects/1/issues/1":
                     return {"iid": 1, "description": "Plain issue"}
-                if path.startswith("projects/1/issues/1/notes"):
+                if path == "ai/duo_workflows/workflows":
+                    started.append(body)
+                    state["index"] = min(state["index"] + 1, len(revisions) - 1)  # Duo pushes the next revision
+                    return {"id": 50 + len(started), "workflow_definition": "developer/v1", "web_url": "https://x"}
+                if path.startswith("projects/1/merge_requests/2/notes"):
                     if method == "POST":
-                        posted.append(body["body"])
-                        state["notes"].append(body)
-                        state["index"] = min(state["index"] + 1, len(revisions) - 1)  # Duo pushes the next revision
-                        return {"id": len(posted)}
-                    return state["notes"]
+                        notes.append(body["body"])
+                        return {"id": len(notes)}
+                    return [{"body": body} for body in notes]
                 sha, blocked = revisions[state["index"]]
                 if path == "projects/1/merge_requests/2":
                     mr = test.mr()
                     mr.update(sha=sha, head_pipeline={"id": 10 + state["index"], "sha": sha,
                                                       "status": "failed" if blocked else "success"})
                     return mr
+                if path == "projects/1/merge_requests/2/changes":
+                    return test.changes()
                 if "/pipelines/" in path:
                     return [{"id": 7, "name": "verify-exposure", "status": "failed" if blocked else "success"}]
                 if path.endswith("/artifacts/head-evidence.json"):
@@ -196,27 +201,69 @@ class HandoffTest(unittest.TestCase):
                                 {"sink": "HTTP_RESPONSE", "symbol": "customer.password_hash"}]}]}}
                 return [{"iid": 2, "state": "opened"}]
 
-        return API(), posted
+        return API(), started, notes
 
-    def test_a_blocked_repair_mr_is_handed_back_to_duo_with_the_evidence(self):
-        api, posted = self.blocked_api([("a" * 40, True), ("c" * 40, False)])
+    def test_a_blocked_repair_mr_is_handed_back_to_duo_through_the_api_with_the_evidence(self):
+        api, started, notes = self.blocked_api([("a" * 40, True), ("c" * 40, False)])
         with patch("unspool.handoff.complete", return_value={"status": "READY_FOR_REVIEW"}) as finish:
             self.assertEqual(from_issue(1, 1, api=api, interval=0)["status"], "READY_FOR_REVIEW")
         self.assertEqual(finish.call_args.args, (1, 2))
-        self.assertEqual(len(posted), 1)
-        self.assertIn("@duo-developer-gitlab-ai-hackathon", posted[0])
-        self.assertIn("probe `csv-import-row-probe` observed `customer.password_hash` at HTTP_RESPONSE", posted[0])
-        self.assertIn("do not open a new MR", posted[0])
-        self.assertIn("<!-- unspool-repair:" + "a" * 40 + " -->", posted[0])
+        self.assertEqual(len(started), 1)
+        session = started[0]
+        self.assertEqual((session["workflow_definition"], session["start_workflow"], session["merge_request_id"],
+                          session["source_branch"]), ("developer/v1", True, 2, "unspool/repair-1"))
+        self.assertIn("probe `csv-import-row-probe` observed `customer.password_hash` at HTTP_RESPONSE", session["goal"])
+        self.assertIn("do not open a new MR", session["goal"])
+        self.assertNotIn("@", session["goal"] + notes[0])                       # started by the API, not a mention
+        self.assertIn("<!-- unspool-repair:" + "a" * 40 + " -->", notes[0])
 
-    def test_repeated_blocks_are_bounded_and_never_double_posted(self):
-        api, posted = self.blocked_api([("a" * 40, True), ("c" * 40, True), ("d" * 40, True)])
+    def test_repeated_blocks_are_bounded_and_never_double_started(self):
+        api, started, notes = self.blocked_api([("a" * 40, True), ("c" * 40, True), ("d" * 40, True)])
         with patch("unspool.handoff.complete") as finish:
             with self.assertRaises(ValueError):
                 from_issue(1, 1, api=api, interval=0)
         finish.assert_not_called()
-        self.assertEqual(len(posted), 2)
-        self.assertEqual(len({body.rsplit("unspool-repair:", 1)[1] for body in posted}), 2)
+        self.assertEqual(len(started), 2)
+        self.assertEqual(len({body.rsplit("unspool-repair:", 1)[1] for body in notes}), 2)
+
+    def test_a_developer_mr_on_any_branch_is_repaired_then_promoted(self):
+        api, started, _ = self.blocked_api([("a" * 40, True), ("c" * 40, False)])
+        with patch("unspool.handoff.complete", return_value={"status": "DEPLOYED_AND_VERIFIED"}) as finish:
+            self.assertEqual(from_merge_request(1, 2, api=api, interval=0)["status"], "DEPLOYED_AND_VERIFIED")
+        self.assertEqual(len(started), 1)
+        self.assertTrue(finish.call_args.kwargs["any_branch"])
+
+    def test_a_developer_mr_outside_the_allowlist_is_left_alone(self):
+        class API:
+            def request(self, method, path, body=None):
+                if path.endswith("/changes"):
+                    return {"overflow": False, "changes": [{"old_path": ".gitlab-ci.yml", "new_path": ".gitlab-ci.yml"}]}
+                return {"iid": 2, "source_branch": "feature/x"}
+
+        with patch("unspool.handoff.complete") as finish:
+            self.assertEqual(from_merge_request(1, 2, api=API())["status"], "SKIPPED")
+        finish.assert_not_called()
+
+    def test_a_new_issue_starts_duo_through_the_api_not_a_comment(self):
+        started, notes = [], []
+
+        class API:
+            def request(self, method, path, body=None):
+                if path == "projects/1/issues/1":
+                    return {"iid": 1, "title": "Task", "description": "Do it"}
+                if path == "ai/duo_workflows/workflows":
+                    started.append(body)
+                    return {"id": 9, "workflow_definition": "developer/v1", "web_url": "https://x"}
+                if path == "projects/1/issues/1/notes":
+                    notes.append(body["body"])
+                    return {"id": 1}
+                return [{"iid": 2, "state": "opened"}] if started else []
+
+        with patch("unspool.handoff.complete", return_value={"status": "READY_FOR_REVIEW"}), \
+                patch("unspool.handoff.repair_blocked"), patch("unspool.handoff.time.sleep"):
+            from_issue(1, 1, api=API(), interval=0)
+        self.assertEqual((started[0]["issue_id"], started[0]["workflow_definition"]), (1, "developer/v1"))
+        self.assertNotIn("@", started[0]["goal"] + notes[0])
 
 
 class WatchTest(unittest.TestCase):
@@ -242,6 +289,24 @@ class WatchTest(unittest.TestCase):
                 if len(results) == 3:
                     break
         self.assertEqual(started, [7, 8, 9])
-        self.assertEqual(results[1], (8, {"status": "STOPPED"}))
+        self.assertEqual(results[1], ("issue", 8, {"status": "STOPPED"}))
         self.assertEqual({method for method, _ in paths}, {"GET"})
         self.assertIn("state=opened&labels=unspool%20hands-off", paths[0][1])
+
+    def test_only_mrs_whose_pipeline_started_after_the_watch_are_taken(self):
+        since = "2026-10-24T10:00:00Z"
+        details = {3: {"iid": 3, "head_pipeline": {"created_at": "2026-10-24T09:00:00.000Z"}},   # before: ignored
+                   4: {"iid": 4, "head_pipeline": {"created_at": "2026-10-24T10:05:00.000Z"}},   # after: taken
+                   5: {"iid": 5, "head_pipeline": None}}                                          # no pipeline yet
+
+        class API:
+            def request(self, method, path, body=None):
+                if "/issues?" in path:
+                    return []
+                if "/merge_requests?" in path:
+                    return [{"iid": 3}, {"iid": 4}, {"iid": 5}, {"iid": 6, "draft": True}]
+                return details[int(path.rsplit("/", 1)[1])]
+
+        taken = list(watch(1, "unspool", lambda iid: {}, start_mr=lambda iid: {"status": "ok"}, api=API(),
+                           once=True, since=since))
+        self.assertEqual(taken, [("merge_request", 4, {"status": "ok"})])

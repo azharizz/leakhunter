@@ -71,16 +71,24 @@ To start a bounded issue workflow:
 python3 -m unspool.handoff --project 87860005 --issue <iid>
 ```
 
-Hands-off: leave the controller watching, then just create an issue with the
-`unspool` label. It starts each labelled open issue once (oldest first); a stopped
-issue is reported and never promoted, and the watch keeps going. Only project
-members can label issues, so the label is the go-ahead. Promotion needs `cosign` installed
-locally to verify the signed protected-main evidence; without it the controller
-refuses to merge rather than stopping after one.
+Hands-off: leave the controller watching. After that, opening an MR is the only step:
 
 ```sh
 python3 -m unspool.handoff --project 87860005 --watch unspool
 ```
+
+- **Your MR.** For every MR to `main` whose pipeline starts while the watch runs and whose diff stays
+  inside the configured application files: if the exposure gate blocks it, the controller starts GitLab
+  Duo's Developer flow through the Duo Agent Platform API (no comment or mention) with the evidence, on the
+  MR's own branch. Duo pushes a fix, the pipeline re-runs by itself, and once every required job and the
+  signed evidence pass, the controller merges, deploys, and confirms the live revision.
+- **An issue.** An open issue with the `unspool` label starts the same flow from scratch: Duo writes the
+  change and opens the MR.
+
+Anything missing, failed, unknown, or still blocked after two Duo attempts stops that item without a
+merge; the watch keeps going. MRs touching other files (CI, tests, policy, tooling) are left alone.
+Promotion needs `cosign` installed locally to verify the signed protected-main evidence; without it the
+controller refuses to merge rather than stopping after one.
 
 The controller must remain running locally with an authenticated `glab` session.
 Cloud Run hosts only the public report, not the controller or a multi-user CRUD

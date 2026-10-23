@@ -77,11 +77,11 @@ class GitLab:
         return json.loads(result.stdout)
 
 
-def validate_scope(mr, changes, project, config=None):
+def validate_scope(mr, changes, project, config=None, any_branch=False):
     if mr.get("source_project_id") != project or mr.get("target_project_id") != project:
         raise ValueError("Cross-project repairs cannot be promoted")
     target = config.target_branch if config else "main"
-    branch_prefix = config.branch_prefix if config else "unspool/"
+    branch_prefix = "" if any_branch else (config.branch_prefix if config else "unspool/")
     if mr.get("target_branch") != target or not mr.get("source_branch", "").startswith(branch_prefix):
         raise ValueError("Only Unspool demo repair branches targeting main can be promoted")
     if mr.get("draft") or mr.get("state") not in {"opened", "merged"}:
@@ -163,7 +163,7 @@ def validate_delivery_pipeline(pipeline, jobs, sha, config=None):
 
 
 def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, journal=None,
-             issue_binding=None):
+             issue_binding=None, any_branch=False):
     api = api or GitLab(journal)
     if journal:
         api = JournalAPI(api, journal)
@@ -179,7 +179,7 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
     while True:
         mr = api.request("GET", mr_path)
         changes = api.request("GET", mr_path + "/changes")
-        validate_scope(mr, changes, project, config)
+        validate_scope(mr, changes, project, config, any_branch)
         if mr["state"] == "merged":
             if config and config.mode == "review":
                 reviewed = (journal is not None and journal.data.get("merge_request") == iid
@@ -365,6 +365,38 @@ REPAIR_ATTEMPTS = 2
 _RUNNING = {"created", "waiting_for_resource", "preparing", "pending", "running", "scheduled"}
 
 
+DUO_FLOW = "developer/v1"
+
+
+def start_duo_session(api, project, goal, *, source_branch=None, issue_iid=None, merge_request_iid=None):
+    """Start GitLab Duo's Developer flow through the Duo Agent Platform API: no comment, no mention.
+
+    The session runs as the Duo service account in a CI job that can push commits and open MRs.
+    """
+    body = {"project_id": str(project), "goal": goal, "workflow_definition": DUO_FLOW,
+            "start_workflow": True, "allow_agent_to_request_user": False}
+    if source_branch:
+        body["source_branch"] = source_branch
+    if issue_iid:
+        body["issue_id"] = issue_iid
+    if merge_request_iid:
+        body["merge_request_id"] = merge_request_iid
+    session = api.request("POST", "ai/duo_workflows/workflows", body)
+    if not isinstance(session, dict) or type(session.get("id")) is not int or session.get("workflow_definition") != DUO_FLOW:
+        raise RuntimeError("GitLab did not start the Duo Developer session")
+    return session
+
+
+def within_allowlist(changes, config=None):
+    """Whether a complete diff only updates the configured application files."""
+    allowed = set(config.allowed_paths if config else (ALLOWED_PATH,))
+    items = changes.get("changes", []) if isinstance(changes, dict) else []
+    return (changes.get("overflow") is False and 0 < len(items) <= len(allowed)
+            and all(item.get("old_path") in allowed and item.get("new_path") == item.get("old_path")
+                    and not any(item.get(flag) for flag in ("deleted_file", "new_file", "renamed_file"))
+                    for item in items))
+
+
 def blocked_by_evidence(api, project, mr, config=None):
     """Return the failed exposure-evidence job's head evidence when it alone decides the verdict, else None."""
     pipeline = mr.get("head_pipeline") or {}
@@ -394,7 +426,7 @@ def verdict_summary(evidence):
     return "\n".join(lines + seen) or "- the exposure-evidence job failed"
 
 
-def repair_blocked(api, project, issue_iid, mr_iid, branch, *, config=None, journal=None, deadline, interval):
+def repair_blocked(api, project, mr_iid, branch, *, config=None, journal=None, deadline, interval):
     """Hand a candidate blocked by exposure evidence back to Duo, on the same branch and MR, then wait."""
     requested = set(journal.data.get("repair_requested_shas", [])) if journal else set()
     attempts = 0
@@ -410,21 +442,23 @@ def repair_blocked(api, project, issue_iid, mr_iid, branch, *, config=None, jour
                 return
             if sha not in requested:
                 marker = f"<!-- unspool-repair:{sha} -->"
-                notes = api.request("GET", f"projects/{project}/issues/{issue_iid}/notes?per_page=100")
+                notes = api.request("GET", f"projects/{project}/merge_requests/{mr_iid}/notes?per_page=100")
                 if not any(marker in note.get("body", "") for note in notes if isinstance(note, dict)):
                     if attempts >= REPAIR_ATTEMPTS:
                         raise ValueError(f"Still blocked by exposure evidence after {REPAIR_ATTEMPTS} repair requests")
-                    trigger = config.trigger_username if config else "duo-developer-gitlab-ai-hackathon"
                     paths = ", ".join(config.allowed_paths if config else (ALLOWED_PATH,))
-                    body = (f"@{trigger} The candidate on `{branch}` (MR !{mr_iid}, `{str(sha)[:12]}`) is blocked by "
-                            f"Unspool's independent exposure gate:\n\n{verdict_summary(evidence)}\n\n"
-                            f"Fix it on the existing branch `{branch}` so MR !{mr_iid} updates; do not open a new MR. "
-                            f"Change only {paths}, keep the requested behaviour, follow AGENTS.md, and run the "
-                            "independent checks. The authenticated local handoff controller re-verifies the new "
-                            "revision and handles promotion.\n\n" + marker)
+                    verdict = verdict_summary(evidence)
+                    goal = (f"MR !{mr_iid} on branch `{branch}` (revision `{str(sha)[:12]}`) is blocked by Unspool's "
+                            f"independent exposure gate:\n\n{verdict}\n\nFix it on the existing branch `{branch}` so "
+                            f"MR !{mr_iid} updates; do not open a new MR. Change only {paths}, keep the requested "
+                            "behaviour, follow AGENTS.md, and run the independent checks. The Unspool controller "
+                            "re-verifies the new revision and handles promotion.")
                     if journal:
                         journal.check_stop()
-                    api.request("POST", f"projects/{project}/issues/{issue_iid}/notes", {"body": body})
+                    session = start_duo_session(api, project, goal, source_branch=branch, merge_request_iid=mr_iid)
+                    api.request("POST", f"projects/{project}/merge_requests/{mr_iid}/notes", {"body": (
+                        f"Unspool blocked `{str(sha)[:12]}`:\n\n{verdict}\n\nIt started GitLab Duo Developer "
+                        f"[session {session['id']}]({session.get('web_url', '')}) to fix it on this branch.\n\n" + marker)})
                     attempts += 1
                 requested.add(sha)
                 if journal:
@@ -453,25 +487,30 @@ def from_issue(project, iid, *, api=None, timeout=1200, interval=10, config=None
     deadline = time.monotonic() + timeout
     requests = api.request("GET", path)
     if not requests:
-        trigger = config.trigger_username if config else "duo-developer-gitlab-ai-hackathon"
         paths = ", ".join(config.allowed_paths if config else (ALLOWED_PATH,))
-        body = (
-            f"@{trigger} Implement this bounded issue following AGENTS.md. "
-            f"Use {branch}, change only {paths}, run the independent checks, "
-            "and open a non-draft MR. The authenticated local handoff controller handles promotion; "
-            "do not merge through another route or change permissions.")
+        goal = (f"Implement issue #{iid} following AGENTS.md:\n\n{issue.get('title', '')}\n\n"
+                f"{issue.get('description') or ''}\n\nUse branch {branch}, change only {paths}, run the "
+                "independent checks, and open a non-draft MR targeting the default branch. The Unspool controller "
+                "handles verification and promotion; do not merge through another route or change permissions.")
+
+        def start():
+            session = start_duo_session(api, project, goal, issue_iid=iid)
+            api.request("POST", f"projects/{project}/issues/{iid}/notes", {"body": (
+                f"Unspool started GitLab Duo Developer [session {session['id']}]({session.get('web_url', '')}) "
+                f"for this issue on `{branch}`.")})
+            return session
         if journal:
-            trigger_issue(api, project, iid, body, journal)
+            trigger_issue(start, journal)
             journal.save("WAITING_FOR_MR")
         else:
-            api.request("POST", f"projects/{project}/issues/{iid}/notes", {"body": body})
+            start()
     while True:
         usable = [mr for mr in requests if mr.get("state") in {"opened", "merged"}]
         if len(usable) > 1:
             raise ValueError("Multiple repair MRs exist; refuse ambiguous promotion")
         if usable:
             if usable[0].get("state") == "opened":
-                repair_blocked(api, project, iid, usable[0]["iid"], branch, config=config, journal=journal,
+                repair_blocked(api, project, usable[0]["iid"], branch, config=config, journal=journal,
                                deadline=deadline, interval=interval)
             options = {"config": config} if config else {}
             if journal:
@@ -488,21 +527,54 @@ def from_issue(project, iid, *, api=None, timeout=1200, interval=10, config=None
         requests = api.request("GET", path)
 
 
-def watch(project, label, start, *, api=None, interval=60, once=False):
-    """Hands-off intake: start the issue workflow once for each open issue carrying ``label``, oldest first.
+def from_merge_request(project, iid, *, api=None, timeout=1200, interval=10, config=None, journal=None):
+    """A developer's MR: if the exposure gate blocks it, Duo fixes it on the same branch; then verify and promote."""
+    api = api or GitLab(journal)
+    mr_path = f"projects/{project}/merge_requests/{iid}"
+    mr = api.request("GET", mr_path)
+    if not isinstance(mr, dict) or not within_allowlist(api.request("GET", mr_path + "/changes"), config):
+        return {"status": "SKIPPED", "merge_request": iid,
+                "reason": "the MR changes files outside the configured application paths"}
+    deadline = time.monotonic() + timeout
+    repair_blocked(api, project, iid, mr["source_branch"], config=config, journal=journal,
+                   deadline=deadline, interval=interval)
+    options = {"config": config} if config else {}
+    if journal:
+        options["journal"] = journal
+    return complete(project, iid, api=api, timeout=max(0, deadline - time.monotonic()), interval=interval,
+                    any_branch=True, **options)
 
-    Only project members can label issues, so the label is the operator's go-ahead. Yields (iid, result).
+
+def watch(project, label, start, *, start_mr=None, api=None, interval=60, once=False, target="main", since=None):
+    """Hands-off intake. Starts the issue workflow once for each open issue carrying ``label`` and, with
+    ``start_mr``, the MR workflow once for each open MR to ``target`` whose pipeline started after ``since``.
+
+    Only project members can label issues or push branches, so neither intake widens who can change code.
+    Yields (kind, iid, result).
     """
     api = api or GitLab()
+    since = since or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     started = set()
     while True:
         issues = api.request("GET", f"projects/{project}/issues?state=opened&labels={quote(label, safe='')}"
                                     "&order_by=created_at&sort=asc&per_page=100")
         for issue in issues if isinstance(issues, list) else []:
             iid = issue.get("iid") if isinstance(issue, dict) else None
-            if type(iid) is int and iid > 0 and iid not in started:
-                started.add(iid)
-                yield iid, start(iid)
+            if type(iid) is int and iid > 0 and ("issue", iid) not in started:
+                started.add(("issue", iid))
+                yield "issue", iid, start(iid)
+        if start_mr:
+            mrs = api.request("GET", f"projects/{project}/merge_requests?state=opened&target_branch="
+                                     f"{quote(target, safe='')}&updated_after={since}&order_by=created_at&sort=asc&per_page=100")
+            for item in mrs if isinstance(mrs, list) else []:
+                iid = item.get("iid") if isinstance(item, dict) else None
+                if type(iid) is not int or iid <= 0 or ("mr", iid) in started or item.get("draft"):
+                    continue
+                mr = api.request("GET", f"projects/{project}/merge_requests/{iid}")
+                pipeline = (mr.get("head_pipeline") if isinstance(mr, dict) else None) or {}
+                if str(pipeline.get("created_at") or "") >= since:     # ISO-8601 UTC strings order by time
+                    started.add(("mr", iid))
+                    yield "merge_request", iid, start_mr(iid)
         if once:
             return
         time.sleep(interval)
@@ -517,7 +589,7 @@ def main():
     target.add_argument("--preflight", action="store_true", help="Read-only project and configuration checks")
     target.add_argument("--merge-request", type=int)
     target.add_argument("--issue", type=int)
-    target.add_argument("--watch", metavar="LABEL", help="Hands-off: run every open issue with this label")
+    target.add_argument("--watch", metavar="LABEL", help="Hands-off: run labelled issues and newly piped MRs")
     args = parser.parse_args()
     config = HandoffConfig.load(args.config) if args.config else None
     if config and args.project is not None and args.project != config.project_id:
@@ -530,19 +602,24 @@ def main():
         return
     options = {"config": config, "timeout": config.timeout, "interval": config.poll_interval} if config else {}
     if args.watch:
-        def start(issue):
-            # One issue's failure stops that issue's workflow, never the intake; nothing it left is promoted.
-            try:
-                with RunJournal(args.state_dir, project, config.target_branch if config else "main",
-                                f"issue:{issue}", config.digest if config else "legacy-synthetic-demo-v1") as journal:
-                    return from_issue(project, issue, journal=journal, **options)
-            except (HandoffCanceled, KeyboardInterrupt):
-                raise
-            except Exception as error:
-                return {"status": "STOPPED", "reason": str(error)}
+        target = config.target_branch if config else "main"
+
+        def runner(kind, flow):
+            def start(iid):
+                # One item's failure stops that item's workflow, never the intake; nothing it left is promoted.
+                try:
+                    with RunJournal(args.state_dir, project, target, f"{kind}:{iid}",
+                                    config.digest if config else "legacy-synthetic-demo-v1") as journal:
+                        return flow(project, iid, journal=journal, **options)
+                except (HandoffCanceled, KeyboardInterrupt):
+                    raise
+                except Exception as error:
+                    return {"status": "STOPPED", "reason": str(error)}
+            return start
         try:
-            for issue, result in watch(project, args.watch, start):
-                print(json.dumps({"issue": issue, **result}), flush=True)
+            for kind, iid, result in watch(project, args.watch, runner("issue", from_issue),
+                                           start_mr=runner("mr", from_merge_request), target=target):
+                print(json.dumps({kind: iid, **result}), flush=True)
         except (HandoffCanceled, KeyboardInterrupt):
             print(json.dumps({"status": "CANCELED", "remote_work_may_continue": True}))
             raise SystemExit(130) from None
