@@ -44,7 +44,7 @@ not prerequisites for presenting this release as an evaluated prototype.
   GitLab verifier has not silently gained the new opt-in HTTP contract.
 - Public GitLab project and MIT detection were checked without credentials.
   Cloud Run served the release SHA; remote CI job `17328074132` verified Pages for
-  that SHA. Local Jamf redirection is not counted as fallback health.
+  that SHA.
 - Path B was reviewed against Section 4 of the current official rules: an original
   project date before October 5 is not required. The actual October 19 source,
   October 20 MIT/import/automation and October 21 publication chronology are
@@ -307,8 +307,7 @@ environment-variable handling, detection patterns and synthetic fixtures. Both
 original commits are retained in GitLab main.
 The history starts 19 October, with MIT added 20 October. Path B classification
 remains unresolved; publication alone does not establish eligibility. No history
-was altered. Pages redirected to the local
-Jamf block page, so that request does not establish judge availability. The
+was altered. The
 production/evaluation/security gates remain in force; the draft does not narrow
 the active goal. Official submission requirements were rechecked on 21 October.
 
@@ -994,7 +993,6 @@ independent verification or required submission material.
   publish the Pages fallback. Current Cloud Run health is verified above.
 - [x] Check Pages from remote GitLab CI with an exact-revision smoke test; check
   Cloud Run directly and retain the served revision. See release verification.
-  Local Jamf redirects are not counted as health evidence.
 - [ ] Maintain both delivery targets through judging; this is the maintainer's
   ongoing obligation, not a completed point-in-time availability test.
 - [x] Confirm what the live project actually executes. If it remains a static
