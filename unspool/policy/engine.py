@@ -157,14 +157,10 @@ class Policy:
             reasons.append("no_real_secrets_in_test_artifacts")
         return {"allowed": not reasons, "reasons": reasons}
 
-    def allows(self, classification: str, sink_kind: str) -> bool:
-        """Return whether a transfer is allowed without exposing policy details."""
-        return self.evaluate(classification, sink_kind)["allowed"]
-
 
 def extend_builtin(raw: dict) -> dict:
     """Add the built-in catalogue under an operator policy; the operator's own entries win."""
-    from leakhunter.policy.builtin import BUILTIN
+    from unspool.policy.builtin import BUILTIN
     merged = copy.deepcopy(raw)
     merged["classifications"] = {**BUILTIN["classifications"], **raw.get("classifications", {"PUBLIC": 0})}
     own = {source.get("selector") for source in raw.get("sources", []) if isinstance(source, dict)}
@@ -178,7 +174,7 @@ def extend_builtin(raw: dict) -> dict:
 def load_policy(path: Path | None) -> Policy:
     """Load an operator policy; without one, use the built-in sensitive-field catalogue."""
     if path is None:
-        from leakhunter.policy.builtin import BUILTIN
+        from unspool.policy.builtin import BUILTIN
         return Policy(copy.deepcopy(BUILTIN))
     raw = yaml.safe_load(Path(path).read_text())
     if isinstance(raw, dict) and "extends" in raw:

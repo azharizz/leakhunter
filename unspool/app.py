@@ -8,9 +8,9 @@ import sys
 from urllib.request import urlopen
 from http.server import ThreadingHTTPServer
 
-from leakhunter.api.server import create_handler
-from leakhunter.application import service
-from leakhunter.providers.openrouter import ProviderFactory
+from unspool.api.server import create_handler
+from unspool.application import service
+from unspool.providers.openrouter import ProviderFactory
 
 # Compatibility state for callers that historically configured the provider through this module.
 API_URL = ""

@@ -1,6 +1,6 @@
 import unittest
 
-from leakhunter.providers.evidence import aggregate_evidence
+from unspool.providers.evidence import aggregate_evidence
 
 
 class EvidenceAggregationTests(unittest.TestCase):

@@ -26,7 +26,7 @@ dashboard-tests:
   stage: verify
   image: node:22-slim
   script:
-    - node --check leakhunter/static/app.js
+    - node --check unspool/static/app.js
     - node tests/test_dashboard.cjs
 
 security-audit:

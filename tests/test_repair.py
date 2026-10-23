@@ -7,9 +7,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from leakhunter.policy.engine import Policy
-from leakhunter.repairs.engine import _git, _parse_edits, _source_digest, propose_and_verify, resolve_context_findings
-from leakhunter.execution.runtime import run_suite
+from unspool.policy.engine import Policy
+from unspool.repairs.engine import _git, _parse_edits, _source_digest, propose_and_verify, resolve_context_findings
+from unspool.execution.runtime import run_suite
 
 
 SOURCE = '''import logging

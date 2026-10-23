@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from leakhunter.app import attach_evidence, main, release_gate
+from unspool.app import attach_evidence, main, release_gate
 
 
 class ReleaseGateTest(unittest.TestCase):
@@ -11,13 +11,13 @@ class ReleaseGateTest(unittest.TestCase):
         metrics = {"status": "COMPLETED", "runtime": {"tp": 1, "tn": 0, "fp": 0, "fn": 0}}
         for mode in (["--once", "evaluate"], []):
             with self.subTest(mode=mode):
-                with patch("leakhunter.app.configure") as configure, \
-                        patch("leakhunter.app.evaluate", return_value=metrics), patch("sys.stderr"), \
+                with patch("unspool.app.configure") as configure, \
+                        patch("unspool.app.evaluate", return_value=metrics), patch("sys.stderr"), \
                         patch("builtins.print"), self.assertRaises(SystemExit) as error:
                     main(arguments + mode + ["--gate"])
                 self.assertEqual(error.exception.code, 2)
                 configure.assert_not_called()
-        with patch("leakhunter.app.configure"), patch("leakhunter.app.evaluate", return_value=metrics) as evaluate, \
+        with patch("unspool.app.configure"), patch("unspool.app.evaluate", return_value=metrics) as evaluate, \
                 patch("builtins.print"):
             main(arguments + ["--once", "evaluate"])
         evaluate.assert_called_once_with()

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import re
@@ -196,7 +195,7 @@ def bind_diff(diff: dict, head: dict, *, head_sha: str, base: dict | None = None
         Path(note_output).write_text(verification_note(combined), encoding="utf-8")
 
     base_runtime = _runtime(base, "Base", require_pass=False)
-    runtime = _runtime(head, "Head", require_pass=False)
+    _runtime(head, "Head", require_pass=False)
     gate = head.get("gate")
     if not isinstance(gate, dict) or gate.get("passed") is not True:
         reasons = gate.get("reasons") if isinstance(gate, dict) else None

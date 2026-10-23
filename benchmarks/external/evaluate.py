@@ -11,9 +11,9 @@ import sys
 import tempfile
 import time
 
-from leakhunter.analyzers import python_ast, sources
-from leakhunter.analyzers.python_ast import analyze_project
-from leakhunter.policy.engine import Policy
+from unspool.analyzers import python_ast, sources
+from unspool.analyzers.python_ast import analyze_project
+from unspool.policy.engine import Policy
 
 
 def classification(expected, observed, failed=False):

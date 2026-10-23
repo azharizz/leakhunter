@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from leakhunter.storage.knowledge import KnowledgeBank
+from unspool.storage.knowledge import KnowledgeBank
 
 
 class KnowledgeIntegrityTest(unittest.TestCase):

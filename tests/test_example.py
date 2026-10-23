@@ -5,8 +5,8 @@ import unittest
 from unittest.mock import patch
 
 from example import generator
-from leakhunter.policy.engine import load_policy
-from leakhunter.execution.runtime import load_manifest, run_suite
+from unspool.policy.engine import load_policy
+from unspool.execution.runtime import load_manifest, run_suite
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "example"
 
@@ -15,7 +15,7 @@ class ExampleTest(unittest.TestCase):
     def test_complex_fixture_labels_match_actual_sink_observations(self):
         manifest = load_manifest(EXAMPLE / "runtime.yaml")
         result = run_suite(EXAMPLE / "fixtures", manifest,
-                           load_policy(EXAMPLE / "leakhunter-policy.yaml"), backend="local")
+                           load_policy(EXAMPLE / "unspool-policy.yaml"), backend="local")
         self.assertEqual(result["status"], "COMPLETED", result)
         self.assertTrue(result["functional_passed"], result)
         expected = {case["id"]: case["expected_violation"] for case in manifest["cases"]}

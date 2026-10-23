@@ -1,6 +1,6 @@
 # Graph workspace
 
-Designed with OpenDesign using Local Codex, then adapted to the existing live API.
+Designed as a standalone concept, then adapted to the existing live API.
 The graph and its record inspector form the primary workspace. The confirmed
 brief calls for a web app, connected flows, and an exploratory concept.
 
@@ -33,6 +33,5 @@ Verified on 2026-10-20:
   findings were fixed; no rules were suppressed.
 - Model calls, runtime execution, and repair runs were outside this UI verification.
 
-The standalone generated concept is available in [Local Codex](http://127.0.0.1:49573/projects/leakhunter-graph-workspace-b38d/conversations/3d6ff489-06f2-4bb9-ad1a-01aff7b4740d/files/index.html).
 The integrated app is available at [the local preview](http://127.0.0.1:8787/)
 while the preview server is running. Preview data is separate from the user's saved workspace.

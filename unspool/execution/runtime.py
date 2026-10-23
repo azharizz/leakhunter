@@ -16,8 +16,8 @@ import time
 
 import yaml
 
-from leakhunter.execution.external import run_external_suite
-from leakhunter.languages import entrypoint as language_entrypoint, manifest_language, runtime_image
+from unspool.execution.external import run_external_suite
+from unspool.languages import entrypoint as language_entrypoint, manifest_language, runtime_image
 
 
 _NAME = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$")
@@ -26,7 +26,7 @@ _CASE_KEYS = {"id", "module", "callable", "entrypoint", "args", "kwargs", "sensi
               "on_demand"}
 _CONTEXT_KEYS = {"audience", "recipient", "tenant", "source_tenant", "authorized", "contract", "synthetic",
                  "boundary_kind", "applicable_questions", "security_contexts"}
-_BOOTSTRAP = "import sys;sys.path.insert(0,sys.argv.pop(1));from leakhunter.runtime_worker import main;main()"
+_BOOTSTRAP = "import sys;sys.path.insert(0,sys.argv.pop(1));from unspool.runtime_worker import main;main()"
 _REGRESSION_TOOLS = {"python": {"python", "python3"}, "javascript": {"node", "bun"},
                      "typescript": {"node", "bun"}, "go": {"go"}, "rust": {"cargo", "rustc"}}
 
@@ -230,9 +230,9 @@ def run_suite(repository: Path, manifest: dict, policy, *, backend="docker", tim
         if manifest_language(manifest) != "python":
             return run_external_suite(repository, manifest, policy, language=manifest_language(manifest),
                                       backend=backend, timeout=float(timeout))
-        with tempfile.TemporaryDirectory(prefix="leakhunter-runtime-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="unspool-runtime-") as temporary:
             work = Path(temporary)
-            harness = work / "harness" / "leakhunter"
+            harness = work / "harness" / "unspool"
             harness.mkdir(parents=True)
             (harness / "__init__.py").write_text("")
             shutil.copyfile(Path(__file__).with_name("runtime_worker.py"), harness / "runtime_worker.py")
@@ -265,7 +265,7 @@ def run_suite(repository: Path, manifest: dict, policy, *, backend="docker", tim
                 if not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
                     raise RuntimeError("docker_inspection_failed")
                 result.update(docker_image=image, image_id=image_id)
-                container = "leakhunter-" + hashlib.sha256(os.urandom(32)).hexdigest()[:20]
+                container = "unspool-" + hashlib.sha256(os.urandom(32)).hexdigest()[:20]
                 command = [docker, "run", "--rm", "--pull=never", "--name", container, "--entrypoint=python",
                            "--network=none", "--read-only", "--memory=256m", "--cpus=1", "--pids-limit=64",
                            "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user", f"{os.getuid()}:{os.getgid()}",

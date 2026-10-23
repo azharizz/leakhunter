@@ -33,7 +33,7 @@ class Element {
       ? [...(child.classes.has(selector.slice(1)) ? [child] : []), ...child.querySelectorAll(selector)] : []);
   }
 }
-const root = path.join(__dirname, "../leakhunter/static");
+const root = path.join(__dirname, "../unspool/static");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "HTML IDs must stay unique");

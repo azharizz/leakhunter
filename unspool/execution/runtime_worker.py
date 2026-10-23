@@ -175,7 +175,7 @@ def _case(repository, case):
     capture_errors = []
     result = {"id": case["id"], "passed": False, "observations": observations, "captured_sinks": [],
               "call_events": [], "executed_lines": []}
-    artifact_workspace = tempfile.TemporaryDirectory(prefix="leakhunter-artifacts-") if case.get("artifacts") else None
+    artifact_workspace = tempfile.TemporaryDirectory(prefix="unspool-artifacts-") if case.get("artifacts") else None
     artifact_root = Path(artifact_workspace.name).resolve() if artifact_workspace else repository
 
     def capture(sink, payload):

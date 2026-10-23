@@ -5,7 +5,6 @@ import argparse
 import hashlib
 import os
 from pathlib import Path
-import stat
 
 
 _SAFE = '''def account_summary(account):

@@ -10,7 +10,7 @@ import re
 import stat
 import subprocess
 
-from leakhunter.providers.probes import probe_evidence_complete
+from unspool.providers.probes import probe_evidence_complete
 
 _SHA1 = re.compile(r"[0-9a-f]{40}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")

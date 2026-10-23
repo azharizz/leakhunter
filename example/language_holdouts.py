@@ -12,10 +12,10 @@ from pathlib import Path
 
 import yaml
 
-from leakhunter.analyzers.registry import analyze_project
-from leakhunter.execution.runtime import run_suite
-from leakhunter.languages import LANGUAGES, entrypoint_name
-from leakhunter.policy.engine import Policy
+from unspool.analyzers.registry import analyze_project
+from unspool.execution.runtime import run_suite
+from unspool.languages import LANGUAGES, entrypoint_name
+from unspool.policy.engine import Policy
 
 FAMILIES = ("response", "logging", "overwrite", "branch", "helper")
 POLICY = {"version": 1, "classifications": {"PUBLIC": 0, "SECRET": 1},

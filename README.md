@@ -120,39 +120,39 @@ gate as a general authorization to release customer code.
 
 Policy-aware exposure analysis for Python, JavaScript, TypeScript, Go, and Rust, executed synthetic evidence, and independently verified local repairs.
 
-`leakhunter/` is the installable application. It does not import `example/`, bundle a target repository, load `.env` automatically, or create state on import. `example/` owns its vulnerable application, policy, executable cases, generator, and launcher.
+`unspool/` is the installable application. It does not import `example/`, bundle a target repository, load `.env` automatically, or create state on import. `example/` owns its vulnerable application, policy, executable cases, generator, and launcher.
 
 ## Architecture status
 
 The engine experiments below are historical observations from the earlier local
 workflow; the GitLab/GCP results above were verified on 20 October 2026. Neither
-establishes universal production readiness. `leakhunter/` remains configurable for
+establishes universal production readiness. `unspool/` remains configurable for
 external repositories; executable fixtures and scenario generation remain in `example/`.
 
-Production layout is grouped by responsibility: `leakhunter/app.py` is the composition root; `api/` owns HTTP transport; `application/` owns orchestration and operation decorators; `providers/` owns model factories/clients; `execution/` owns runtime and worker code; `repairs/` owns repair verification; `storage/` owns the knowledge bank; `analyzers/`, `policy/`, and `static/` remain focused packages/assets. The package root contains only the composition entrypoints: `app.py`, `__init__.py`, and `__main__.py`.
+Production layout is grouped by responsibility: `unspool/app.py` is the composition root; `api/` owns HTTP transport; `application/` owns orchestration and operation decorators; `providers/` owns model factories/clients; `execution/` owns runtime and worker code; `repairs/` owns repair verification; `storage/` owns the knowledge bank; `analyzers/`, `policy/`, and `static/` remain focused packages/assets. The package root contains only the composition entrypoints: `app.py`, `__init__.py`, and `__main__.py`.
 
 Pattern boundaries are intentional: `application.decorators.exclusive` decorates long-running operations with the shared concurrency guard, while `providers.openrouter.ProviderFactory.create` is the Factory Method for provider transport selection. Stable value objects and pure analyzers do not receive artificial pattern wrappers.
 
 | Architecture area | Current status | Actual implementation and verification |
 | --- | --- | --- |
-| Knowledge graph UI | Implemented; browser-verified | `leakhunter/static/index.html` renders the Python code-property graph with node/edge filtering, inspection, and immutable snapshot selection. |
+| Knowledge graph UI | Implemented; browser-verified | `unspool/static/index.html` renders the Python code-property graph with node/edge filtering, inspection, and immutable snapshot selection. |
 | Knowledge CRUD | Implemented; browser-verified | Node and edge create/read/update/delete through the API and UI. Updates preserve analyzer metadata; live annotations survive scans without rewriting historical snapshots. |
 | Findings dashboard | Implemented with scoped runtime evidence | Displays source/sink paths, policy reasons, static `POSSIBLE` candidates, and `CONFIRMED_IN_TEST` evidence only for matching executed observations. Provider advice cannot confirm findings. |
 | Complex leak example | Implemented; executable synthetic application | `example/fixtures/` contains a multi-module customer application with HTTP/CLI entrypoints, repository access, logging, analytics, tenant checks, and functional regressions. Ten runtime cases cover leaking and permitted behavior. |
 | Synthetic case generation | Implemented; executable targets measured | `example/generator.py` materializes runnable repositories, manifests, policies, and labels for four flow families with positive/safe pairs. Eight generated targets were executed in Docker. The separate 137,200-combination metadata space is not claimed as executed coverage. |
-| Runtime evidence simulation | Replaced with actual execution/capture | `leakhunter/execution/runtime.py` and `leakhunter/execution/runtime_worker.py` invoke target callables and inspect returns, logs, configured HTTP/call boundaries, and artifacts. Captured synthetic marker hashes establish scoped observations; marker-print output is not used as proof. |
+| Runtime evidence simulation | Replaced with actual execution/capture | `unspool/execution/runtime.py` and `unspool/execution/runtime_worker.py` invoke target callables and inspect returns, logs, configured HTTP/call boundaries, and artifacts. Captured synthetic marker hashes establish scoped observations; marker-print output is not used as proof. |
 | Metrics | Implemented; measured synthetic results | Stores duration, findings, provider status/latency, policy version, labeled TP/FP/TN/FN/unknown counts, precision, recall, false-safe rate, and repair success. The ten-case example measured runtime TP=4, TN=6, FP=0, FN=0; static misses and false positives remain documented. |
 | OpenRouter Decision API | Source-backed typed Luna reviews; live response verified | Uses `openai/gpt-6-luna-decisions` through `/api/alpha/decisions`. Reviews source/graph boundaries even with zero static findings, with scoped runtime evidence and explicit unknowns. A real source-backed Luna request succeeded; the HTTP/Docker/snapshot/dashboard path also passed with a loopback typed-provider fixture. Advice never opens a deterministic gate. |
 | GitLab Duo simulation | Implemented through OpenRouter; Flash repair verified on a generated target | Uses `deepseek/deepseek-v4.1-flash` for bounded structured patch proposals through chat completions. A generated-target proposal passed independent checks and created a local Git commit/MR artifact. This simulates the Duo role, not GitLab integration or guaranteed model success. |
-| Policy schema | Implemented with validation and lifecycle | `leakhunter/policy/engine.py` validates classifications, selectors, sink constraints, invariants, types, and unknown keys. The knowledge bank enforces immutable version content, named approval, draft/approved/retired states, and no reapproval of retired versions. |
+| Policy schema | Implemented with validation and lifecycle | `unspool/policy/engine.py` validates classifications, selectors, sink constraints, invariants, types, and unknown keys. The knowledge bank enforces immutable version content, named approval, draft/approved/retired states, and no reapproval of retired versions. |
 | Policy engine | Implemented for declared semantics | Enforces classification allowances, denied fields, audience, recipient, contracts, authorization, tenant constraints, and supported invariants. Required missing context fails closed; static analysis does not invent runtime identity or consent. |
-| Static source/sink analyzer | Implemented; bounded Python data-flow analysis | `leakhunter/analyzers/python_ast.py` propagates classified values through assignments, containers, returns, and resolved calls, with explicit manifest entrypoints. Coverage reports parse errors, unsupported constructs, unresolved calls, and limitations; this is not a sound whole-program taint proof. |
+| Static source/sink analyzer | Implemented; bounded Python data-flow analysis | `unspool/analyzers/python_ast.py` propagates classified values through assignments, containers, returns, and resolved calls, with explicit manifest entrypoints. Coverage reports parse errors, unsupported constructs, unresolved calls, and limitations; this is not a sound whole-program taint proof. |
 | CPG generation | Implemented for supported Python constructs | Produces AST, control-flow, call, and data-flow nodes/edges with source/sink paths. Reflection, dynamic dispatch, implicit control taint, native extensions, and framework/ORM semantics are not fully modeled. |
 | Incremental MR analysis | Local branch/snapshot overlays plus an opt-in GitLab CI component | Caches AST/per-file outputs and invalidates affected import/call components after changes/deletions. `templates/verify/template.yml` runs on merge-request pipelines and emits exact-revision evidence and GitLab SAST artifacts. An independent second-project integration and live MR validation remain unverified. |
-| Knowledge Bank data model | Implemented with SQLite | `leakhunter/storage/knowledge.py` stores policy versions, immutable snapshots and relational facts, branch pointers, annotation overlays, metrics, evaluations, and repairs. Snapshot integrity hashes and database triggers protect historical records. |
+| Knowledge Bank data model | Implemented with SQLite | `unspool/storage/knowledge.py` stores policy versions, immutable snapshots and relational facts, branch pointers, annotation overlays, metrics, evaluations, and repairs. Snapshot integrity hashes and database triggers protect historical records. |
 | Evidence contract | Implemented; persisted with immutable snapshots | Records repository-relative locations, source revision, policy identity, executed case scope, sanitized observations, marker hashes, and runtime status. Missing or failed execution remains distinct from confirmed evidence; raw captured sensitive payloads are not persisted. |
 | Runtime verification | Implemented; Docker and dependency-image execution verified | Docker runs sanitized copies with network disabled, read-only repository mounts, resource limits, and minimized credentials/environment. Configured dependency images are supported and recorded by immutable image ID. Explicit trusted-local execution is available, never an automatic fallback or host sandbox. |
-| Duo repair branch/MR | Implemented; real local Git artifacts verified | `leakhunter/repairs/engine.py` applies allowlisted edits in an isolated copied repository and creates a real branch/commit plus `merge-request.json` only after passing gates. Artifacts explicitly declare `simulation: true`; no remote push, MR publication, merge, or deployment occurs. |
+| Duo repair branch/MR | Implemented; real local Git artifacts verified | `unspool/repairs/engine.py` applies allowlisted edits in an isolated copied repository and creates a real branch/commit plus `merge-request.json` only after passing gates. Artifacts explicitly declare `simulation: true`; no remote push, MR publication, merge, or deployment occurs. |
 | Independent differential verification | Implemented; passing and blocked outcomes exercised | Independently reproduces the baseline, reruns static/runtime/functional checks, pins policy/manifest/runtime image, protects original source and test scope, and blocks unresolved findings. Context-only discharge requires exact passing runtime evidence. A generated-target repair passed; leaking complex-example proposals failed without an MR. |
 
 Earlier verification included 41 passing regression tests, dashboard CRUD/history/approval interactions, and installed-wheel execution against external safe and unsafe targets. The original delivery pipeline passed 77 Python tests; the frozen 0.4.7 release has 127. These counts describe different revisions, not independent real-world benchmark cases. See [verification and limits](#verification-and-limits) and the [example's observed integration results](example/README.md#observed-integration-results) for scope and caveats.
@@ -165,14 +165,14 @@ Requires Python 3.10+, Git for repair workspaces, and Docker for isolated runtim
 python3 -m pip install .
 docker pull python:3.12-slim
 
-leakhunter \
+unspool \
   --repository "$TARGET_REPOSITORY" \
   --policy "$POLICY_FILE" \
   --runtime-manifest "$RUNTIME_MANIFEST" \
   --data-dir "$STATE_DIRECTORY"
 ```
 
-Omit `--policy` to start from the built-in sensitive-field catalogue (`leakhunter/policy/builtin.py`: passwords, tokens, secrets, API keys, card numbers, CVV, SSN, email, phone, and similar); add `extends: builtin` to an operator policy to keep the catalogue under your own rules. Open `http://127.0.0.1:8787`; `--port` changes the port. Use a separate state directory per target, outside both the application package and target repository. No changes inside `leakhunter/` are required to select another target. The installed wheel contains the application and dashboard, not the example package.
+Omit `--policy` to start from the built-in sensitive-field catalogue (`unspool/policy/builtin.py`: passwords, tokens, secrets, API keys, card numbers, CVV, SSN, email, phone, and similar); add `extends: builtin` to an operator policy to keep the catalogue under your own rules. Open `http://127.0.0.1:8787`; `--port` changes the port. Use a separate state directory per target, outside both the application package and target repository. No changes inside `unspool/` are required to select another target. The installed wheel contains the application and dashboard, not the example package.
 
 Without a runtime manifest, static analysis and knowledge editing still work, but runtime status is `NOT_RUN` and the release gate cannot pass. Without a model provider, analysis, execution, evaluation, and storage still work; model requests report `skipped`.
 
@@ -180,7 +180,7 @@ For the bundled target, see [example/README.md](example/README.md).
 
 ## Language contract
 
-`leakhunter/languages.py` defines language selection, entrypoints, source extensions, and normalized analyzer results. `leakhunter/analyzers/registry.py` keeps Python on its original AST analyzer and dispatches other languages to Tree-sitter. Every adapter returns `nodes`, `edges`, `findings`, `coverage`, `index`, and `incremental`; coverage and unresolved calls remain explicit.
+`unspool/languages.py` defines language selection, entrypoints, source extensions, and normalized analyzer results. `unspool/analyzers/registry.py` keeps Python on its original AST analyzer and dispatches other languages to Tree-sitter. Every adapter returns `nodes`, `edges`, `findings`, `coverage`, `index`, and `incremental`; coverage and unresolved calls remain explicit.
 
 One repository scan/runtime manifest selects one language. Set top-level `language` in the manifest; omitted means `python`. `--language` can select static-only analysis and must match a supplied manifest. Python's `module`/`callable` fixtures and worker remain unchanged.
 
@@ -219,7 +219,7 @@ The new static adapter is intraprocedural: classified fields, aliases, assignmen
 `example/language_holdouts.py` materializes and executes five safe/leaking pairs per language (response, logging, overwrite, branch, helper), saving source, policy, manifests, scans, runtime evidence, and metrics:
 
 ```sh
-PYTHONPATH=. python3 -m example.language_holdouts --output /tmp/leakhunter-language-local --backend local
+PYTHONPATH=. python3 -m example.language_holdouts --output /tmp/unspool-language-local --backend local
 ```
 
 Use `--backend docker` after installing all five language images. These 50 correlated synthetic checks measure static/runtime contracts only; they do not call Luna or estimate production accuracy.
@@ -323,7 +323,7 @@ The validated schema includes:
 - Unique sink kinds with `allow`, optional `deny_fields`, `audience`, `recipient`, `require_contract`, `require_authorization`, and `same_tenant` constraints.
 - Supported invariants: `secret_fields_never_in_external_payloads`, `cross_tenant_reads_must_be_authorized`, and `no_real_secrets_in_test_artifacts`.
 
-See [the example policy](example/leakhunter-policy.yaml) for complete syntax. Unknown fields/classes/invariants and invalid types are rejected. Required audience, recipient, contract, tenant, and authorization context fails closed when absent or mismatched; the engine does not invent identity or consent.
+See [the example policy](example/unspool-policy.yaml) for complete syntax. Unknown fields/classes/invariants and invalid types are rejected. Required audience, recipient, contract, tenant, and authorization context fails closed when absent or mismatched; the engine does not invent identity or consent.
 
 The knowledge bank treats policies without an explicit lifecycle as drafts. Approval requires a named `approved_by` operator and exact configured semantic policy content. Content cannot change under an existing version; configure a higher version instead. Retired versions cannot be approved again. A version explicitly supplied as approved must name its approving operator. These are local operator records, not external identity authentication or a multi-user approval service. Models cannot approve policy.
 
@@ -378,10 +378,10 @@ Incomplete model proposals are stored as rejected/failed, not successful repairs
 
 ```sh
 # Add the same repository/policy/manifest/data-dir flags shown above:
-leakhunter ... --once analyze --gate
-leakhunter ... --once evaluate
-leakhunter ... --once repair --gate
-leakhunter ... --once analyze --branch mr-42 --base-snapshot-id "$SNAPSHOT_ID"
+unspool ... --once analyze --gate
+unspool ... --once evaluate
+unspool ... --once repair --gate
+unspool ... --once analyze --branch mr-42 --base-snapshot-id "$SNAPSHOT_ID"
 ```
 
 Replace `...` with configuration flags; it is not a literal argument. One-shot commands print JSON. `analyze --gate` requires approved policy, supported analyzed Python, resolved candidates, and passing runtime security/functionality. `repair --gate` requires independent verification. Evaluation reports detection accuracy and cannot authorize release: `evaluate --gate` is rejected with exit 2 before configuration or execution. Failing supported gates exit with status 1. Parse, execution, provider, and unsupported-analysis states remain inspectable.
@@ -405,8 +405,8 @@ The server is loopback-only with Host/Origin checks and bounded JSON requests. I
 
 ```sh
 python3 -B -m unittest discover -s tests
-python3 -m example.generator --materialize /tmp/leakhunter-cases --count 8 --seed 17
-python3 -m example.generator --evaluate /tmp/leakhunter-cases --runtime-backend docker
+python3 -m example.generator --materialize /tmp/unspool-cases --count 8 --seed 17
+python3 -m example.generator --evaluate /tmp/unspool-cases --runtime-backend docker
 ```
 
 The generator requires an empty destination. Measured synthetic precision/recall applies only to the executed labeled cases, not arbitrary repositories. The current ten-case customer example detects all four runtime-positive cases and leaves six safe cases unflagged; static analysis has documented misses and false positives. A live OpenRouter-generated repair has passed independent Docker verification on a generated target; larger-example proposals that retained leaks were correctly blocked.

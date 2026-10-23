@@ -3,9 +3,9 @@ from pathlib import Path
 
 import unittest
 
-from leakhunter.languages import entrypoint
-from leakhunter.analyzers.registry import analyze_project
-from leakhunter.policy.engine import Policy
+from unspool.languages import entrypoint
+from unspool.analyzers.registry import analyze_project
+from unspool.policy.engine import Policy
 
 
 class LanguageContractTest(unittest.TestCase):

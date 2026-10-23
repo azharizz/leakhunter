@@ -148,8 +148,8 @@ def own_tests(app):
 
 def truth_leak(task, app, backend):
     sys.path.insert(0, str(ROOT))
-    from leakhunter.execution.runtime import load_manifest, run_suite
-    from leakhunter.policy.engine import load_policy
+    from unspool.execution.runtime import load_manifest, run_suite
+    from unspool.policy.engine import load_policy
     manifest = load_manifest(HERE / "probes" / f"{task['app']}.truth.yaml")
     policy = load_policy(HERE / "gate" / f"{task['app']}.policy.yaml")
     result = run_suite(app, manifest, policy, backend=backend, timeout=60)

@@ -6,7 +6,7 @@ import json
 import posixpath
 import re
 
-from leakhunter.providers.probes import probe_evidence_complete
+from unspool.providers.probes import probe_evidence_complete
 
 _START_V1 = "<!-- unspool:finding:v1\n"
 _START_V2 = "<!-- unspool:finding:v2\n"

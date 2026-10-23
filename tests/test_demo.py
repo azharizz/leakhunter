@@ -3,9 +3,9 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from leakhunter.execution.runtime import load_manifest, run_suite
-from leakhunter.policy.engine import load_policy
-from leakhunter.providers.probes import baseline_manifest
+from unspool.execution.runtime import load_manifest, run_suite
+from unspool.policy.engine import load_policy
+from unspool.providers.probes import baseline_manifest
 
 
 class DemoGateTest(unittest.TestCase):

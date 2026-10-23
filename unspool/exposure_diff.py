@@ -14,10 +14,10 @@ import tarfile
 import tempfile
 import uuid
 
-from leakhunter.analyzers.python_ast import ANALYZER_VERSION, analyze_project
-from leakhunter.execution.runtime import load_manifest
-from leakhunter.languages import manifest_entrypoints
-from leakhunter.policy.engine import load_policy
+from unspool.analyzers.python_ast import ANALYZER_VERSION, analyze_project
+from unspool.execution.runtime import load_manifest
+from unspool.languages import manifest_entrypoints
+from unspool.policy.engine import load_policy
 
 
 _SHA = re.compile(r"[0-9a-f]{40}")

@@ -12,21 +12,21 @@ import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from leakhunter.analyzers.registry import analyze_project
-from leakhunter.analyzers.sources import exclusions, source_files
-from leakhunter.application.decorators import exclusive
-from leakhunter.execution.runtime import load_manifest, run_suite
-from leakhunter.languages import LANGUAGES, extensions, finding_function, manifest_entrypoints, manifest_language, runtime_image
-from leakhunter.policy.engine import Policy, load_policy
-from leakhunter.providers.context import build_review_contexts
-from leakhunter.providers.evidence import aggregate_evidence
-from leakhunter.providers.probes import (baseline_manifest, calibration_report, merge_runtime,
+from unspool.analyzers.registry import analyze_project
+from unspool.analyzers.sources import exclusions, source_files
+from unspool.application.decorators import exclusive
+from unspool.execution.runtime import load_manifest, run_suite
+from unspool.languages import LANGUAGES, extensions, finding_function, manifest_entrypoints, manifest_language, runtime_image
+from unspool.policy.engine import Policy, load_policy
+from unspool.providers.context import build_review_contexts
+from unspool.providers.evidence import aggregate_evidence
+from unspool.providers.probes import (baseline_manifest, calibration_report, merge_runtime,
                                          probe_evidence_complete, probe_evidence_report,
                                          select_targeted_probes)
-from leakhunter.providers.reviews import review_contexts
-from leakhunter.providers.verdict import MODES as DECISION_MODES, decide
-from leakhunter.repairs.engine import propose_and_verify, resolve_context_findings
-from leakhunter.storage.knowledge import KnowledgeBank, encoded, now, policy_digest
+from unspool.providers.reviews import review_contexts
+from unspool.providers.verdict import MODES as DECISION_MODES, decide
+from unspool.repairs.engine import propose_and_verify, resolve_context_findings
+from unspool.storage.knowledge import KnowledgeBank, encoded, now
 
 
 MODEL_CALL = None

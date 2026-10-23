@@ -132,12 +132,11 @@ without Git metadata or credentials:
 ```sh
 UNSPOOL_BOUND_CONTEXT="$(mktemp -d)"
 mkdir -p "$UNSPOOL_BOUND_CONTEXT/framework/unspool" \
-  "$UNSPOOL_BOUND_CONTEXT/framework/leakhunter/analyzers" \
+  "$UNSPOOL_BOUND_CONTEXT/framework/unspool/analyzers" \
   "$UNSPOOL_BOUND_CONTEXT/framework/benchmarks/vampi"
 cp unspool/__init__.py unspool/http_acceptance.py unspool/http_evidence.py \
   "$UNSPOOL_BOUND_CONTEXT/framework/unspool/"
-cp leakhunter/__init__.py "$UNSPOOL_BOUND_CONTEXT/framework/leakhunter/"
-cp leakhunter/analyzers/sources.py "$UNSPOOL_BOUND_CONTEXT/framework/leakhunter/analyzers/"
+cp unspool/analyzers/sources.py "$UNSPOOL_BOUND_CONTEXT/framework/unspool/analyzers/"
 cp benchmarks/vampi/ci-independent.sh benchmarks/vampi/http-plan.json \
   "$UNSPOOL_BOUND_CONTEXT/framework/benchmarks/vampi/"
 cp benchmarks/vampi/independent.cloudbuild.yaml "$UNSPOOL_BOUND_CONTEXT/"

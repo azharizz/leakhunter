@@ -18,3 +18,8 @@ dist/
 public/
 evidence.json
 security-reports/
+.env.*
+.claude/
+.impeccable/
+.idea/
+.vscode/

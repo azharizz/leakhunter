@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import time
 
-from leakhunter.languages import entrypoint, runtime_image
+from unspool.languages import entrypoint, runtime_image
 
 
 _JS_RUNNER = r'''import fs from "node:fs";
@@ -203,7 +203,7 @@ class _Executor:
         if self.backend == "local":
             return _run_process(command, cwd=repository, input_data=input_data,
                                 env=_environment(workspace, docker=False), timeout=self.timeout)
-        container = "leakhunter-" + os.urandom(12).hex()
+        container = "unspool-" + os.urandom(12).hex()
         # The image needs only env, sh, cp and its native toolchain, never Python.
         argv = [self.docker, "run", "--rm", "--pull=never", "--name", container, "--interactive",
                 "--entrypoint=/usr/bin/env", "--network=none", "--read-only", "--memory=512m", "--cpus=1",
@@ -214,7 +214,7 @@ class _Executor:
                 "--mount", f"type=bind,source={workspace.with_suffix('.json')},target=/input.json,readonly",
                 "--mount", f"type=bind,source={workspace},target=/work", "--workdir", "/work", self.image_id, "-i"]
         argv.extend(f"{key}={value}" for key, value in _environment(Path("/work"), docker=True).items())
-        argv.extend(["/bin/sh", "-c", 'cp -R /repository/. /work/repository/ && cd /work/repository && exec "$@"', "leakhunter", *command])
+        argv.extend(["/bin/sh", "-c", 'cp -R /repository/. /work/repository/ && cd /work/repository && exec "$@"', "unspool", *command])
         try:
             return _run_process(argv, cwd=workspace, input_data=input_data, env=self.env, timeout=self.timeout)
         finally:
@@ -385,7 +385,7 @@ def run_external_suite(repository: Path, manifest: dict, policy, *, language: st
         if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("invalid timeout")
         repository = Path(repository).resolve(strict=True)
-        with tempfile.TemporaryDirectory(prefix="leakhunter-runtime-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="unspool-runtime-") as temporary:
             work = Path(temporary)
             (work / "harness").mkdir()
             (work / "harness" / "runner.mjs").write_text(_JS_RUNNER, encoding="utf-8")

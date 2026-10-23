@@ -6,8 +6,8 @@ import sys
 import tempfile
 import unittest
 
-from leakhunter.analyzers.python_ast import analyze_repository
-from leakhunter.policy.engine import Policy
+from unspool.analyzers.python_ast import analyze_repository
+from unspool.policy.engine import Policy
 
 
 class PortabilityTest(unittest.TestCase):
@@ -33,12 +33,21 @@ class PortabilityTest(unittest.TestCase):
             ids = {n["id"] for n in nodes}
             self.assertTrue(all(e["source"] in ids and e["target"] in ids for e in edges))
             # Only the deployable package is copied: no sibling example, policy or .env.
-            package = Path(__file__).resolve().parents[1] / "leakhunter"
-            shutil.copytree(package, root / "leakhunter", ignore=shutil.ignore_patterns("__pycache__"))
-            command = subprocess.run([sys.executable, "-B", "-m", "leakhunter.app", "--help"],
+            package = Path(__file__).resolve().parents[1] / "unspool"
+            shutil.copytree(package, root / "unspool", ignore=shutil.ignore_patterns("__pycache__"))
+            command = subprocess.run([sys.executable, "-B", "-m", "unspool.app", "--help"],
                                      cwd=root, capture_output=True, text=True)
             self.assertEqual(command.returncode, 0, command.stderr)
-            self.assertFalse((root / "leakhunter" / "data").exists())
+            self.assertFalse((root / "unspool" / "data").exists())
+
+    def test_leakhunter_imports_alias_the_unspool_modules(self):
+        import leakhunter.app
+        import unspool.app
+        from leakhunter.policy.engine import load_policy
+        from unspool.policy import engine
+        self.assertIs(leakhunter.app, unspool.app)
+        self.assertIs(load_policy, engine.load_policy)
+        self.assertEqual(unspool.app.__spec__.name, "unspool.app")
 
 
 if __name__ == "__main__":

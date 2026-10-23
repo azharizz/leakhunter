@@ -78,7 +78,7 @@ def materialize(destination: Path, count: int = 8, seed: int = 104729) -> dict:
     destination.mkdir(parents=True, exist_ok=True)
     if any(destination.iterdir()):
         raise ValueError("materialize destination must be empty")
-    policy_text = (Path(__file__).parent / "leakhunter-policy.yaml").read_text()
+    policy_text = (Path(__file__).parent / "unspool-policy.yaml").read_text()
     (destination / "policy.yaml").write_text(policy_text)
     entries = []
     for index in range(count):
@@ -159,9 +159,9 @@ def _metrics(pairs: list[tuple[bool, bool]]) -> dict:
 
 def evaluate_materialized(destination: Path, *, backend: str = "docker") -> dict:
     """Measure analyzer candidates and actual runtime violations against labels."""
-    from leakhunter.analyzers.python_ast import analyze_project
-    from leakhunter.policy.engine import load_policy
-    from leakhunter.execution.runtime import load_manifest, run_suite
+    from unspool.analyzers.python_ast import analyze_project
+    from unspool.policy.engine import load_policy
+    from unspool.execution.runtime import load_manifest, run_suite
 
     destination = Path(destination)
     catalog = json.loads((destination / "catalog.json").read_text())

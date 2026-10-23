@@ -10,7 +10,7 @@ import re
 import stat
 import tempfile
 
-from leakhunter.analyzers.sources import source_files
+from unspool.analyzers.sources import source_files
 from unspool.http_acceptance import strict_json, validate
 
 

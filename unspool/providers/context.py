@@ -6,9 +6,9 @@ import hashlib
 import json
 from pathlib import Path
 
-from leakhunter.languages import entrypoint_name, finding_function, manifest_language, module_name
-from leakhunter.policy.engine import Policy
-from leakhunter.providers.disclosure import MAX_CONTEXT_BYTES, SECRET_PATTERN, review_source
+from unspool.languages import entrypoint_name, finding_function, manifest_language, module_name
+from unspool.policy.engine import Policy
+from unspool.providers.disclosure import MAX_CONTEXT_BYTES, SECRET_PATTERN, review_source
 
 _MAX_UNITS = 24
 _MAX_CONNECTED = 12
@@ -108,9 +108,7 @@ def _flow_paths(findings, nodes, kept):
                       for identity in route if identity in kept]
         if not path_nodes:
             continue
-        lines = [node["line"] for node in path_nodes if isinstance(node.get("line"), int)]
         file = finding.get("file", "")
-        low, high = min(lines or [finding.get("line", 1)]), max(lines or [finding.get("line", 1)])
         predicates = [_node_view(node, "branch_predicate") | {"relation": "POTENTIAL_CONTROL_SCOPE",
                                                               "source_ref": f"{node['file']}:{node['line']}"}
                       for node in nodes.values()

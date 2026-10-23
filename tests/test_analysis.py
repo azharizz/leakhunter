@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from leakhunter.analyzers.python_ast import analyze_project, analyze_repository
-from leakhunter.policy.engine import Policy
+from unspool.analyzers.python_ast import analyze_project, analyze_repository
+from unspool.policy.engine import Policy
 
 
 def policy(**extra):
@@ -83,7 +83,7 @@ def loop(user, items):
             (root / "unrelated.py").write_text('def okay():\n    return "safe"\n')
             first = analyze_project(root, policy())
             cache = json.loads(json.dumps(first["index"]))
-            with patch("leakhunter.analyzers.python_ast.ast.parse", side_effect=AssertionError("cache reparsed")):
+            with patch("unspool.analyzers.python_ast.ast.parse", side_effect=AssertionError("cache reparsed")):
                 unchanged = analyze_project(root, policy(), cache)
             for key in ("nodes", "edges", "findings", "coverage"):
                 self.assertEqual(first[key], unchanged[key], key)
