@@ -200,6 +200,8 @@ def run(args):
                         record["latency_ms"], record["model_cost_usd"] = model_agent(task, app, args)
                     elif args.agent in {"reference", "shallow"}:
                         apply_fixture(task, app, args.agent)
+                    elif args.agent == "saved":  # re-gate an earlier run's exact patched files
+                        shutil.copytree(args.patches / task["id"] / str(index), app, dirs_exist_ok=True)
                     patch_dir = output / "patches" / task["id"] / str(index)
                     for path in task["allowed_files"]:
                         (patch_dir / path).parent.mkdir(parents=True, exist_ok=True)
@@ -221,6 +223,8 @@ def run(args):
              "agent": args.agent, "repair_model": args.repair_model or None,
              "decision_model": args.decision_model or None, "decision_mode": args.decision_mode,
              "started_at": stamp, "runs": runs}
+    if args.agent == "saved":
+        value["recheck_source"] = args.patches.parent.relative_to(ROOT).as_posix()
     (output / "runs.json").write_text(json.dumps(value, indent=1) + "\n", encoding="utf-8")
     report_from(output / "runs.json", args.runs)
     print(f"results: {output}")
@@ -246,7 +250,8 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("freeze").set_defaults(handler=freeze)
     running = commands.add_parser("run")
-    running.add_argument("--agent", choices=("model", "reference", "shallow", "none"), required=True)
+    running.add_argument("--agent", choices=("model", "reference", "shallow", "none", "saved"), required=True)
+    running.add_argument("--patches", type=Path, help="With --agent saved: an earlier results/<run>/patches directory")
     running.add_argument("--runs", type=int, default=tasks()["runs_per_task"])
     running.add_argument("--task", action="append", help="Limit to a task ID (repeatable); partial runs report incomplete")
     running.add_argument("--repair-model", default=os.environ.get("DUO_PROVIDER_MODEL", ""))
@@ -262,6 +267,10 @@ def main(argv=None):
     reporting.add_argument("--runs", type=int, default=3)
     reporting.set_defaults(handler=lambda args: report_from(args.runs_json, args.runs))
     args = parser.parse_args(argv)
+    if getattr(args, "agent", None) == "saved" and not (args.patches and args.patches.is_dir()):
+        parser.error("--agent saved requires --patches <existing results/<run>/patches directory>")
+    if getattr(args, "patches", None):
+        args.patches = args.patches.resolve()
     args.handler(args)
 
 

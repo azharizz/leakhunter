@@ -425,6 +425,10 @@ class _Project:
                     if receiver.known and not receiver.flows:
                         return self.hop(args[1] if len(args) > 1 else Value(known=True), node)
                     return self.source(self.hop(Value(flows=_fields_only(receiver.flows)), node), f"*.{key}", node)
+                if method == "get" and node.args and not args[0].all_flows():
+                    # A computed key that carries no data (e.g. names from a constant tuple) selects one field,
+                    # like record[key]; keys taken from the record itself still expose the whole record.
+                    return self.hop(_merge(Value(flows=_fields_only(receiver.all_flows())), *args), node)
                 combined = _merge(combined, receiver)
             # Unknown/library transformations propagate their inputs, never sanitize them.
             self.unresolved.add((path, getattr(node, "lineno", 1), name))

@@ -54,6 +54,17 @@ while choosing policies, probes or Luna thresholds.
 - `gate`: `unspool --once analyze --gate` with the operator's gate probes and Luna. Reports retain per-boundary configured-probe coverage so future runs can measure whether selected probes completed, not just whether the final gate blocked.
 - `luna_verdict`: Luna's verdict on the task's target functions.
 
+## Rechecking saved patches
+
+`run --agent saved --patches results/<run>/patches` re-gates an earlier run's exact patched files with the
+current gate (own tests, truth probes, gate, Luna); it makes no repair-model calls.
+
+`results/saved-20261023T113542Z/` re-gates the 36 patches from `results/model-20261021T092318Z/`: 36/36 pass their own tests,
+14/14 leaks blocked, 22/22 safe patches passed. **Disclosure:** the earlier recheck held two safe T05 patches
+because the Python analyzer treated `user.get(field)` with `field` taken from a constant tuple as reading the
+whole record. That analyzer rule was corrected after inspecting T05 (not a held-out task); keys taken from the
+record itself still count as whole-record exposure. Earlier result directories are kept unchanged.
+
 ## Duo spot check
 
 Run one or two tasks through the real GitLab Duo flow:
