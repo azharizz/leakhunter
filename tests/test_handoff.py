@@ -240,3 +240,14 @@ class WatchTest(unittest.TestCase):
         self.assertEqual(results[1], (8, {"status": "STOPPED"}))
         self.assertEqual({method for method, _ in paths}, {"GET"})
         self.assertIn("state=opened&labels=unspool%20hands-off", paths[0][1])
+
+    def test_promotion_without_cosign_stops_before_any_gitlab_call(self):
+        from unspool import handoff
+        with patch("unspool.handoff.shutil.which", return_value=None), \
+                patch("unspool.handoff.watch") as started, patch("unspool.handoff.from_issue") as issue, \
+                patch("sys.argv", ["unspool.handoff", "--project", "87860005", "--watch", "unspool"]), \
+                patch("sys.stderr"), self.assertRaises(SystemExit):
+            handoff.main()
+        started.assert_not_called()
+        issue.assert_not_called()
+

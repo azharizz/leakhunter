@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import tempfile
 import subprocess
 import time
@@ -524,6 +525,9 @@ def main():
     if args.preflight:
         print(json.dumps(preflight(config, GitLab())))
         return
+    if (not config or config.mode == "auto") and shutil.which("cosign") is None:
+        # Promotion ends by verifying signed protected-main evidence; find out now, not after a merge.
+        parser.error("cosign is required to verify signed evidence before promotion; install it and retry")
     options = {"config": config, "timeout": config.timeout, "interval": config.poll_interval} if config else {}
     if args.watch:
         def start(issue):
