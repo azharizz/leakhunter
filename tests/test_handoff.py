@@ -74,7 +74,8 @@ class HandoffTest(unittest.TestCase):
                 check("https://example.invalid", "a" * 40, attempts=1)
             request.assert_called_once()
 
-    def test_verified_repair_merges_exact_sha_and_waits_for_delivery(self):
+    @patch("unspool.handoff.shutil.which", return_value="/usr/local/bin/cosign")
+    def test_verified_repair_merges_exact_sha_and_waits_for_delivery(self, _cosign):
         mr, changes, calls = self.mr(), self.changes(), []
         merged = dict(mr, state="merged", merge_commit_sha="b" * 40)
         luna = {"mode": "required", "status": "DECIDED", "units": [], "flagged": [], "dismissed": []}
@@ -130,6 +131,10 @@ class HandoffTest(unittest.TestCase):
         self.assertEqual(next(body for method, _, body in calls if method == "PUT"), {"sha": "a" * 40})
         self.assertTrue(any(method == "POST" and "/notes" in path for method, path, _ in calls))
         self.assertTrue(any("/bridges?" in path for _, path, _ in calls))
+        calls.clear()
+        with patch("unspool.handoff.shutil.which", return_value=None), self.assertRaises(RuntimeError):
+            complete(1, 1, api=API(), interval=0)          # no cosign: refuse before the merge, not after
+        self.assertFalse(any(method == "PUT" for method, _, _ in calls))
         missing_cloud = API()
         missing_cloud.include_cloud = False
         with patch("unspool.attestation.verify", return_value={}):
@@ -240,14 +245,3 @@ class WatchTest(unittest.TestCase):
         self.assertEqual(results[1], (8, {"status": "STOPPED"}))
         self.assertEqual({method for method, _ in paths}, {"GET"})
         self.assertIn("state=opened&labels=unspool%20hands-off", paths[0][1])
-
-    def test_promotion_without_cosign_stops_before_any_gitlab_call(self):
-        from unspool import handoff
-        with patch("unspool.handoff.shutil.which", return_value=None), \
-                patch("unspool.handoff.watch") as started, patch("unspool.handoff.from_issue") as issue, \
-                patch("sys.argv", ["unspool.handoff", "--project", "87860005", "--watch", "unspool"]), \
-                patch("sys.stderr"), self.assertRaises(SystemExit):
-            handoff.main()
-        started.assert_not_called()
-        issue.assert_not_called()
-

@@ -76,7 +76,7 @@ Hands-off: leave the controller watching, then just create an issue with the
 issue is reported and never promoted, and the watch keeps going. Only project
 members can label issues, so the label is the go-ahead. Promotion needs `cosign` installed
 locally to verify the signed protected-main evidence; without it the controller
-refuses to start rather than stopping after a merge.
+refuses to merge rather than stopping after one.
 
 ```sh
 python3 -m unspool.handoff --project 87860005 --watch unspool
