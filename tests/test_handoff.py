@@ -145,16 +145,70 @@ class HandoffTest(unittest.TestCase):
 
     def test_issue_retry_reuses_the_existing_mr_without_retriggering_duo(self):
         calls = []
+        mr = self.mr()
 
         class API:
             def request(self, method, path, body=None):
                 calls.append(method)
                 if path == "projects/1/issues/1":
                     return {"iid": 1, "description": "Plain issue without an Unspool finding block"}
+                if path == "projects/1/merge_requests/2":
+                    return mr
                 return [{"iid": 2, "state": "opened"}]
 
         with patch("unspool.handoff.complete", return_value={"status": "verified"}) as finish:
             self.assertEqual(from_issue(1, 1, api=API())["status"], "verified")
             self.assertEqual(finish.call_args.args, (1, 2))
             self.assertNotIn("issue_binding", finish.call_args.kwargs)
-        self.assertEqual(calls, ["GET", "GET"])
+        self.assertEqual(calls, ["GET", "GET", "GET"])
+
+    def blocked_api(self, revisions):
+        """A repair MR whose exposure job blocks each revision in turn until the list runs out."""
+        test, posted, state = self, [], {"index": 0, "notes": []}
+
+        class API:
+            def request(self, method, path, body=None):
+                if path == "projects/1/issues/1":
+                    return {"iid": 1, "description": "Plain issue"}
+                if path.startswith("projects/1/issues/1/notes"):
+                    if method == "POST":
+                        posted.append(body["body"])
+                        state["notes"].append(body)
+                        state["index"] = min(state["index"] + 1, len(revisions) - 1)  # Duo pushes the next revision
+                        return {"id": len(posted)}
+                    return state["notes"]
+                sha, blocked = revisions[state["index"]]
+                if path == "projects/1/merge_requests/2":
+                    mr = test.mr()
+                    mr.update(sha=sha, head_pipeline={"id": 10 + state["index"], "sha": sha,
+                                                      "status": "failed" if blocked else "success"})
+                    return mr
+                if "/pipelines/" in path:
+                    return [{"id": 7, "name": "verify-exposure", "status": "failed" if blocked else "success"}]
+                if path.endswith("/artifacts/head-evidence.json"):
+                    return {"gate": {"reasons": ["Configured probes for non-clear Luna boundaries are incomplete or failed"]},
+                            "runtime": {"cases": [{"id": "csv-import-row-probe", "violations": [
+                                {"sink": "HTTP_RESPONSE", "symbol": "customer.password_hash"}]}]}}
+                return [{"iid": 2, "state": "opened"}]
+
+        return API(), posted
+
+    def test_a_blocked_repair_mr_is_handed_back_to_duo_with_the_evidence(self):
+        api, posted = self.blocked_api([("a" * 40, True), ("c" * 40, False)])
+        with patch("unspool.handoff.complete", return_value={"status": "READY_FOR_REVIEW"}) as finish:
+            self.assertEqual(from_issue(1, 1, api=api, interval=0)["status"], "READY_FOR_REVIEW")
+        self.assertEqual(finish.call_args.args, (1, 2))
+        self.assertEqual(len(posted), 1)
+        self.assertIn("@duo-developer-gitlab-ai-hackathon", posted[0])
+        self.assertIn("probe `csv-import-row-probe` observed `customer.password_hash` at HTTP_RESPONSE", posted[0])
+        self.assertIn("do not open a new MR", posted[0])
+        self.assertIn("<!-- unspool-repair:" + "a" * 40 + " -->", posted[0])
+
+    def test_repeated_blocks_are_bounded_and_never_double_posted(self):
+        api, posted = self.blocked_api([("a" * 40, True), ("c" * 40, True), ("d" * 40, True)])
+        with patch("unspool.handoff.complete") as finish:
+            with self.assertRaises(ValueError):
+                from_issue(1, 1, api=api, interval=0)
+        finish.assert_not_called()
+        self.assertEqual(len(posted), 2)
+        self.assertEqual(len({body.rsplit("unspool-repair:", 1)[1] for body in posted}), 2)

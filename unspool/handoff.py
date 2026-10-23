@@ -357,6 +357,79 @@ def complete(project, iid, *, api=None, timeout=1200, interval=10, config=None, 
     raise TimeoutError("Merge completed, but production verification has not completed")
 
 
+REPAIR_ATTEMPTS = 2
+_RUNNING = {"created", "waiting_for_resource", "preparing", "pending", "running", "scheduled"}
+
+
+def blocked_by_evidence(api, project, mr, config=None):
+    """Return the failed exposure-evidence job's head evidence when it alone decides the verdict, else None."""
+    pipeline = mr.get("head_pipeline") or {}
+    if pipeline.get("status") != "failed" or pipeline.get("sha") != mr.get("sha"):
+        return None
+    jobs = api.request("GET", f"projects/{project}/pipelines/{pipeline['id']}/jobs?per_page=100")
+    name = config.evidence_job if config else "verify-exposure"
+    job = next((item for item in jobs if isinstance(item, dict) and item.get("name") == name), None) \
+        if isinstance(jobs, list) else None
+    if not job or job.get("status") != "failed" or type(job.get("id")) is not int:
+        return None
+    try:
+        evidence = api.request("GET", f"projects/{project}/jobs/{job['id']}/artifacts/head-evidence.json")
+    except (GitLabError, ValueError):
+        evidence = None
+    return evidence if isinstance(evidence, dict) else {}
+
+
+def verdict_summary(evidence):
+    """The gate's reasons and observed violations, by symbol and sink; probe values are never included."""
+    gate = evidence.get("gate") if isinstance(evidence.get("gate"), dict) else {}
+    lines = [f"- {reason}" for reason in gate.get("reasons", []) if isinstance(reason, str)]
+    runtime = evidence.get("runtime") if isinstance(evidence.get("runtime"), dict) else {}
+    seen = sorted({f"- probe `{case.get('id')}` observed `{item.get('symbol')}` at {item.get('sink')}"
+                   for case in runtime.get("cases", []) if isinstance(case, dict)
+                   for item in case.get("violations") or [] if isinstance(item, dict)})
+    return "\n".join(lines + seen) or "- the exposure-evidence job failed"
+
+
+def repair_blocked(api, project, issue_iid, mr_iid, branch, *, config=None, journal=None, deadline, interval):
+    """Hand a candidate blocked by exposure evidence back to Duo, on the same branch and MR, then wait."""
+    requested = set(journal.data.get("repair_requested_shas", [])) if journal else set()
+    attempts = 0
+    while True:
+        mr = api.request("GET", f"projects/{project}/merge_requests/{mr_iid}")
+        if not isinstance(mr, dict):
+            return
+        pipeline = mr.get("head_pipeline") or {}
+        sha = mr.get("sha")
+        if pipeline.get("status") not in _RUNNING:
+            evidence = blocked_by_evidence(api, project, mr, config)
+            if evidence is None:
+                return
+            if sha not in requested:
+                marker = f"<!-- unspool-repair:{sha} -->"
+                notes = api.request("GET", f"projects/{project}/issues/{issue_iid}/notes?per_page=100")
+                if not any(marker in note.get("body", "") for note in notes if isinstance(note, dict)):
+                    if attempts >= REPAIR_ATTEMPTS:
+                        raise ValueError(f"Still blocked by exposure evidence after {REPAIR_ATTEMPTS} repair requests")
+                    trigger = config.trigger_username if config else "duo-developer-gitlab-ai-hackathon"
+                    paths = ", ".join(config.allowed_paths if config else (ALLOWED_PATH,))
+                    body = (f"@{trigger} The candidate on `{branch}` (MR !{mr_iid}, `{str(sha)[:12]}`) is blocked by "
+                            f"Unspool's independent exposure gate:\n\n{verdict_summary(evidence)}\n\n"
+                            f"Fix it on the existing branch `{branch}` so MR !{mr_iid} updates; do not open a new MR. "
+                            f"Change only {paths}, keep the requested behaviour, follow AGENTS.md, and run the "
+                            "independent checks. The authenticated local handoff controller re-verifies the new "
+                            "revision and handles promotion.\n\n" + marker)
+                    if journal:
+                        journal.check_stop()
+                    api.request("POST", f"projects/{project}/issues/{issue_iid}/notes", {"body": body})
+                    attempts += 1
+                requested.add(sha)
+                if journal:
+                    journal.save("REPAIR_REQUESTED", merge_request=mr_iid, repair_requested_shas=sorted(requested))
+        if time.monotonic() >= deadline:
+            raise TimeoutError("No new candidate revision was verified before the deadline")
+        time.sleep(interval)
+
+
 def from_issue(project, iid, *, api=None, timeout=1200, interval=10, config=None, journal=None):
     """Use local glab authentication to orchestrate Duo without expanding its token."""
     api = api or GitLab(journal)
@@ -393,6 +466,9 @@ def from_issue(project, iid, *, api=None, timeout=1200, interval=10, config=None
         if len(usable) > 1:
             raise ValueError("Multiple repair MRs exist; refuse ambiguous promotion")
         if usable:
+            if usable[0].get("state") == "opened":
+                repair_blocked(api, project, iid, usable[0]["iid"], branch, config=config, journal=journal,
+                               deadline=deadline, interval=interval)
             options = {"config": config} if config else {}
             if journal:
                 options["journal"] = journal
