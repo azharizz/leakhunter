@@ -136,6 +136,12 @@ class HandoffTest(unittest.TestCase):
         with patch("unspool.handoff.shutil.which", return_value=None), self.assertRaises(RuntimeError):
             complete(1, 1, api=API(), interval=0)          # no cosign: refuse before the merge, not after
         self.assertFalse(any(method == "PUT" for method, _, _ in calls))
+        mr["source_branch"] = merged["source_branch"] = "feature/legacy"          # a developer's own branch
+        with patch("unspool.attestation.verify", return_value={}):
+            self.assertEqual(complete(1, 1, api=API(), interval=0, any_branch=True)["status"], "DEPLOYED_AND_VERIFIED")
+            with self.assertRaises(ValueError):
+                complete(1, 1, api=API(), interval=0)          # only MR mode may promote a non-repair branch
+        mr["source_branch"] = merged["source_branch"] = "unspool/repair-1"
         missing_cloud = API()
         missing_cloud.include_cloud = False
         with patch("unspool.attestation.verify", return_value={}):
