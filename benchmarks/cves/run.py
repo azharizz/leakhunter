@@ -15,7 +15,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tarfile
@@ -25,8 +24,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 sys.path.insert(0, str(ROOT))
 
-from leakhunter.analyzers.python_ast import analyze_project  # noqa: E402
-from leakhunter.policy.engine import Policy  # noqa: E402
+from unspool.analyzers.python_ast import analyze_project  # noqa: E402
+from unspool.policy.engine import Policy  # noqa: E402
 
 
 def cases():
@@ -65,9 +64,9 @@ def export(case, commit, cache_root, destination):
 
 
 def luna_verdicts(root, analysis, policy, targets, model, call):
-    from leakhunter.providers.context import build_review_contexts
-    from leakhunter.providers.reviews import review_contexts
-    from leakhunter.providers.verdict import decide
+    from unspool.providers.context import build_review_contexts
+    from unspool.providers.reviews import review_contexts
+    from unspool.providers.verdict import decide
     revision = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(root.rglob("*.py")))).hexdigest()
     runtime = {"status": "NOT_RUN", "passed": False, "cases": [], "reason": "Static and Luna review only"}
     contexts = build_review_contexts(root, analysis, policy, runtime, None, revision)
@@ -117,7 +116,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     call = None
     if args.decision_model:
-        from leakhunter.providers.openrouter import OpenRouterClient
+        from unspool.providers.openrouter import OpenRouterClient
         call = OpenRouterClient(args.provider_url, os.environ.get("AGENT_PROVIDER_API_KEY", "")).call
     rows = []
     for case in cases():

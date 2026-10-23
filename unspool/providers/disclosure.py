@@ -5,7 +5,7 @@ import hashlib
 from pathlib import Path, PurePosixPath
 import re
 
-from leakhunter.languages import LANGUAGES, extensions
+from unspool.languages import LANGUAGES, extensions
 
 
 _SOURCE_EXTENSIONS = {suffix for language in LANGUAGES for suffix in extensions(language)}

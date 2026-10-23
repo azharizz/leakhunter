@@ -2,8 +2,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from leakhunter.analyzers.python_ast import analyze_project
-from leakhunter.policy.engine import load_policy
+from unspool.analyzers.python_ast import analyze_project
+from unspool.policy.engine import load_policy
 
 CHECKOUT = '''
 import logging

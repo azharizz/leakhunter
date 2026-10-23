@@ -82,7 +82,7 @@ def publish(evidence: dict, output: Path, commit: str) -> None:
                  "/api/metrics": [], "/api/snapshots": [], "/api/repairs": [], "/api/policies": [],
                  "/api/calibration": calibration}
     output.mkdir(parents=True, exist_ok=True)
-    assets = Path(__file__).resolve().parents[1] / "leakhunter" / "static"
+    assets = Path(__file__).resolve().parents[1] / "unspool" / "static"
     (output / "static").mkdir(exist_ok=True)
     for name in ("app.js", "styles.css"):
         shutil.copyfile(assets / name, output / "static" / name)

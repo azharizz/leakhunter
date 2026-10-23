@@ -2,7 +2,7 @@
 
 Everything specific to this target lives here: `fixtures/`, `runtime.yaml`, policy,
 case generator, model selections, and launcher. The dependency is
-`example → leakhunter`; the portable production package never imports this tree.
+`example → unspool`; the portable production package never imports this tree.
 All records and markers are invented. Do not replace them with customer data.
 
 ## Run the customer application independently
@@ -59,7 +59,7 @@ python3 -m example.run --offline --port 8787
 ```
 
 Open http://127.0.0.1:8787 and select **Run analysis**. The launcher passes
-`example/fixtures`, `example/leakhunter-policy.yaml`, `example/runtime.yaml`, and
+`example/fixtures`, `example/unspool-policy.yaml`, `example/runtime.yaml`, and
 `example/data`. Docker is the default runtime backend: isolated execution uses
 no network and does not inherit host credentials. Docker and the pre-pulled image
 must be available; missing prerequisites are execution errors, not local fallbacks.
@@ -117,11 +117,11 @@ produce local artifacts; there is no remote push, merge, or deployment.
 python3 -m example.generator --sample 20
 
 # Empty destination required. Eight programs cover four positive/safe pairs:
-python3 -m example.generator --materialize /tmp/leakhunter-cases --count 8 --seed 17
+python3 -m example.generator --materialize /tmp/unspool-cases --count 8 --seed 17
 # Default isolated execution:
-python3 -m example.generator --evaluate /tmp/leakhunter-cases --output /tmp/leakhunter-evaluation.json
+python3 -m example.generator --evaluate /tmp/unspool-cases --output /tmp/unspool-evaluation.json
 # Explicit opt-in for these trusted generated programs:
-python3 -m example.generator --evaluate /tmp/leakhunter-cases --trusted-local
+python3 -m example.generator --evaluate /tmp/unspool-cases --trusted-local
 ```
 
 Materialization creates a pinned `policy.yaml`, labeled `catalog.json`, and one

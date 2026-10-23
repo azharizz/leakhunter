@@ -16,11 +16,11 @@ import stat
 import subprocess
 import uuid
 
-from leakhunter.analyzers.registry import analyze_project
-from leakhunter.execution.runtime import run_suite
-from leakhunter.languages import LANGUAGES, entrypoint_name, extensions, finding_function, manifest_entrypoints, manifest_language
-from leakhunter.policy.engine import Policy
-from leakhunter.providers.disclosure import (
+from unspool.analyzers.registry import analyze_project
+from unspool.execution.runtime import run_suite
+from unspool.languages import LANGUAGES, entrypoint_name, extensions, finding_function, manifest_entrypoints, manifest_language
+from unspool.policy.engine import Policy
+from unspool.providers.disclosure import (
     MAX_CONTEXT_BYTES as _MAX_PROMPT,
     MAX_SOURCE_BYTES as _MAX_FILE,
     SECRET_PATTERN as _SECRET,
@@ -30,7 +30,7 @@ from leakhunter.providers.disclosure import (
 _EXCLUDED = {".git", ".hg", ".svn", ".ssh", ".aws", ".config", ".venv", "venv",
              "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
              ".tox", "data", "runtime", "repairs", "artifacts", "dist", "build", ".cache",
-             ".leakhunter", "logs", "tmp", "temp", "runs"}
+             ".unspool", "logs", "tmp", "temp", "runs"}
 _CREDENTIAL_NAMES = {"credentials", "credentials.json", "credentials.yaml", "credentials.yml",
                      "secrets.json", "secrets.yaml", "secrets.yml", "id_rsa", "id_ed25519",
                      ".netrc", ".npmrc", ".pypirc"}
@@ -151,7 +151,7 @@ def _git(workspace: Path, control: Path, *args: str) -> str:
                "-c", "core.attributesFile=" + os.devnull, "-c", "core.fsmonitor=false",
                "-c", "init.templateDir=" + str(control / "templates"), "-c", "commit.gpgsign=false",
                "-c", "core.autocrlf=false", "-c", "user.name=Unspool Local Simulation",
-               "-c", "user.email=leakhunter@localhost", *args]
+               "-c", "user.email=unspool@localhost", *args]
     result = subprocess.run(command, cwd=workspace, env=env, capture_output=True, text=True, timeout=30)
     if result.returncode:
         # Git stderr can contain source/host paths: retain a bounded generic failure instead.
@@ -274,7 +274,7 @@ def propose_and_verify(repository: Path, data_dir: Path, policy: Policy, manifes
         gate("snapshot_identity", _source_digest(workspace) == original_sha,
              "The isolated source snapshot must match the original source digest")
         verification["baseline_source_sha"] = original_sha
-        branch = "leakhunter/repair-" + result["id"][:12]
+        branch = "unspool/repair-" + result["id"][:12]
         _git(workspace, control, "init", "--initial-branch=" + branch)
         result["branch"] = branch
         _git(workspace, control, "add", "--force", "--all", "--", ".")

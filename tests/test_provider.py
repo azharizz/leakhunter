@@ -3,7 +3,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-from leakhunter import app
+from unspool import app
 
 
 class DecisionResponseTests(unittest.TestCase):

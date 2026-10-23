@@ -13,17 +13,17 @@ import yaml
 
 from benchmarks.closed_loop.build_manifest import _replace_placeholder
 from benchmarks.closed_loop.seed import seed
-from leakhunter.analyzers.python_ast import analyze_project
-from leakhunter.policy.engine import Policy
-from leakhunter.providers.probes import (calibration_report, merge_runtime, probe_evidence_report,
+from unspool.analyzers.python_ast import analyze_project
+from unspool.policy.engine import Policy
+from unspool.providers.probes import (calibration_report, merge_runtime, probe_evidence_report,
                                          select_targeted_probes)
-from leakhunter.providers.verdict import decide
+from unspool.providers.verdict import decide
 from unspool.attestation import statement, verify
 from unspool.closed_loop_evidence import bind_diff, main as bind_main, verification_note
 from unspool.exposure_diff import diff_revisions, sast_report
 from unspool.gate_experiment import summarize
 from unspool.issue_binding import parse_issue_binding, validate_issue_evidence
-from unspool.issue_draft import draft
+from unspool.issue_draft import _actionable, draft
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / "benchmarks" / "closed_loop"
@@ -123,6 +123,9 @@ class ClosedLoopEndToEndTest(unittest.TestCase):
             self.assertTrue(any(item.get("exposure") == "WHOLE_RECORD" for item in leaking["findings"]))
             text = draft(leaking, yaml.safe_load(manifest.read_text()), "app/accounts.py", base,
                          target_directory="app")
+            chosen = next(item["id"] for item in leaking["findings"] if _actionable(item))
+            self.assertIn("app/accounts.py", draft(leaking, yaml.safe_load(manifest.read_text()), "app/accounts.py",
+                                                   base, finding_id=chosen, target_directory="app"))
             self.assertTrue(all(value not in text for value in MARKERS.values()), "probe values must not leak")
             self.assertIn("`customer_id`", text)
             block = parse_issue_binding(text)

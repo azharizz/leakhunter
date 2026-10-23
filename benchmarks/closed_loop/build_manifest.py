@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml
 
-from leakhunter.execution.runtime import load_manifest
+from unspool.execution.runtime import load_manifest
 
 
 _PREFIX = "UNSPOOL_CLOSED_LOOP_"

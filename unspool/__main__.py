@@ -1,4 +1,4 @@
-from leakhunter.app import main
+from unspool.app import main
 
 if __name__ == "__main__":
     main()

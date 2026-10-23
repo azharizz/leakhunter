@@ -5,10 +5,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from leakhunter.analyzers.python_ast import analyze_project
-from leakhunter.policy.engine import Policy
-from leakhunter.providers.context import build_review_contexts
-from leakhunter.providers.disclosure import MAX_CONTEXT_BYTES, MAX_SOURCE_BYTES
+from unspool.analyzers.python_ast import analyze_project
+from unspool.policy.engine import Policy
+from unspool.providers.context import build_review_contexts
+from unspool.providers.disclosure import MAX_CONTEXT_BYTES, MAX_SOURCE_BYTES
 
 
 class ReviewContextTest(unittest.TestCase):
@@ -243,7 +243,7 @@ class ReviewContextTest(unittest.TestCase):
         (self.root / "module.py").write_bytes(b'from external import db\r\n\r\ndef endpoint():\r\n    return db.fetch()\r\n')
         analysis = analyze_project(self.root, self.policy)
         cached = json.loads(json.dumps(analysis))
-        with patch("leakhunter.analyzers.python_ast.ast.parse", side_effect=AssertionError("must use cached spans")):
+        with patch("unspool.analyzers.python_ast.ast.parse", side_effect=AssertionError("must use cached spans")):
             contexts = self.build(cached)
         self.assertEqual(contexts, self.build(analysis))
         self.assertIn("\r\n", contexts["reviews"][0]["code"][0]["text"])

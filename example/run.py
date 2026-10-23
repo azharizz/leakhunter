@@ -3,7 +3,7 @@ from pathlib import Path
 import argparse
 import os
 
-from leakhunter.app import main
+from unspool.app import main
 
 HERE = Path(__file__).resolve().parent
 
@@ -28,7 +28,7 @@ def run():
                 os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
     main([
         "--repository", str(HERE / "fixtures"),
-        "--policy", str(HERE / "leakhunter-policy.yaml"),
+        "--policy", str(HERE / "unspool-policy.yaml"),
         "--data-dir", str(HERE / "data"),
         "--port", str(args.port),
         "--runtime-manifest", str(args.runtime_manifest),

@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from leakhunter.policy.engine import Policy
-from leakhunter.execution.runtime import load_manifest, run_suite
+from unspool.policy.engine import Policy
+from unspool.execution.runtime import load_manifest, run_suite
 
 
 MARKER = "SYNTHETIC_PRIVATE_8be71d"
@@ -138,8 +138,8 @@ def run(record):
         case["artifacts"] = [{"path": "export.txt", "sink": "TEST_ARTIFACT"}]
         result = self.execute("from pathlib import Path\ndef run(record):\n    Path('export.txt').write_text(record['private'])\n    return {'ok': True}\n", case)
         self.assertEqual(result["cases"][0]["violations"][0]["sink"], "TEST_ARTIFACT")
-        (self.root / "regression.py").write_text("import os\nassert 'LEAKHUNTER_TEST_CREDENTIAL' not in os.environ\nraise SystemExit(1)\n")
-        with patch.dict("os.environ", {"LEAKHUNTER_TEST_CREDENTIAL": "must-not-inherit"}):
+        (self.root / "regression.py").write_text("import os\nassert 'UNSPOOL_TEST_CREDENTIAL' not in os.environ\nraise SystemExit(1)\n")
+        with patch.dict("os.environ", {"UNSPOOL_TEST_CREDENTIAL": "must-not-inherit"}):
             result = run_suite(self.root, {"version": 1, "cases": [self.case], "regression_command": ["python", "regression.py"]},
                                self.policy, backend="local")
         self.assertEqual(result["status"], "ERROR")
@@ -175,7 +175,7 @@ def run(record):
 
     def test_default_backend_never_falls_back_to_local(self):
         (self.root / "fixture.py").write_text("def run(record):\n    return {'ok': True}\n")
-        with patch("leakhunter.execution.runtime.shutil.which", return_value=None):
+        with patch("unspool.execution.runtime.shutil.which", return_value=None):
             result = run_suite(self.root, {"version": 1, "cases": [self.case]}, self.policy)
         self.assertEqual(result["backend"], "docker")
         self.assertEqual(result["error"], "docker_unavailable")

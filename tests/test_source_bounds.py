@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from leakhunter.analyzers import sources
+from unspool.analyzers import sources
 
 
 class SourceBoundsTest(unittest.TestCase):
@@ -27,9 +27,9 @@ class SourceBoundsTest(unittest.TestCase):
                 root = Path(directory)
                 os.mkfifo(root / ("blocked" + suffix))
                 code = f'''from pathlib import Path
-from leakhunter.analyzers.registry import analyze_project
-from leakhunter.application import service
-from leakhunter.policy.engine import Policy
+from unspool.analyzers.registry import analyze_project
+from unspool.application import service
+from unspool.policy.engine import Policy
 root = Path({str(root)!r})
 policy = Policy({{"classifications": {{"PUBLIC": 0}}, "sources": [], "sinks": []}})
 service.LANGUAGE = {language!r}

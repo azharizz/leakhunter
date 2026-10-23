@@ -3,8 +3,8 @@ import json
 import unittest
 from unittest.mock import Mock
 
-from leakhunter.providers.disclosure import MAX_CONTEXT_BYTES
-from leakhunter.providers.reviews import review_contexts
+from unspool.providers.disclosure import MAX_CONTEXT_BYTES
+from unspool.providers.reviews import review_contexts
 
 
 QUESTION_IDS = {

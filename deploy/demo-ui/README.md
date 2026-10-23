@@ -1,6 +1,6 @@
 # Unspool demo UI (Cloud Run)
 
-The real Unspool front-end (`leakhunter/static`) served with recorded analyses from MR !30: the leak
+The real Unspool front-end (`unspool/static`) served with recorded analyses from MR !30: the leak
 candidate, GitLab Duo's fix, and a no-policy run. Static files only; a small script in `site/app/index.html`
 answers the app's `/api` calls from `site/api-*/` and refuses every write, so the demo is read-only.
 

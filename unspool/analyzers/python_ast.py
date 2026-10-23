@@ -4,12 +4,11 @@ import ast
 import copy
 import fnmatch
 import hashlib
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from leakhunter.policy.engine import Policy
-from leakhunter.analyzers.sources import exclusions, source_files
+from unspool.policy.engine import Policy
+from unspool.analyzers.sources import exclusions, source_files
 
 ANALYZER_VERSION = "python-flow-6"
 # Whole entrypoint arguments are opaque records that may hold any policy field.
@@ -689,11 +688,3 @@ def analyze_repository(root: Path, policy: Policy) -> tuple[list[dict], list[dic
     result = analyze_project(root, policy)
     return result["nodes"], result["edges"], result["findings"]
 
-
-def analyze_file(path: Path, policy: Policy) -> tuple[list[dict], list[dict], list[dict]]:
-    """Return graph records whose source file matches ``path``."""
-    path = Path(path)
-    result = analyze_project(path.parent, policy)
-    nodes = [node for node in result["nodes"] if node["file"] == path.name]
-    identities = {node["id"] for node in nodes}
-    return nodes, [edge for edge in result["edges"] if edge["source"] in identities and edge["target"] in identities], [finding for finding in result["findings"] if finding["file"] == path.name]

@@ -4,9 +4,9 @@ import fnmatch
 import hashlib
 from pathlib import Path
 
-from leakhunter.languages import DISPLAY_NAMES, extensions
-from leakhunter.policy.engine import Policy
-from leakhunter.analyzers.sources import exclusions, source_files
+from unspool.languages import DISPLAY_NAMES, extensions
+from unspool.policy.engine import Policy
+from unspool.analyzers.sources import exclusions, source_files
 
 ANALYZER_VERSION = "tree-sitter-flow-2"
 _EXCLUDED = exclusions("javascript")

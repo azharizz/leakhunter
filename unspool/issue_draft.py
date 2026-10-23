@@ -9,8 +9,8 @@ import json
 from pathlib import Path
 import re
 
-from leakhunter.execution.runtime import load_manifest
-from leakhunter.languages import finding_function
+from unspool.execution.runtime import load_manifest
+from unspool.languages import finding_function
 from unspool.issue_binding import (_END, _START, boundary_fingerprint, finding_fingerprint,
                                    probe_fingerprint, repository_path)
 
@@ -93,7 +93,8 @@ def draft(snapshot: dict, manifest: dict, allowlisted_file: str, base_sha: str,
         selected = [item for item in actionable if item.get("id") == finding_id]
         if not selected:
             raise ValueError("The requested finding is not actionable in this snapshot")
-        static_groups = {group_of(item): [item for item in actionable if group_of(item) == group_of(selected[0])]}
+        group = group_of(selected[0])
+        static_groups = {group: [item for item in actionable if group_of(item) == group]}
     elif review_id:
         static_groups = {}
     else:

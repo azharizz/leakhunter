@@ -6,8 +6,8 @@ runtime result counts as evidence.
 """
 from __future__ import annotations
 
-from leakhunter.languages import finding_function, module_name
-from leakhunter.providers.verdict import CLEAR_AT, CONTEXT_AT, probability as _probability
+from unspool.languages import finding_function, module_name
+from unspool.providers.verdict import CLEAR_AT, CONTEXT_AT, probability as _probability
 
 
 _THRESHOLD = 0.8
