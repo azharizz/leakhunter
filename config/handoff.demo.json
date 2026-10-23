@@ -5,15 +5,25 @@
   "target_branch": "main",
   "branch_prefix": "unspool/",
   "trigger_username": "duo-developer-gitlab-ai-hackathon",
-  "allowed_paths": ["demo/target/service.py"],
-  "verification_jobs": ["python-tests", "dashboard-tests", "verify-exposure"],
-  "deployment_jobs": ["deploy-pages", "production-smoke", "deploy-cloud-run"],
+  "allowed_paths": [
+    "demo/target/service.py"
+  ],
+  "verification_jobs": [
+    "python-tests",
+    "dashboard-tests",
+    "verify-exposure"
+  ],
+  "deployment_jobs": [
+    "deploy-pages",
+    "production-smoke",
+    "deploy-cloud-run"
+  ],
   "evidence_job": "verify-exposure",
   "evidence_path": "evidence.json",
   "health_path": "public/health.json",
   "protected_files": {
     "demo/policy.yaml": "c6900cd50f5fdc98ded5fded7d01940f8a01c9e737018cd6ccce42cc1c802fc6",
-    "demo/runtime.yaml": "bcd19cee089f756ebd36d994fdfa6e6307e6db7260db3312c4d5291bdeef3b52"
+    "demo/runtime.yaml": "30f9adb625a624e0c15fb931119eb18db74a8ff5dc57141fa1c96e1a20ac3859"
   },
   "mode": "review"
 }

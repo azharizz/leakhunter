@@ -54,7 +54,8 @@ def main(argv=None) -> None:
     parser.add_argument("--repository", type=Path, required=True)
     parser.add_argument("--language", choices=("python", "javascript", "typescript", "go", "rust"),
                         help="Defaults to the runtime manifest language, or Python without a manifest")
-    parser.add_argument("--policy", type=Path, required=True)
+    parser.add_argument("--policy", type=Path,
+                        help="Operator policy YAML; omit to use the built-in sensitive-field catalogue")
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--port", type=int, default=8787)
     parser.add_argument("--provider-url", default=os.getenv("AGENT_PROVIDER_URL", ""))

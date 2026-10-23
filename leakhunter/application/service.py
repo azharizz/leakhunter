@@ -64,10 +64,10 @@ def configure(args: argparse.Namespace, model_call) -> None:
     global REPOSITORY, POLICY_FILE, DATA, BANK, API_URL, API_KEY, DECISION_MODEL, DUO_MODEL
     global MANIFEST, MANIFEST_FILE, RUNTIME_BACKEND, TIMEOUT, MODEL_CALL, LANGUAGE, DECISION_MODE
     REPOSITORY = args.repository.resolve(strict=True)
-    POLICY_FILE = args.policy.resolve(strict=True)
+    POLICY_FILE = args.policy.resolve(strict=True) if args.policy else None  # None: built-in catalogue
     DATA = args.data_dir.resolve()
     package = Path(__file__).resolve().parent.parent
-    if not REPOSITORY.is_dir() or not POLICY_FILE.is_file():
+    if not REPOSITORY.is_dir() or POLICY_FILE is not None and not POLICY_FILE.is_file():
         raise ValueError("Repository must be a directory and policy must be a file")
     if DATA == package or package in DATA.parents:
         raise ValueError("Runtime data must be stored outside the application package")
