@@ -162,5 +162,27 @@ class Policy:
         return self.evaluate(classification, sink_kind)["allowed"]
 
 
-def load_policy(path: Path) -> Policy:
-    return Policy(yaml.safe_load(Path(path).read_text()))
+def extend_builtin(raw: dict) -> dict:
+    """Add the built-in catalogue under an operator policy; the operator's own entries win."""
+    from leakhunter.policy.builtin import BUILTIN
+    merged = copy.deepcopy(raw)
+    merged["classifications"] = {**BUILTIN["classifications"], **raw.get("classifications", {"PUBLIC": 0})}
+    own = {source.get("selector") for source in raw.get("sources", []) if isinstance(source, dict)}
+    merged["sources"] = list(raw.get("sources", [])) + [s for s in BUILTIN["sources"] if s["selector"] not in own]
+    kinds = {sink.get("kind") for sink in raw.get("sinks", []) if isinstance(sink, dict)}
+    merged["sinks"] = list(raw.get("sinks", [])) + [s for s in BUILTIN["sinks"] if s["kind"] not in kinds]
+    merged["invariants"] = sorted(set(raw.get("invariants", [])) | set(BUILTIN["invariants"]))
+    return merged
+
+
+def load_policy(path: Path | None) -> Policy:
+    """Load an operator policy; without one, use the built-in sensitive-field catalogue."""
+    if path is None:
+        from leakhunter.policy.builtin import BUILTIN
+        return Policy(copy.deepcopy(BUILTIN))
+    raw = yaml.safe_load(Path(path).read_text())
+    if isinstance(raw, dict) and "extends" in raw:
+        if raw["extends"] != "builtin":
+            raise ValueError("extends must be 'builtin'")
+        raw = extend_builtin({key: value for key, value in raw.items() if key != "extends"})
+    return Policy(raw)

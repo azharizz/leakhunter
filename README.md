@@ -169,7 +169,7 @@ leakhunter \
   --data-dir "$STATE_DIRECTORY"
 ```
 
-Open `http://127.0.0.1:8787`; `--port` changes the port. Use a separate state directory per target, outside both the application package and target repository. No changes inside `leakhunter/` are required to select another target. The installed wheel contains the application and dashboard, not the example package.
+Omit `--policy` to start from the built-in sensitive-field catalogue (`leakhunter/policy/builtin.py`: passwords, tokens, secrets, API keys, card numbers, CVV, SSN, email, phone, and similar); add `extends: builtin` to an operator policy to keep the catalogue under your own rules. Open `http://127.0.0.1:8787`; `--port` changes the port. Use a separate state directory per target, outside both the application package and target repository. No changes inside `leakhunter/` are required to select another target. The installed wheel contains the application and dashboard, not the example package.
 
 Without a runtime manifest, static analysis and knowledge editing still work, but runtime status is `NOT_RUN` and the release gate cannot pass. Without a model provider, analysis, execution, evaluation, and storage still work; model requests report `skipped`.
 
