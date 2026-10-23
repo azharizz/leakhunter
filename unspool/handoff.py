@@ -484,6 +484,26 @@ def from_issue(project, iid, *, api=None, timeout=1200, interval=10, config=None
         requests = api.request("GET", path)
 
 
+def watch(project, label, start, *, api=None, interval=60, once=False):
+    """Hands-off intake: start the issue workflow once for each open issue carrying ``label``, oldest first.
+
+    Only project members can label issues, so the label is the operator's go-ahead. Yields (iid, result).
+    """
+    api = api or GitLab()
+    started = set()
+    while True:
+        issues = api.request("GET", f"projects/{project}/issues?state=opened&labels={quote(label, safe='')}"
+                                    "&order_by=created_at&sort=asc&per_page=100")
+        for issue in issues if isinstance(issues, list) else []:
+            iid = issue.get("iid") if isinstance(issue, dict) else None
+            if type(iid) is int and iid > 0 and iid not in started:
+                started.add(iid)
+                yield iid, start(iid)
+        if once:
+            return
+        time.sleep(interval)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project", type=int)
@@ -493,6 +513,7 @@ def main():
     target.add_argument("--preflight", action="store_true", help="Read-only project and configuration checks")
     target.add_argument("--merge-request", type=int)
     target.add_argument("--issue", type=int)
+    target.add_argument("--watch", metavar="LABEL", help="Hands-off: run every open issue with this label")
     args = parser.parse_args()
     config = HandoffConfig.load(args.config) if args.config else None
     if config and args.project is not None and args.project != config.project_id:
@@ -503,10 +524,28 @@ def main():
     if args.preflight:
         print(json.dumps(preflight(config, GitLab())))
         return
+    options = {"config": config, "timeout": config.timeout, "interval": config.poll_interval} if config else {}
+    if args.watch:
+        def start(issue):
+            # One issue's failure stops that issue's workflow, never the intake; nothing it left is promoted.
+            try:
+                with RunJournal(args.state_dir, project, config.target_branch if config else "main",
+                                f"issue:{issue}", config.digest if config else "legacy-synthetic-demo-v1") as journal:
+                    return from_issue(project, issue, journal=journal, **options)
+            except (HandoffCanceled, KeyboardInterrupt):
+                raise
+            except Exception as error:
+                return {"status": "STOPPED", "reason": str(error)}
+        try:
+            for issue, result in watch(project, args.watch, start):
+                print(json.dumps({"issue": issue, **result}), flush=True)
+        except (HandoffCanceled, KeyboardInterrupt):
+            print(json.dumps({"status": "CANCELED", "remote_work_may_continue": True}))
+            raise SystemExit(130) from None
+        return
     iid = args.issue if args.issue is not None else args.merge_request
     if iid <= 0:
         parser.error("Issue and merge request numbers must be positive")
-    options = {"config": config, "timeout": config.timeout, "interval": config.poll_interval} if config else {}
     run = from_issue if args.issue is not None else complete
     intent = f"issue:{iid}" if args.issue is not None else f"mr:{iid}"
     try:

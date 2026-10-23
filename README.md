@@ -71,6 +71,15 @@ To start a bounded issue workflow:
 python3 -m unspool.handoff --project 87860005 --issue <iid>
 ```
 
+Hands-off: leave the controller watching, then just create an issue with the
+`unspool` label. It starts each labelled open issue once (oldest first); a stopped
+issue is reported and never promoted, and the watch keeps going. Only project
+members can label issues, so the label is the go-ahead.
+
+```sh
+python3 -m unspool.handoff --project 87860005 --watch unspool
+```
+
 The controller must remain running locally with an authenticated `glab` session.
 Cloud Run hosts only the public report, not the controller or a multi-user CRUD
 backend. GCP deployment uses short-lived GitLab OIDC credentials restricted to

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from unspool.handoff import complete, from_issue, validate_delivery_pipeline, validate_pipeline, validate_scope
+from unspool.handoff import complete, from_issue, validate_delivery_pipeline, validate_pipeline, validate_scope, watch
 from unspool.smoke import check
 
 
@@ -212,3 +212,31 @@ class HandoffTest(unittest.TestCase):
         finish.assert_not_called()
         self.assertEqual(len(posted), 2)
         self.assertEqual(len({body.rsplit("unspool-repair:", 1)[1] for body in posted}), 2)
+
+
+class WatchTest(unittest.TestCase):
+    def test_each_labelled_issue_starts_once_and_a_stopped_issue_does_not_stop_the_intake(self):
+        polls = [[{"iid": 7}, {"iid": 8}], [{"iid": 7}, {"iid": 8}, {"iid": 9}]]
+        paths = []
+
+        class API:
+            def request(self, method, path, body=None):
+                paths.append((method, path))
+                return polls.pop(0)
+
+        started = []
+
+        def start(iid):
+            started.append(iid)
+            return {"status": "STOPPED"} if iid == 8 else {"status": "DEPLOYED_AND_VERIFIED"}
+
+        with patch("unspool.handoff.time.sleep"):
+            results = []
+            for item in watch(1, "unspool hands-off", start, api=API()):
+                results.append(item)
+                if len(results) == 3:
+                    break
+        self.assertEqual(started, [7, 8, 9])
+        self.assertEqual(results[1], (8, {"status": "STOPPED"}))
+        self.assertEqual({method for method, _ in paths}, {"GET"})
+        self.assertIn("state=opened&labels=unspool%20hands-off", paths[0][1])
