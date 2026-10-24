@@ -72,6 +72,7 @@ def main():
     SHOTS.mkdir(exist_ok=True)
     page_png(args.fonts, "readme-art.html", "unspool-readme-banner.png", 1600, 480)
     page_png(args.fonts, "architecture.html", "unspool-architecture.png", 1600, 980)
+    page_png(args.fonts, "devpost-preview.html", "unspool-devpost-preview.png", 1500, 1000)
     for item in GIFS:
         gif(args.film, *item)
     boxes = json.loads((Path(args.captures) / "boxes.json").read_text())
