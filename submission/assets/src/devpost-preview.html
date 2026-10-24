@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unspool Devpost preview (3:2)</title>
+<style>
+@font-face { font-family: "Instrument Serif"; src: url(FONTS/InstrumentSerif-Italic.ttf); font-style: italic; }
+@font-face { font-family: "JB"; src: url(FONTS/JetBrainsMono.ttf); font-weight: 100 900; }
+:root { --night: #0E110D; --ink: #EEF3EA; --thread: #28765A; --glow: #3DDC97; --leak: #E5483E; --amber: #D9A13B; --muted: #9fb3a5;
+  --sf: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; --mono: "JB", ui-monospace, monospace; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1500px; height: 1000px; overflow: hidden; }
+body { position: relative; background: radial-gradient(ellipse at 28% 30%, #1b271c 0%, var(--night) 64%); color: var(--ink); font-family: var(--sf); -webkit-font-smoothing: antialiased; }
+.grid { position: absolute; inset: 0; background-image: radial-gradient(#2a3529 1.3px, transparent 1.4px); background-size: 26px 26px; opacity: .8; }
+.lockup { position: absolute; left: 90px; top: 86px; display: flex; align-items: center; gap: 26px; }
+.tile { width: 104px; height: 104px; border-radius: 26px; background: #20251f; border: 2px solid #3a4637; padding: 13px; }
+.word { font: 800 84px/1 var(--sf); letter-spacing: -.035em; }
+.head { position: absolute; left: 92px; top: 236px; width: 760px; font: 800 64px/1.05 var(--sf); letter-spacing: -.035em; }
+.head em { display: block; font: italic 400 78px/1.05 "Instrument Serif", serif; color: var(--glow); letter-spacing: 0; margin-top: 6px; }
+.sub { position: absolute; left: 94px; top: 470px; width: 720px; font: 500 24px/1.5 var(--sf); color: var(--muted); }
+.flow { position: absolute; right: 80px; top: 96px; width: 560px; display: flex; flex-direction: column; gap: 14px; }
+.step { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 16px; background: rgba(20,26,19,.9); border: 2px solid #263026; font: 600 21px/1.25 var(--mono); }
+.step b { flex: none; width: 74px; text-align: center; font: 800 13px var(--mono); letter-spacing: .12em; padding: 5px 0; border-radius: 7px; color: var(--night); background: var(--glow); }
+.step.you { border-color: #6b5420; } .step.you b { background: var(--amber); }
+.step.leak { border-color: #6a2a25; } .step.leak span { color: #ff8a80; }
+.step.live { border-color: var(--thread); } .step.live span { color: var(--glow); }
+.stats { position: absolute; left: 90px; right: 80px; bottom: 76px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.stat { border-radius: 18px; background: rgba(20,26,19,.9); border: 2px solid #263026; padding: 20px 22px; }
+.stat .n { font: 800 46px/1 var(--sf); letter-spacing: -.03em; color: var(--glow); font-variant-numeric: tabular-nums; }
+.stat .l { font: 600 15px/1.4 var(--mono); color: var(--muted); margin-top: 10px; }
+.tags { position: absolute; left: 94px; top: 590px; display: flex; gap: 12px; }
+.tags span { font: 700 14px var(--mono); letter-spacing: .1em; padding: 7px 12px; border-radius: 8px; border: 2px solid #3a4637; color: var(--ink); }
+.tags span.g { border-color: #FC6D26; } .tags span.c { border-color: #4285F4; }
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<div class="lockup">
+  <div class="tile"><svg viewBox="0 0 32 32" width="78" height="78" style="display:block;fill:#fff"><path d="M8 9v14h16M8 16h8l8-7M16 16l8 7" fill="none" stroke="#fff" stroke-width="2"/><circle cx="8" cy="9" r="2"/><circle cx="24" cy="9" r="2"/><circle cx="24" cy="23" r="2"/></svg></div>
+  <div class="word">Unspool</div>
+</div>
+<div class="head">One push. GitLab Duo fixes the leak. <em>Shipped verified.</em></div>
+<div class="sub">A hands-off exposure gate for GitLab: it proves a leaked secret, hands the evidence to GitLab Duo, and ships only the revision it can verify.</div>
+<div class="tags"><span>PATH B</span><span>HANDS-OFF</span><span class="g">GITLAB DUO</span><span class="c">CLOUD RUN</span></div>
+<div class="flow">
+  <div class="step you"><b>YOU</b><span>git push → merge request</span></div>
+  <div class="step leak"><b>CI</b><span>gate proves the leak · blocked</span></div>
+  <div class="step"><b>AUTO</b><span>controller starts GitLab Duo</span></div>
+  <div class="step"><b>DUO</b><span>fix pushed to the same branch</span></div>
+  <div class="step"><b>CI</b><span>gate re-runs · every check passes</span></div>
+  <div class="step live"><b>LIVE</b><span>merged · Cloud Run · verified</span></div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="n">8.5 min</div><div class="l">push → live, untouched<br>MR !44</div></div>
+  <div class="stat"><div class="n">14/14</div><div class="l">leaking AI fixes blocked<br>(passed every test)</div></div>
+  <div class="stat"><div class="n">22/22</div><div class="l">clean AI fixes passed<br>36-patch benchmark</div></div>
+  <div class="stat"><div class="n">9/9</div><div class="l">DevSecOps stages<br>touched</div></div>
+</div>
+</body>
+</html>
