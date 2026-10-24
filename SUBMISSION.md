@@ -59,6 +59,7 @@ remote recovery and operating limits remain open work.
 ## Before and after: scope of the additions
 
 Original project: LeakHunter, renamed Unspool with compatible Python imports.
+Original MIT project: [github.com/azharizz/leakhunter](https://github.com/azharizz/leakhunter), imported to GitLab with its history.
 Its original Git history starts on 19 October 2026; MIT licensing was committed
 on 20 October. It is not a long-established pre-hackathon project.
 Its first two commits were scanned with Gitleaks 8.30.1 and reviewed; no

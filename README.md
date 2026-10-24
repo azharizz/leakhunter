@@ -1,437 +1,304 @@
-# Unspool
+<p align="center">
+  <img src="submission/assets/unspool-readme-banner.png" alt="Unspool: pull the thread before it unravels. One push opens a merge request; Unspool proves the leak, GitLab Duo fixes it, the controller ships the verified revision." width="100%">
+</p>
 
-Evidence before agent promotion: bounded GitLab Duo repairs, explicit release
-gates, and a graph that shows what was verified.
+<div align="center">
+  <h1>UNSPOOL</h1>
+  <p><strong>A hands-off exposure gate for GitLab: open a merge request, and a leaked secret is proven, fixed by GitLab Duo, and shipped verified, with nobody in the middle.</strong></p>
+  <p><em>Every sensitive field leaves your code on a thread: from where it is born to where it is sent.<br>Unspool pulls that thread before it unravels in production.</em></p>
+  <p>
+    <a href="submission/submission-description.md"><img src="https://img.shields.io/badge/SUBMISSION%20DESCRIPTION-28765A?style=for-the-badge&logoColor=white" alt="Read the submission description"></a>
+    <a href="https://gitlab-transcend.devpost.com/"><img src="https://img.shields.io/badge/GITLAB%20TRANSCEND%20HACKATHON-0E110D?style=for-the-badge&logo=gitlab&logoColor=white" alt="GitLab Transcend Hackathon"></a>
+    <a href="https://unspool-398376578726.us-central1.run.app"><img src="https://img.shields.io/badge/LIVE%20ON%20CLOUD%20RUN-EEF3EA?style=for-the-badge&labelColor=28765A&logo=googlecloud&logoColor=white" alt="Live report on Google Cloud Run"></a>
+    <a href="https://unspool-demo-398376578726.us-central1.run.app"><img src="https://img.shields.io/badge/TRY%20THE%20UI-3DDC97?style=for-the-badge&logoColor=0E110D" alt="Read-only demo of the Unspool UI"></a>
+  </p>
+  <p>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-3DDC97.svg" alt="MIT license"></a>
+    <img src="https://img.shields.io/badge/path-B%20%C2%B7%20Bring%20Your%20Own-28765A.svg" alt="Path B: Bring Your Own">
+    <img src="https://img.shields.io/badge/autonomy-Hands--off-28765A.svg" alt="Hands-off autonomy">
+    <img src="https://img.shields.io/badge/Python-3.10%20%E2%80%93%203.12-3776AB.svg" alt="Python 3.10 to 3.12">
+    <img src="https://img.shields.io/badge/tests-162%20passing-3DDC97.svg" alt="162 tests passing">
+  </p>
+  <p>
+    <img src="https://img.shields.io/badge/GitLab%20Duo-Agent%20Platform%20%C2%B7%20Developer%20flow-FC6D26.svg" alt="GitLab Duo Agent Platform, Developer flow">
+    <img src="https://img.shields.io/badge/GitLab-CI%2FCD%20%C2%B7%20Pages%20%C2%B7%20Releases-FC6D26.svg" alt="GitLab CI/CD, Pages and Releases">
+    <img src="https://img.shields.io/badge/Google%20Cloud-Run%20%C2%B7%20Build%20%C2%B7%20Secret%20Manager-4285F4.svg" alt="Google Cloud Run, Cloud Build and Secret Manager">
+    <img src="https://img.shields.io/badge/auth-Workload%20Identity%20Federation-4285F4.svg" alt="Workload Identity Federation">
+    <img src="https://img.shields.io/badge/evidence-Sigstore%20cosign-D9A13B.svg" alt="Sigstore cosign signed evidence">
+    <img src="https://img.shields.io/badge/gate-typed%20decision%20model%20%2B%20canary%20probes-E5483E.svg" alt="Typed decision model and canary probes">
+  </p>
+  <p>
+    <a href="submission/submission-description.md">Submission</a> ·
+    <a href="submission/assets/unspool-loop.gif">The hands-off loop</a> ·
+    <a href="#the-proof-run-mr-44">Proof run</a> ·
+    <a href="#nine-devsecops-stages">Nine stages</a> ·
+    <a href="submission/technical-notes.md">Technical notes</a> ·
+    <a href="JUDGE_GUIDE.md">Judge guide</a>
+  </p>
+  <p><sub>git push → exposure gate proves the leak → GitLab Duo fixes it on the same branch → gate passes → merged, deployed, live revision confirmed</sub></p>
+</div>
 
-Start with [JUDGE_GUIDE.md](JUDGE_GUIDE.md) for the pinned local demonstration.
-[Release 0.4.7](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/releases/v0.4.7)
-retains the CI-built wheel and verification bundle; [RELEASE.md](RELEASE.md)
-records its source and checksum. [SUBMISSION.md](SUBMISSION.md) contains the
-submission text, evidence map, Path B basis and author handoff.
+> [!IMPORTANT]
+> The loop below ran for real on this project: [MR !44](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/44) went from one `git push` to a verified Cloud Run deployment in about 8.5 minutes with no human action after the push. The Unspool controller runs on the operator's machine with their existing `glab` login (it is the only identity allowed to merge); GitLab Duo writes every fix; the gate's typed decision model is a third-party API. The demo target is a small synthetic service, and automatic promotion is limited to the files an operator allowlists. See [Truth boundaries](#truth-boundaries).
 
-For installation on another GitLab.com repository, read [ADOPTION.md](ADOPTION.md).
-The 0.4.7 package accepts operator-owned project configuration, defaults to
-review-only behavior, and records private durable intent for safe resumption.
-Portable repair promotion currently allows explicitly configured Python application
-files only. JavaScript, TypeScript, Go and Rust analysis remains experimental;
-language parsing alone does not establish reliable security detection or repairs.
-Use [ROADMAP.md](ROADMAP.md) for the current evidence gates and outstanding work;
-[SECURITY.md](SECURITY.md) defines the trust boundaries and reporting route.
+<details>
+<summary><kbd>Contents</kbd></summary>
 
-The [GitLab project](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool)
-contains the redesign, MIT history, actual GitLab Duo integration, and CI delivery.
-The [Cloud Run report](https://unspool-398376578726.us-central1.run.app) and
-[Pages fallback](https://unspool-site-1032c3.gitlab.io) are read-only; graph CRUD runs locally.
-The [live demo](https://unspool-demo-398376578726.us-central1.run.app) opens the real Unspool UI with
-recorded MR !30 analyses (leak candidate, GitLab Duo's fix, a no-policy run); it is read-only and
-scales to zero ([deploy/demo-ui](deploy/demo-ui)).
-See [HANDOFF.md](HANDOFF.md) for the one-command issue workflow, deployment project,
-verification boundaries, and required local glab authentication. The older local
-repair engine described below remains a separate simulation of remote MR creation.
+- [At a glance](#-at-a-glance)
+- [The problem](#the-problem)
+- [The hands-off loop](#the-hands-off-loop)
+- [The proof run: MR !44](#the-proof-run-mr-44)
+- [How Unspool decides](#how-unspool-decides)
+- [What Unspool does](#what-unspool-does)
+- [Results](#results)
+- [Nine DevSecOps stages](#nine-devsecops-stages)
+- [Path B: before and after](#path-b-before-and-after)
+- [How the system is built](#how-the-system-is-built)
+- [Try it](#try-it)
+- [Run locally](#-run-locally)
+- [Verify](#verify)
+- [Truth boundaries](#truth-boundaries)
+- [Repository map](#repository-map)
+- [License and attribution](#license-and-attribution)
 
-Unspool is the new product name for the original LeakHunter project. Install with
-`pip install .` and run `unspool --help` or `python -m unspool --help`. The
-`leakhunter` Python imports and command remain compatible with existing callers.
+</details>
 
-The GitLab pipeline verifies the Python suite, dashboard, and a committed
-synthetic exposure case before publishing an immutable, read-only graph to
-Cloud Run and GitLab Pages. The full local app retains annotation CRUD. A
-published report does not expose repository execution or repair endpoints.
+## 🧵 At a glance
 
-MR pipelines require passing tests and independent exposure evidence. Evidence
-signing and attestation run on protected `main` after merge and remain required
-before deployment; the local controller reports completion only after that
-attestation, delivery jobs, and exact-revision smoke checks pass. This keeps
-promotion within Developer access without weakening the protected-branch gate.
+<table>
+  <tr>
+    <td width="25%" align="center"><strong>01 / PUSH</strong><br><br>A developer opens a merge request. That is the only human step.</td>
+    <td width="25%" align="center"><strong>02 / PROVE</strong><br><br>The exposure gate traces sensitive fields, asks a typed decision model where to look, and fires canary probes. A leak is proven, not guessed.</td>
+    <td width="25%" align="center"><strong>03 / FIX</strong><br><br>The controller starts GitLab Duo through the Agent Platform API with the evidence. Duo pushes the fix to the same branch.</td>
+    <td width="25%" align="center"><strong>04 / SHIP</strong><br><br>Every check re-runs. The controller merges the exact revision, waits for Cloud Run, and confirms the live revision.</td>
+  </tr>
+</table>
 
-## Verified workflow and evidence
+<p align="center"><sub>Tests pass. Reviews pass. Nobody pulls the thread. Unspool does, on every merge request.</sub></p>
 
-On 20 October 2026, a fresh run completed without intermediate human edits,
-retries, or approvals:
+## The problem
 
-1. The local controller triggered the real GitLab Duo Developer flow from
-   [issue #3](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/work_items/3).
-2. Duo session `9749019` changed only the allowlisted synthetic service and created
-   [MR !5](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/5).
-   The session page is unavailable anonymously; the MR and pipeline are public.
-3. The controller checked the complete diff, exact source revision, required CI
-   jobs, and independent runtime evidence before merging through the user's
-   existing authorized `glab` login. The Duo runtime's permissions were unchanged.
-4. [Pipeline 2967584891](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines/2967584891)
-   passed all 77 Python tests, dashboard checks, the exposure gate, Cloud Run
-   delivery, Pages delivery, and live exact-revision smoke checks. Both hosts
-   served commit `834f456623421a6150f16c2b82fd950910e0cb9a`.
-5. The controller returned `DEPLOYED_AND_VERIFIED` and recorded the pipeline and
-   merged revision on the MR. These links describe that observed run; later
-   deployments can serve newer commits, identified by their `health.json`.
+Somewhere in your API, a field is leaving that never should. Not a breach: one `password_hash` riding along in a public response, or a card number written to a log.
 
-To start a bounded issue workflow:
+These leaks survive everything teams already run. In our demo the change is one line, `fields = record.get("columns", fields)`, added so legacy CSV imports show a customer handle. Static analysis finds nothing. All 162 tests pass. Code review approves it. Only a legacy import row, one that carries its own column list, turns the public profile into the whole record.
 
-```sh
-python3 -m unspool.handoff --project 87860005 --issue <iid>
-```
+AI coding agents make this worse and better at once. In our benchmark, 14 of 36 agent-written fixes passed every test and still leaked. Agents can also fix leaks quickly, but only if something proves the leak first and only if their fix is checked by something other than the agent.
 
-Hands-off: leave the controller watching. After that, opening an MR is the only step:
+Unspool asks one narrow question on every merge request:
 
-```sh
-python3 -m unspool.handoff --project 87860005 --watch unspool
-```
+> Does any sensitive value leave this revision where it should not, and if it does, can GitLab Duo fix it and ship it without a person in the middle?
 
-- **Your MR.** For every MR to `main` whose pipeline starts while the watch runs and whose diff stays
-  inside the configured application files: if the exposure gate blocks it, the controller starts GitLab
-  Duo's Developer flow through the Duo Agent Platform API (no comment or mention) with the evidence, on the
-  MR's own branch. Duo pushes a fix, the pipeline re-runs by itself, and once every required job and the
-  signed evidence pass, the controller merges, deploys, and confirms the live revision.
-- **An issue.** An open issue with the `unspool` label starts the same flow from scratch: Duo writes the
-  change and opens the MR.
+## The hands-off loop
 
-Anything missing, failed, unknown, or still blocked after two Duo attempts stops that item without a
-merge; the watch keeps going. MRs touching other files (CI, tests, policy, tooling) are left alone.
-Promotion needs `cosign` installed locally to verify the signed protected-main evidence; without it the
-controller refuses to merge rather than stopping after one.
+<p align="center">
+  <img src="submission/assets/unspool-loop.gif" alt="Animated diagram: you open a merge request; everything after it is automatic. GitLab CI runs tests and the Unspool exposure gate; the controller starts GitLab Duo through the Agent Platform API; Duo pushes the fix to the same branch; the gate re-runs; the controller merges, deploys and runs the live check." width="100%">
+</p>
 
-The controller must remain running locally with an authenticated `glab` session.
-Cloud Run hosts only the public report, not the controller or a multi-user CRUD
-backend. GCP deployment uses short-lived GitLab OIDC credentials restricted to
-this project's protected `main` branch; no service account keys are stored in CI.
-See [deployment code, permissions, and cost settings](deploy/cloudrun/README.md).
-
-## What these results establish
-
-A separate external application experiment now has a real instructed repair:
-[VAmPI MR !1](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool-vampi-delivery/-/merge_requests/1)
-removes password/admin fields from its published debug exposure while the frozen
-HTTP acceptance checks preserve public identity behavior. Candidate pipeline
-`2968003131` passed, and the installed 0.4.0 controller independently returned
-`READY_FOR_REVIEW` for its exact revision before operator promotion. See the
-[reproduction record and limitations](benchmarks/vampi/README.md).
-VAmPI is an intentionally vulnerable external security lab; this result is not
-unknown-vulnerability discovery or proof of general repair accuracy.
-
-**This is a working hackathon prototype with real platform integration and
-controlled synthetic validation. It is not a production-grade security product.**
-Synthetic means the application, sensitive markers, labels, and expected behavior
-were deliberately constructed. The execution, captured observations, GitLab Duo
-session, MR, CI jobs, merge, cloud deployment, and HTTP smoke checks were real.
-
-| Evidence | What it establishes | What it does not establish |
+| Stage | What happens | What cannot happen silently |
 | --- | --- | --- |
-| 127 Python regression tests, dashboard checks and installed-wheel CI for 0.4.7 | The checked behavior passed at the frozen release; see [release records](RELEASE.md) | Absence of bugs, production load capacity, or compatibility with every repository |
-| Fixed synthetic exposure probe | The exercised response preserved its public contract and did not return the configured secret marker | Safety of unexecuted inputs, paths, sinks, dependencies, or business rules |
-| Fresh Duo-to-production run | The bounded workflow completed on actual GitLab and GCP infrastructure without an intermediate human action | Reliability across arbitrary tasks, adversarial repositories, permission models, or service outages |
-| Deployed revision smoke checks | Public HTTP endpoints served the exact verified report revision | A deployed customer backend, online scanning service, or hosted CRUD application |
-| Synthetic precision/recall measurements below | Performance on the stated executed labeled fixtures | Real-world detection accuracy or a representative independent benchmark |
+| **Push** | A developer pushes a branch and opens a merge request to `main`. | Nothing else is required: no label, no comment, no button. |
+| **Gate** | GitLab CI runs the tests and `verify-exposure`: static tracing, a typed decision model for unclear boundaries, and configured canary probes in isolation. | A gate that fails without producing evidence stops the run; Duo is never asked to fix a leak that was not found. |
+| **Hand-off** | The watching controller sees the blocked revision and starts GitLab Duo's Developer flow through the Duo Agent Platform API, on the MR's own branch, with the verdict: boundary, probe, field, sink. | No @-mention trigger; the session is recorded on the MR. Duo is never given merge rights. |
+| **Fix** | Duo pushes a fix to the same branch; the pipeline re-runs by itself. Still blocked after two Duo attempts? The item stops. | Changes outside the operator's allowlist (CI, tests, policy, tooling) are never promoted. |
+| **Ship** | The controller checks the complete diff, the exact revision, every required job and the independent evidence, merges, waits for the protected-`main` pipeline (signing, attestation, Cloud Run, Pages, smoke), and confirms the live revision. | Missing, failed or unknown means stopped, never a successful deployment. |
 
-The latest fresh Duo tasks changed display-name normalization while preserving
-the secret-field restriction. They demonstrate delivery and verification of a
-bounded change; they are **not evidence of discovering and repairing an unknown
-vulnerability in a real production application**. Earlier generated-target repair
-tests are separate synthetic experiments described below.
+## The proof run: MR !44
 
-Before considering production adoption, evaluate consented real applications
-with independently established findings, project-specific policy and executable
-regressions, safe execution isolation, and a reviewable repair process. Measure
-misses, false positives, blocked/unknown outcomes, and repair regressions on
-previously unseen cases. Authentication and authorization for hosted mutations,
-concurrent-user/load behavior, recovery and rollback, adversarial inputs, and
-operational monitoring also need dedicated validation. Do not use a passing demo
-gate as a general authorization to release customer code.
+One push on 23 October 2026, then nothing. Every row below is a real GitLab record.
 
-Policy-aware exposure analysis for Python, JavaScript, TypeScript, Go, and Rust, executed synthetic evidence, and independently verified local repairs.
-
-`unspool/` is the installable application. It does not import `example/`, bundle a target repository, load `.env` automatically, or create state on import. `example/` owns its vulnerable application, policy, executable cases, generator, and launcher.
-
-## Architecture status
-
-The engine experiments below are historical observations from the earlier local
-workflow; the GitLab/GCP results above were verified on 20 October 2026. Neither
-establishes universal production readiness. `unspool/` remains configurable for
-external repositories; executable fixtures and scenario generation remain in `example/`.
-
-Production layout is grouped by responsibility: `unspool/app.py` is the composition root; `api/` owns HTTP transport; `application/` owns orchestration and operation decorators; `providers/` owns model factories/clients; `execution/` owns runtime and worker code; `repairs/` owns repair verification; `storage/` owns the knowledge bank; `analyzers/`, `policy/`, and `static/` remain focused packages/assets. The package root contains only the composition entrypoints: `app.py`, `__init__.py`, and `__main__.py`.
-
-Pattern boundaries are intentional: `application.decorators.exclusive` decorates long-running operations with the shared concurrency guard, while `providers.openrouter.ProviderFactory.create` is the Factory Method for provider transport selection. Stable value objects and pure analyzers do not receive artificial pattern wrappers.
-
-| Architecture area | Current status | Actual implementation and verification |
+| UTC | Step | Who |
 | --- | --- | --- |
-| Knowledge graph UI | Implemented; browser-verified | `unspool/static/index.html` renders the Python code-property graph with node/edge filtering, inspection, and immutable snapshot selection. |
-| Knowledge CRUD | Implemented; browser-verified | Node and edge create/read/update/delete through the API and UI. Updates preserve analyzer metadata; live annotations survive scans without rewriting historical snapshots. |
-| Findings dashboard | Implemented with scoped runtime evidence | Displays source/sink paths, policy reasons, static `POSSIBLE` candidates, and `CONFIRMED_IN_TEST` evidence only for matching executed observations. Provider advice cannot confirm findings. |
-| Complex leak example | Implemented; executable synthetic application | `example/fixtures/` contains a multi-module customer application with HTTP/CLI entrypoints, repository access, logging, analytics, tenant checks, and functional regressions. Ten runtime cases cover leaking and permitted behavior. |
-| Synthetic case generation | Implemented; executable targets measured | `example/generator.py` materializes runnable repositories, manifests, policies, and labels for four flow families with positive/safe pairs. Eight generated targets were executed in Docker. The separate 137,200-combination metadata space is not claimed as executed coverage. |
-| Runtime evidence simulation | Replaced with actual execution/capture | `unspool/execution/runtime.py` and `unspool/execution/runtime_worker.py` invoke target callables and inspect returns, logs, configured HTTP/call boundaries, and artifacts. Captured synthetic marker hashes establish scoped observations; marker-print output is not used as proof. |
-| Metrics | Implemented; measured synthetic results | Stores duration, findings, provider status/latency, policy version, labeled TP/FP/TN/FN/unknown counts, precision, recall, false-safe rate, and repair success. The ten-case example measured runtime TP=4, TN=6, FP=0, FN=0; static misses and false positives remain documented. |
-| OpenRouter Decision API | Source-backed typed Luna reviews; live response verified | Uses `openai/gpt-6-luna-decisions` through `/api/alpha/decisions`. Reviews source/graph boundaries even with zero static findings, with scoped runtime evidence and explicit unknowns. A real source-backed Luna request succeeded; the HTTP/Docker/snapshot/dashboard path also passed with a loopback typed-provider fixture. Advice never opens a deterministic gate. |
-| GitLab Duo simulation | Implemented through OpenRouter; Flash repair verified on a generated target | Uses `deepseek/deepseek-v4.1-flash` for bounded structured patch proposals through chat completions. A generated-target proposal passed independent checks and created a local Git commit/MR artifact. This simulates the Duo role, not GitLab integration or guaranteed model success. |
-| Policy schema | Implemented with validation and lifecycle | `unspool/policy/engine.py` validates classifications, selectors, sink constraints, invariants, types, and unknown keys. The knowledge bank enforces immutable version content, named approval, draft/approved/retired states, and no reapproval of retired versions. |
-| Policy engine | Implemented for declared semantics | Enforces classification allowances, denied fields, audience, recipient, contracts, authorization, tenant constraints, and supported invariants. Required missing context fails closed; static analysis does not invent runtime identity or consent. |
-| Static source/sink analyzer | Implemented; bounded Python data-flow analysis | `unspool/analyzers/python_ast.py` propagates classified values through assignments, containers, returns, and resolved calls, with explicit manifest entrypoints. Coverage reports parse errors, unsupported constructs, unresolved calls, and limitations; this is not a sound whole-program taint proof. |
-| CPG generation | Implemented for supported Python constructs | Produces AST, control-flow, call, and data-flow nodes/edges with source/sink paths. Reflection, dynamic dispatch, implicit control taint, native extensions, and framework/ORM semantics are not fully modeled. |
-| Incremental MR analysis | Local branch/snapshot overlays plus an opt-in GitLab CI component | Caches AST/per-file outputs and invalidates affected import/call components after changes/deletions. `templates/verify/template.yml` runs on merge-request pipelines and emits exact-revision evidence and GitLab SAST artifacts. An independent second-project integration and live MR validation remain unverified. |
-| Knowledge Bank data model | Implemented with SQLite | `unspool/storage/knowledge.py` stores policy versions, immutable snapshots and relational facts, branch pointers, annotation overlays, metrics, evaluations, and repairs. Snapshot integrity hashes and database triggers protect historical records. |
-| Evidence contract | Implemented; persisted with immutable snapshots | Records repository-relative locations, source revision, policy identity, executed case scope, sanitized observations, marker hashes, and runtime status. Missing or failed execution remains distinct from confirmed evidence; raw captured sensitive payloads are not persisted. |
-| Runtime verification | Implemented; Docker and dependency-image execution verified | Docker runs sanitized copies with network disabled, read-only repository mounts, resource limits, and minimized credentials/environment. Configured dependency images are supported and recorded by immutable image ID. Explicit trusted-local execution is available, never an automatic fallback or host sandbox. |
-| Duo repair branch/MR | Implemented; real local Git artifacts verified | `unspool/repairs/engine.py` applies allowlisted edits in an isolated copied repository and creates a real branch/commit plus `merge-request.json` only after passing gates. Artifacts explicitly declare `simulation: true`; no remote push, MR publication, merge, or deployment occurs. |
-| Independent differential verification | Implemented; passing and blocked outcomes exercised | Independently reproduces the baseline, reruns static/runtime/functional checks, pins policy/manifest/runtime image, protects original source and test scope, and blocks unresolved findings. Context-only discharge requires exact passing runtime evidence. A generated-target repair passed; leaking complex-example proposals failed without an MR. |
+| 18:44:13 | `git push` opens [MR !44](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/44) on `feature/legacy-profile-name` with the leak | **You** |
+| 18:44:42 | `verify-exposure` blocks: decision model LEAK (0.73), probe `csv-import-row-probe` observed `customer.password_hash` in the HTTP response | GitLab CI |
+| 18:45:53 | The controller starts GitLab Duo Developer session 9981901 through the API and records it on the MR | Controller |
+| 18:48:08 | Duo Developer pushes `7cf3d993` "Stop imported rows from choosing profile response columns" | GitLab Duo |
+| 18:48:38 | The gate re-runs: UNCERTAIN (0.43), so all five probes run again; nothing leaks; gate passed | GitLab CI |
+| 18:49:44 | The controller verifies and merges the exact revision | Controller |
+| 18:52:38 | `main` pipeline: sign, attest, deploy to Cloud Run and Pages, smoke check. `DEPLOYED_AND_VERIFIED` | CI + controller |
 
-Earlier verification included 41 passing regression tests, dashboard CRUD/history/approval interactions, and installed-wheel execution against external safe and unsafe targets. The original delivery pipeline passed 77 Python tests; the frozen 0.4.7 release has 127. These counts describe different revisions, not independent real-world benchmark cases. See [verification and limits](#verification-and-limits) and the [example's observed integration results](example/README.md#observed-integration-results) for scope and caveats.
+| A developer's merge request | One check is red | The verdict, explained |
+| --- | --- | --- |
+| ![MR !44 opened by one push](submission/screenshots/gitlab-mr.jpg) | ![Pipeline: tests green, verify-exposure red](submission/screenshots/gitlab-leakpipe.jpg) | ![Job log: gate blocked, csv-import-row-probe observed customer.password_hash](submission/screenshots/gitlab-leaklog.jpg) |
+| Opened by one `git push`; no issue, no label. | Every test passes. One check does not. | The boundary, the probe, the field and where it left. |
 
-## Install and run against another repository
+| Duo started through the API | Duo's commit, same branch | The fix |
+| --- | --- | --- |
+| ![Controller note: Unspool blocked, it started GitLab Duo Developer session 9981901](submission/screenshots/gitlab-note.jpg) | ![MR commits: Duo Developer commit on the same MR](submission/screenshots/gitlab-commits.jpg) | ![Diff: imported rows no longer choose the response columns](submission/screenshots/gitlab-fixdiff.jpg) |
+| A plain record of what the controller did; no mention triggers anything. | Authored by Duo Developer, on the developer's branch. | Only public fields can leave, whatever the record carries. |
 
-Requires Python 3.10+, Git for repair workspaces, and Docker for isolated runtime execution:
+| The probes decide | Merged by the controller | Live, exact revision |
+| --- | --- | --- |
+| ![Job log: UNCERTAIN 0.43, 5/5 probes pass, gate passed](submission/screenshots/gitlab-fixlog.jpg) | ![MR !44 merged, main pipeline passed, deployed to production](submission/screenshots/gitlab-merged.jpg) | ![Deploy log: Production serves verified revision c7d7e05](submission/screenshots/gitlab-deploylog.jpg) |
+| The model is still unsure, so the probes run again. Nothing leaks. | After every required job and the signed evidence pass. | Cloud Run serves exactly the merged commit. |
+
+An issue works too: [issue #6](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/work_items/6), labelled `unspool`, went from creation to a verified deployment through [MR !39](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/39) in about 7 minutes.
+
+## How Unspool decides
+
+<table>
+  <tr>
+    <td width="50%"><img src="submission/assets/typed-decision-model.gif" alt="The typed decision model reads one boundary and answers with calibrated probabilities: plausible leak, test it. From 180 ms per decision; 1,000 decisions about one dollar."><br><sub><strong>A typed decision model.</strong> One call per boundary, typed answers with probabilities, no chat. From 180 ms (provider page), 1.11–1.38 s measured here, about $1 per 1,000 decisions.</sub></td>
+    <td width="50%"><img src="submission/assets/canary-proves-the-leak.gif" alt="Edge-case probes, written before the bug. A legacy import row carries a canary; the canary comes back in the response; leak proven."><br><sub><strong>Probes written before the bug.</strong> A legacy import row carries a fake secret, a canary. It comes back in the response: proven, not guessed.</sub></td>
+  </tr>
+</table>
+
+| Signal | What it contributes | What it never does alone |
+| --- | --- | --- |
+| **Static tracing** | Follows classified fields from source to sink (HTTP response, log, webhook, analytics, AI prompt) with a policy or the built-in catalogue. | It found zero issues in the demo leak; it is a map, not a verdict. |
+| **Typed decision model** | Reads only the boundaries that changed and answers three typed questions: plausible disclosure, runtime test required, more context required. | Approve or block. It picks what to test. |
+| **Canary probes** | Operator-written edge cases (empty, whitespace, invisible and legacy-import names) run in isolation with synthetic secrets. | Run on real data. Values never leave the job; logs carry symbols, not secrets. |
+| **The gate** | Blocks when any probe observes a canary at a forbidden sink, or when required evidence is missing. | Pass on unknown. Unsupported or failed analysis blocks. |
+
+### In the Unspool UI
+
+| Follow the data | Ask the decision model | The probe that saw it | Duo's fix, re-tested |
+| --- | --- | --- | --- |
+| ![Knowledge graph of the profile service: fields flowing to the public response](submission/screenshots/app-graph.jpg) | ![Typed decision model: plausible disclosure, test it](submission/screenshots/app-decision.jpg) | ![Executed runtime evidence: csv-import-row-probe observed a violation](submission/screenshots/app-probes.jpg) | ![Executed runtime evidence on the fix: every probe clean](submission/screenshots/app-fixed.jpg) |
+| The data flow as a graph you can inspect. | One call, typed answers with probabilities. | Executed probes, with the one that caught the leak. | The same probes on the fix: nothing observed. |
+
+## What Unspool does
+
+| | Capability | What you get | How it is built |
+| --- | --- | --- | --- |
+| 🧵 | **Exposure tracing** | Every sensitive field, from where it is born to where it leaves. | Python AST analysis with policy-classified sources and sinks; experimental Tree-sitter adapters for JS/TS/Go/Rust. |
+| 🛡️ | **Proven, not guessed** | A merge request blocked only by evidence it can show you. | Isolated runtime probes with canaries; `verify-exposure` writes `evidence.json`, a verdict note and a diff of exposures. |
+| 🤖 | **Duo fixes the same MR** | The leak fixed on the developer's own branch. | Duo Agent Platform API (`developer/v1`) started by the controller with the verdict; no @-mention trigger. |
+| 🚦 | **Hands-off promotion** | Merge, deploy and live check without a person. | `python3 -m unspool.handoff --watch`: exact-revision, allowlisted, required-jobs and signed-evidence checks before merging. |
+| ✍️ | **Signed evidence** | A record anyone can verify. | Sigstore `cosign` signing and attestation on protected `main`; the controller refuses to merge without the verifier. |
+| ☁️ | **Delivery on Google Cloud** | A read-only report on Cloud Run, Pages as fallback, both checked live. | Cloud Build + Cloud Run with Workload Identity Federation; no service-account keys in CI. |
+| 🔎 | **A graph you can read** | The data flow, findings, probes and decisions in one place. | The Unspool UI ([live, read-only demo](https://unspool-demo-398376578726.us-central1.run.app)), with immutable snapshots and annotations locally. |
+| 🧾 | **Policy optional** | Works with no policy file; exact with one. | A built-in sensitive-field catalogue; `extends: builtin` layers your own rules on top. |
+
+<table>
+  <tr>
+    <td width="50%"><img src="submission/assets/gate-blocks-the-leak.gif" alt="GitLab: every test passes, verify-exposure is red, the job log explains the block: boundary, probe, field, where it left. MERGE BLOCKED."><br><sub><strong>Every test passes. One check doesn't.</strong> The gate blocks MR !44 and shows exactly why.</sub></td>
+    <td width="50%"><img src="submission/assets/duo-fixes-the-mr.gif" alt="GitLab: the controller's record that it started GitLab Duo through the Agent Platform API, then Duo's commit on the same branch."><br><sub><strong>Duo fixes the same merge request.</strong> Started through the Agent Platform API, on the same branch.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="submission/assets/verified-and-live.gif" alt="The gate passes on Duo's fix, the controller merges, and the deploy log shows Production serves verified revision with DEPLOYED_AND_VERIFIED."><br><sub><strong>Verified and live.</strong> Gate passed, merged by the controller, the exact revision serving on Cloud Run.</sub></td>
+    <td width="50%"><img src="submission/assets/what-actually-leaves.gif" alt="What actually leaves: password_hash, card_number and api_token reaching an API response and an application log."><br><sub><strong>What actually leaves.</strong> One service, five ways out.</sub></td>
+  </tr>
+</table>
+
+## Results
+
+| Measure | Result | Where |
+| --- | --- | --- |
+| Hands-off developer MR | One push to `DEPLOYED_AND_VERIFIED` in ~8.5 min, untouched | [MR !44](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/44) |
+| Hands-off issue | Labelled issue to `DEPLOYED_AND_VERIFIED` in ~7 min, untouched | [Issue #6](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/work_items/6) → [MR !39](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/39) |
+| 36 agent-written fixes (12 tasks × 3 runs) | 14 still leaked after passing their own tests; **14/14 blocked**; **22/22** clean fixes passed | [`benchmarks/gate_experiment`](benchmarks/gate_experiment) |
+| Determinism | 10 runs per revision on the same leak (MR !30's revisions): the same verdict every time (leak 0.74 blocked 10/10; Duo's fix 0.49 passed 10/10) | [`benchmarks/gate_experiment`](benchmarks/gate_experiment) |
+| Test suite | 162 tests on Python 3.10 and 3.12, dashboard checks, installed-wheel verification | [CI pipelines](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines) |
+
+<p align="center">
+  <img src="submission/assets/thirty-six-fixes.gif" alt="36 AI-written fixes: 14 of 36 still leaked; 14/14 leaks blocked, 0 missed; 22/22 clean fixes passed, 0 held." width="72%">
+</p>
+
+## Nine DevSecOps stages
+
+Every stage of [GitLab's DevSecOps lifecycle](https://about.gitlab.com/topics/devops/#the-dev-ops-lifecycle-and-how-dev-ops-works) is touched by the loop:
+
+| Stage | Where Unspool touches it |
+| --- | --- |
+| **Plan** | Labelled-issue intake: an `unspool` issue becomes a bounded task for Duo. |
+| **Create** | GitLab Duo's Developer flow writes the fix on the merge request's branch. |
+| **Verify** | Unit, dashboard and installed-wheel tests; the `verify-exposure` gate with canary probes. |
+| **Package** | `build-wheel` builds the distributable; [release 0.4.7](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/releases/v0.4.7) keeps the wheel and verification bundle. |
+| **Secure** | Exposure gate, `security-audit` (bandit + pip-audit), signed evidence and attestation. |
+| **Release** | Exact-revision verified merge by the controller; protected `main`. |
+| **Configure** | Cloud Run and Pages delivery from CI, Workload Identity Federation, operator-owned controller configuration. |
+| **Monitor** | `production-smoke` and the controller's live `health.json` check of the exact deployed revision. |
+| **Govern** | File allowlist, required-job list, stop-on-unknown, bounded Duo retries, a private resumable run journal, MIT licensing. |
+
+## Path B: before and after
+
+Unspool began as **LeakHunter**, an MIT-licensed open-source CLI: [github.com/azharizz/leakhunter](https://github.com/azharizz/leakhunter) (first commit `3e8c0af`, MIT in `c6ab65f`). It was imported to GitLab with its history and rebuilt around GitLab's lifecycle during the hackathon.
+
+| | Before: LeakHunter | After: Unspool on GitLab |
+| --- | --- | --- |
+| **Finding a leak** | Run a local CLI by hand; read a report. | Every merge request runs the exposure gate in GitLab CI. |
+| **Proving it** | Static findings and judgement. | Typed decision model + canary probes; evidence attached to the pipeline. |
+| **Fixing it** | A developer reads the report and patches it. | GitLab Duo fixes it on the same branch, started automatically with the evidence. |
+| **Shipping it** | Manual merge and deploy, if anyone remembers. | Verified merge, signed evidence, Cloud Run deploy, live-revision check. |
+| **Trust** | "It passed on my machine." | Exact revision, required jobs, independent evidence, stop on anything unknown. |
+
+## How the system is built
+
+| Layer | Responsibility |
+| --- | --- |
+| [`unspool/`](unspool/) | The analyzer, runtime probes, decision-model client, gate, UI and API (`python -m unspool`), and the hands-off controller (`unspool.handoff`). |
+| [`.gitlab-ci.yml`](.gitlab-ci.yml) | Tests, wheel build, security audit, `verify-exposure`, signing, attestation, Cloud Run and Pages delivery, production smoke. |
+| [`.gitlab/duo/`](.gitlab/duo/) | The GitLab Duo agent configuration used by the Developer flow's runner. |
+| [`templates/verify/`](templates/verify/) | A reusable CI template that adds the exposure gate to another project. |
+| [`config/`](config/) | Operator-owned controller configurations: project, allowlist, required jobs, mode. |
+| [`deploy/cloudrun/`](deploy/cloudrun/) | Cloud Build and Cloud Run deployment of the read-only report, keyless via Workload Identity Federation. |
+| [`deploy/demo-ui/`](deploy/demo-ui/) | The read-only live demo of the UI on Cloud Run (scales to zero). |
+| [`demo/`](demo/) | The synthetic target service, its policy and its probe library. |
+| [`benchmarks/`](benchmarks/) | The 36-patch gate experiment, CVE cases, external targets and isolation checks. |
+| [`tests/`](tests/) | 162 unit and integration tests, including the controller's hands-off paths against a fake GitLab. |
+
+## Try it
+
+- **Live report on Google Cloud Run:** [unspool-398376578726.us-central1.run.app](https://unspool-398376578726.us-central1.run.app) (Pages fallback: [unspool-site-1032c3.gitlab.io](https://unspool-site-1032c3.gitlab.io)).
+- **Read-only UI demo:** [unspool-demo-398376578726.us-central1.run.app](https://unspool-demo-398376578726.us-central1.run.app). Pick *Leak*, *Duo fix* or *No policy* and press Analyze.
+- **The proof run:** [MR !44](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/44) and its [pipelines](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/44/pipelines).
+- **A guided local walkthrough:** [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
+
+## ⚡ Run locally
+
+Requirements: Python 3.10+, Git, Docker for isolated probes, and `AGENT_PROVIDER_API_KEY` for the decision model.
 
 ```sh
 python3 -m pip install .
-docker pull python:3.12-slim
-
-unspool \
-  --repository "$TARGET_REPOSITORY" \
-  --policy "$POLICY_FILE" \
-  --runtime-manifest "$RUNTIME_MANIFEST" \
-  --data-dir "$STATE_DIRECTORY"
+unspool --repository demo/target --policy demo/policy.yaml \
+        --runtime-manifest demo/runtime.yaml --data-dir /tmp/unspool-state
+# open http://127.0.0.1:8787
 ```
 
-Omit `--policy` to start from the built-in sensitive-field catalogue (`unspool/policy/builtin.py`: passwords, tokens, secrets, API keys, card numbers, CVV, SSN, email, phone, and similar); add `extends: builtin` to an operator policy to keep the catalogue under your own rules. Open `http://127.0.0.1:8787`; `--port` changes the port. Use a separate state directory per target, outside both the application package and target repository. No changes inside `unspool/` are required to select another target. The installed wheel contains the application and dashboard, not the example package.
-
-Without a runtime manifest, static analysis and knowledge editing still work, but runtime status is `NOT_RUN` and the release gate cannot pass. Without a model provider, analysis, execution, evaluation, and storage still work; model requests report `skipped`.
-
-For the bundled target, see [example/README.md](example/README.md).
-
-## Language contract
-
-`unspool/languages.py` defines language selection, entrypoints, source extensions, and normalized analyzer results. `unspool/analyzers/registry.py` keeps Python on its original AST analyzer and dispatches other languages to Tree-sitter. Every adapter returns `nodes`, `edges`, `findings`, `coverage`, `index`, and `incremental`; coverage and unresolved calls remain explicit.
-
-One repository scan/runtime manifest selects one language. Set top-level `language` in the manifest; omitted means `python`. `--language` can select static-only analysis and must match a supplied manifest. Python's `module`/`callable` fixtures and worker remain unchanged.
-
-| Language | Source extensions | Runtime | Default Docker image |
-| --- | --- | --- | --- |
-| Python | `.py` | Existing Python worker | `python:3.12-slim` |
-| JavaScript | `.js`, `.jsx`, `.mjs`, `.cjs` | Node; Bun for JSX | `node:22-bookworm-slim`; `oven/bun:1` for JSX |
-| TypeScript | `.ts`, `.tsx` | Bun | `oven/bun:1` |
-| Go | `.go` | Explicit native protocol command | `golang:1.23-bookworm` |
-| Rust | `.rs` | Explicit native protocol command | `rust:1.82-bookworm` |
-
-Non-Python cases use a repository-relative `entrypoint` instead of Python `module`/`callable`:
-
-```yaml
-version: 1
-language: javascript
-cases:
-  - id: response-check
-    entrypoint: {file: service.js, callable: run}
-    args: [{password_hash: SYNTHETIC_SECRET_48291}]
-    kwargs: {}
-    sensitive:
-      - {marker: SYNTHETIC_SECRET_48291, class: SECRET, symbol: record.password_hash}
-    context: {synthetic: true, boundary_kind: HTTP_RESPONSE}
-    expect: {ok: true}
-```
-
-JavaScript/TypeScript invokes an exported callable, awaits its result, and captures returns, console/stdout/stderr, modeled `fetch`, and configured artifacts. Arguments are positional; nonempty `kwargs` or entrypoint commands are rejected rather than ignored.
-
-Go/Rust must supply an argv command, for example `entrypoint: {file: service.go, callable: run, command: [go, run, service.go]}` or `entrypoint: {file: src/main.rs, callable: run, command: [cargo, run, --quiet, --offline]}`. The command runs from the copied repository root, reads one JSON object `{"args": [...], "kwargs": {...}}` from stdin, and writes exactly one JSON result object to stdout. Stderr is captured as `APPLICATION_LOG`; the result is `HTTP_RESPONSE`. The wrapper is responsible for invoking the declared callable. Native HTTP interception is unsupported. Dependency-bearing targets need an image with their offline dependencies.
-
-External runners reject `capture_calls`, `observe_calls`, and `trace`; missing required captures and unavailable toolchains/images fail closed. Docker remains the default: images must exist locally, execution pins their immutable IDs, network is disabled, and there is no fallback to local execution. `--runtime-backend local` is only for trusted code, not a host security sandbox.
-
-The new static adapter is intraprocedural: classified fields, aliases, assignments, branches, returns, and common sinks are modeled; calls without a model retain argument taint and are recorded as unresolved. A helper that discards a secret can therefore produce a false positive. It does not establish receiver types or whole-program/framework semantics. Use wildcard field selectors such as `*.password_hash` for portable untyped-field policies. This is language support, not a claim of Python analysis or model-inference parity.
-
-`example/language_holdouts.py` materializes and executes five safe/leaking pairs per language (response, logging, overwrite, branch, helper), saving source, policy, manifests, scans, runtime evidence, and metrics:
+Hands-off on a GitLab project (needs an authenticated `glab` and `cosign`):
 
 ```sh
-PYTHONPATH=. python3 -m example.language_holdouts --output /tmp/unspool-language-local --backend local
+python3 -m unspool.handoff --project 87860005 --watch unspool      # this project
+python3 -m unspool.handoff --config my-project.json --watch unspool  # another project
 ```
 
-Use `--backend docker` after installing all five language images. These 50 correlated synthetic checks measure static/runtime contracts only; they do not call Luna or estimate production accuracy.
+Leave it running: any merge request to `main` whose pipeline starts while it watches, and any open issue labelled `unspool`, goes through the loop. Adopting another repository: [ADOPTION.md](ADOPTION.md).
 
-Measured on that corpus:
-
-| Language | Static correct | Precision | Recall | Runtime correct, local / Docker |
-| --- | --- | --- | --- | --- |
-| Python | 10/10 | 100% | 100% | 10/10 / 10/10 |
-| JavaScript | 9/10 | 83.3% | 100% | 10/10 / 10/10 |
-| TypeScript | 9/10 | 83.3% | 100% | 10/10 / 10/10 |
-| Go | 9/10 | 83.3% | 100% | 10/10 / 10/10 |
-| Rust | 9/10 | 83.3% | 100% | 10/10 / 10/10 |
-
-All four static errors are false positives on helpers that discard their sensitive argument; there are no false negatives in this corpus. Evidence: `example/data/five-language-local-v2/results.json` and `example/data/five-language-docker/results.json`. Actual CLI analysis and source-backed review contexts were exercised for all five languages; controlled local repair verification was exercised for JS/TS/Go/Rust, and Docker timeout cleanup for JavaScript.
-
-## Runtime manifest
-
-The Python harness invokes real callables with synthetic fixtures; other language entrypoints follow the contract above. Supply JSON-compatible YAML values and invented, unique markers—not production records or credentials. Even safe cases declare the markers whose absence is checked.
-
-```yaml
-version: 1
-docker_image: python:3.12-slim
-regression_command: [python, regression.py]
-cases:
-  - id: profile-response
-    module: service
-    callable: customer_profile
-    args: [synthetic-customer]
-    kwargs: {}
-    sensitive:
-      - marker: SYNTHETIC_PRIVATE_8be71d
-        class: SECRET
-        symbol: customer.password_hash
-    context:
-      audience: authenticated_self
-      tenant: tenant-a
-      source_tenant: tenant-a
-      authorized: true
-      synthetic: true
-    expect: {ok: true}
-    expected_violation: false
-    finding:
-      file: service.py
-      function: customer_profile
-      sink: HTTP_RESPONSE
-```
-
-- `module` and `callable` select the target entrypoint; dotted callable names are supported. `args` and `kwargs` are passed to it. `expect` is a recursive subset of the returned JSON-compatible value, not a replacement implementation.
-- Actual return values are inspected as `HTTP_RESPONSE`; log records are inspected as `APPLICATION_LOG`.
-- `sensitive` declares marker, classification from the configured policy, and source symbol. Persisted observations contain the symbol and SHA-256 marker hash, never raw captured payloads.
-- Optional `finding` maps runtime evidence to an exact repository-relative file, function, and sink. `symbol` is optional. A passing unrelated case cannot discharge another function's candidate.
-- Optional `expected_violation` is an independent evaluation label. It never exempts a leak from policy enforcement.
-- `regression_command` is an argv list, run from the copied target root. Python commands use the worker interpreter. Its success is required; output is represented by hashes, not copied into evidence.
-
-Additional capture declarations belong to each case:
-
-```yaml
-capture_http:
-  - url_prefix: https://synthetic.invalid/events
-    sink: THIRD_PARTY_ANALYTICS
-capture_calls:
-  - module: analytics
-    callable: track
-    sink: THIRD_PARTY_ANALYTICS
-    return_value: {accepted: true}
-artifacts:
-  - path: export.txt
-    sink: TEST_ARTIFACT
-```
-
-HTTP capture supports `urllib` and a bounded common `requests` transport interface. These adapters intercept calls without contacting recipients. `capture_calls` intercepts a configured callable boundary before importing the fixture; it proves arguments reached that boundary, not vendor delivery. Artifacts are read from a writable per-case temporary working directory; the repository stays read-only in Docker. Missing required captures, unsupported networking, execution errors, and timeouts do not establish safety.
-Optional guard and branch evidence can be captured without changing the target repository:
-
-```yaml
-observe_calls:
-  - module: authorization
-    callable: owns
-    role: ownership
-trace: true
-```
-
-`observe_calls` records only the configured callable role, call order, return type, and boolean result; arguments and return payloads are never persisted. `trace: true` records bounded repository-relative executed lines. These observations establish only the declared execution, not universal control-flow coverage.
-
-`case.passed` measures functional expectations only. Suite `functional_passed` also requires the pinned regression command. Suite `passed` additionally requires completed execution and zero observed policy violations. A deliberately vulnerable baseline can pass functionality while failing security.
-
-### Dependencies and isolation
-
-The default image must already exist locally; execution uses `--pull=never`. For dependencies, build a trusted Python image with those dependencies installed, then set `docker_image` in the manifest. Unspool does not run package installation from target instructions. Each execution resolves and records an immutable image ID; repair before/after runs must use the same image ID.
-
-Docker execution disables networking, mounts sanitized target/harness/input read-only, drops capabilities, prohibits privilege escalation, runs as a non-root host UID where available, and limits memory, CPU, processes, and temporary storage. Common credential files are excluded and host credentials are not inherited. Docker is a dependency: unavailable daemon/image or execution failure is reported, never silently replaced with host execution.
-
-`--runtime-backend local` explicitly selects **trusted target execution on the host, not a security sandbox**. The target is copied and the child environment is minimized, but code still runs with the user's host privileges. Use Docker for untrusted targets. Instrumentation is not cryptographic attestation against a deliberately hostile process that tampers with its own Python runtime.
-
-## Policy and approval
-
-The validated schema includes:
-
-- Positive integer `version`; lifecycle `draft`, `approved`, or `retired`.
-- Ranked `classifications` including `PUBLIC: 0`; source selector/class records.
-- Unique sink kinds with `allow`, optional `deny_fields`, `audience`, `recipient`, `require_contract`, `require_authorization`, and `same_tenant` constraints.
-- Supported invariants: `secret_fields_never_in_external_payloads`, `cross_tenant_reads_must_be_authorized`, and `no_real_secrets_in_test_artifacts`.
-
-See [the example policy](example/unspool-policy.yaml) for complete syntax. Unknown fields/classes/invariants and invalid types are rejected. Required audience, recipient, contract, tenant, and authorization context fails closed when absent or mismatched; the engine does not invent identity or consent.
-
-The knowledge bank treats policies without an explicit lifecycle as drafts. Approval requires a named `approved_by` operator and exact configured semantic policy content. Content cannot change under an existing version; configure a higher version instead. Retired versions cannot be approved again. A version explicitly supplied as approved must name its approving operator. These are local operator records, not external identity authentication or a multi-user approval service. Models cannot approve policy.
-
-Static analysis cannot establish runtime recipient or tenant context. A context-only `POSSIBLE` candidate may be discharged only for an exact mapped, successfully executed case with a real matching sensitive observation and reevaluation against the pinned policy/context. Raw findings remain available; this is scoped evidence, not universal safety.
-
-## Analysis, graph, and knowledge bank
-
-The analyzer builds a bounded Python code-property graph with AST, control-flow, call, and data-flow edges. It propagates classified values through assignments, returns, containers, and resolved interprocedural calls. Manifest callables are explicit response entrypoints. Findings include source/sink paths, locations, policy reasons, source revision, and evidence state.
-
-Incremental analysis caches serialized AST/per-file outputs keyed by source, analyzer, policy, and entrypoint identity. Changes/deletions invalidate affected import/call components. Named branch snapshots can start from an immutable baseline without moving `main`; this is a local MR overlay, not a GitLab webhook integration.
-
-State is stored in `knowledge.sqlite3`: policy versions, immutable snapshots and relational facts, branch pointers, mutable annotation overlays, metrics, evaluations, and repairs. Snapshot hashes are checked on read; SQLite triggers reject snapshot/fact updates and deletes. Node/edge updates retain analyzer metadata. Annotation deletion never rewrites historical snapshots.
-
-The dashboard supports graph filtering/inspection, full node and edge CRUD, findings, runtime evidence, source-backed security reviews, measured evaluations, immutable history, repair gates, and explicit policy approval. Reviews show connected code/graph context, evidence references, typed assessments, missing evidence and suggested checks. Historical inspection disables mutations.
-
-## OpenRouter and local repair/MR workflow
-
-Set the key through the environment; the application never returns it through APIs:
+## Verify
 
 ```sh
-export AGENT_PROVIDER_API_KEY='your-key'
-export AGENT_PROVIDER_URL='https://openrouter.ai/api/v1/chat/completions'
-export AGENT_PROVIDER_MODEL='openai/gpt-6-luna-decisions'
-export DUO_PROVIDER_MODEL='deepseek/deepseek-v4.1-flash'
+python3 -B -m unittest discover -s tests          # 162 tests
+node --check unspool/static/app.js && node tests/test_dashboard.cjs
 ```
 
-Equivalent nonsecret flags: `--provider-url`, `--decision-model`, and `--repair-model`. The example launcher alone can load a root `.env`. Provider errors and invalid model IDs remain errors; configuration is not proof of access. **Both decision and repair requests can disclose source to the configured provider.** Only bounded, revision-checked source is used for reviews; repair source remains allowlisted. Credential-like, binary, oversized, changed or symlinked review source is withheld. The shared credential guard is heuristic, not a complete secret scanner: authorize source disclosure before configuring a remote model.
+The [technical notes](submission/technical-notes.md) keep the detailed implementation record; [TEST_VERIFICATION.md](TEST_VERIFICATION.md) and [RELEASE.md](RELEASE.md) keep the dated verification history.
 
-Luna is a **decision-output model**, not a chat-completion model. Each review sends source-backed `state` and three typed `noul` questions to `/api/alpha/decisions` on the configured provider origin: `unauthorized_disclosure_plausible`, `additional_context_required`, and `targeted_runtime_test_required`. Repair sends chat messages to `AGENT_PROVIDER_URL`. Responses retain structured `answers`, probabilities, model and usage. Missing answers, wrong answer types and invalid probabilities are provider errors, never approvals or text-model fallbacks. See the [Decisions request contract](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request).
+## Truth boundaries
 
-Model discovery must include the output modality: the [decision catalog](https://openrouter.ai/api/v1/models?output_modalities=decisions&q=luna) lists Luna, while the default catalog lists text-output models. The requested Flash model is [`deepseek/deepseek-v4.1-flash`](https://openrouter.ai/deepseek/deepseek-v4.1-flash); neither role silently substitutes another model.
+- **The controller runs on the operator's machine.** It uses their existing `glab` login, the only identity allowed to merge; GitLab Duo's runtime cannot merge into `main`. "Walk away" means the watcher keeps running.
+- **The decision model is a third-party API** (a typed decision model over OpenRouter). It only chooses what to test; probes decide. GitLab Duo writes every fix.
+- **Duo is started through the Agent Platform API by the controller.** GitLab records that start under the operator's account, because that is the identity making the call.
+- **The demo target is synthetic.** `demo/target/service.py` is small on purpose; automatic promotion is limited to the files an operator allowlists, and Python is the supported language for repairs.
+- **Probes cover what they are written for.** A passing gate means the configured probes saw nothing at a forbidden sink, not that every path is safe. Human security review still matters.
+- **"In parallel ≈ 1 second" is a projection.** Unspool calls the decision model one boundary at a time today; per-decision latency and cost are measured.
+- **The benchmark is synthetic.** The 36 patches come from 12 synthetic tasks; the numbers apply to those runs.
 
-`providers/context.py` groups sink and unresolved-call boundaries independently of existing findings, then follows resolved caller/callee connections. Context includes exact source spans with file/line/SHA references, scoped AST/CFG/call/data-flow edges, relevant findings, configured policy origin/constraints and matched synthetic runtime observations. Default `PUBLIC` or no finding is not disclosure approval. Unknown external database, authentication, recipient and tenant semantics stay unknown; configured policy is not replaced with invented ownership requirements. Runtime arguments, keyword arguments, expected/results payloads, sensitive markers and raw tenant identifiers are not forwarded as runtime evidence.
-Each review boundary now also carries a discovered or declared entrypoint, input parameter names, direct callers and callees, connected-function scope, output recipient kinds, and source locations. `flow_paths` preserves each static source-to-sink route with node IDs, source references, candidate branch predicates, and `POSSIBLE_FLOW` status. A route decorator, explicit analysis entrypoint, or runtime-manifest entrypoint can create a review unit even when no classified finding exists.
-Provider answers are accompanied by `deterministic_evidence`: a conservative, provider-independent tri-state overlay. It uses only configured policy requirements, static flow paths, observed sink markers, and explicitly configured runtime guard roles; it never infers authorization from function names. `UNPROVEN` and `UNKNOWN` are abstentions, not safe results. An observed violation or possible response path produces an effective `BLOCKED` status without rewriting the model probability.
+## Repository map
 
-Disclosure is bounded to 24 review units, 12 connected function/module owners, 256 graph nodes and 768 edges per unit, 64 KiB source files and a 128 KiB serialized typed request envelope. Whole excerpts or units are omitted rather than truncated; omitted coverage and unavailable source/provider results remain visible. Missing evidence and next checks are context-derived prompts, not model-written explanations. Immutable snapshots retain each context and response.
-
-**Luna triages each reviewed boundary** (`providers/verdict.py`, default `--decision-mode required`). Disclosure plausible ≥ 0.5 is a `LEAK` signal; disclosure > 0.2, additional context ≥ 0.5, or a targeted-test request ≥ 0.8 selects operator-written `on_demand: true` probes for that boundary. These signals do not block a release or clear static candidates by themselves. A required review must still be complete, static findings need independent resolution, and every configured case mapped to a non-clear boundary must run cleanly. Probe mapping includes exact functions, graph-connected calls, and same-file module-import scenarios. Missing or failed probe evidence stops the gate. An observed runtime violation always blocks. Luna never writes probe inputs. The result is bounded to configured probes; it does not prove behavior for untested inputs. `--decision-mode advisory` records triage without changing the gate.
-
-A repair requires an approved policy, unchanged source revision, and an executed baseline with observed violations. It then:
-
-1. Copies the target into an isolated local Git worktree and independently reproduces the baseline.
-2. Requests bounded exact source edits. Policy, manifest, tests, regression scripts, credentials, and paths outside the allowlist are protected.
-3. Applies edits only in the copy and independently reruns static analysis, runtime security, and pinned functional regressions.
-4. Rejects unsupported/failed analysis, new violations, unresolved candidates, changed policy/manifest, changed runtime image, out-of-scope edits, or modification of original source.
-5. Only after every gate passes, creates a real local branch/commit and `repairs/<id>/merge-request.json` with `simulation: true` and independent verification results.
-
-Incomplete model proposals are stored as rejected/failed, not successful repairs. This local repair engine does not push, create GitLab MRs, merge, or deploy. OpenRouter simulates its Duo repair role. The separate `unspool.handoff` workflow uses the real GitLab Duo Developer flow and GitLab CI.
-
-## CLI and HTTP interfaces
-
-```sh
-# Add the same repository/policy/manifest/data-dir flags shown above:
-unspool ... --once analyze --gate
-unspool ... --once evaluate
-unspool ... --once repair --gate
-unspool ... --once analyze --branch mr-42 --base-snapshot-id "$SNAPSHOT_ID"
-```
-
-Replace `...` with configuration flags; it is not a literal argument. One-shot commands print JSON. `analyze --gate` requires approved policy, supported analyzed Python, resolved candidates, and passing runtime security/functionality. `repair --gate` requires independent verification. Evaluation reports detection accuracy and cannot authorize release: `evaluate --gate` is rejected with exit 2 before configuration or execution. Failing supported gates exit with status 1. Parse, execution, provider, and unsupported-analysis states remain inspectable.
-
-| Endpoint | Purpose |
+| Path | Purpose |
 | --- | --- |
-| `GET /api/knowledge`, `/api/config` | Live graph, latest evidence/evaluation, and prerequisites |
-| `POST /api/analyze` | Analyze; optional `branch` and `base_snapshot_id` |
-| `POST /api/repair` | Propose/verify; optional repository-relative `allowed_paths` |
-| `POST /api/evaluate` | Execute independently labeled cases and save metrics |
-| `GET /api/snapshots`, `/api/snapshots/<id>` | Immutable history and full snapshot |
-| `GET /api/metrics`, `/api/repairs`, `/api/evaluations`, `/api/policies` | Stored run records |
-| `POST /api/knowledge/nodes`, `/api/knowledge/edges` | Create annotations |
-| `PUT /api/knowledge/nodes/<id>`, `/api/knowledge/edges/<id>` | Update annotations |
-| `DELETE /api/knowledge/nodes/<id>`, `/api/knowledge/edges/<id>` | Delete live annotations |
-| `POST /api/policies/approve` | Exact configured `policy` plus named `approved_by` |
+| [`submission/submission-description.md`](submission/submission-description.md) | Devpost-ready project narrative. |
+| [`submission/technical-notes.md`](submission/technical-notes.md) | Detailed implementation notes (the previous README). |
+| [`submission/assets/`](submission/assets/) | README banner, film excerpts and their generator. |
+| [`submission/screenshots/`](submission/screenshots/) | GitLab captures from MR !44 and stills of the Unspool UI. |
+| [`JUDGE_GUIDE.md`](JUDGE_GUIDE.md) · [`ADOPTION.md`](ADOPTION.md) | Local walkthrough · installing on another project. |
+| [`THREAT_MODEL.md`](THREAT_MODEL.md) · [`SECURITY.md`](SECURITY.md) | Trust boundaries, unresolved risks, reporting. |
+| [`AGENTS.md`](AGENTS.md) | The automation boundary GitLab Duo works within. |
 
-The server is loopback-only with Host/Origin checks and bounded JSON requests. It has no multi-user authentication: do not expose it publicly as an organizational security service.
+## License and attribution
 
-## Verification and limits
+Unspool is licensed under [MIT](LICENSE). It is the renamed LeakHunter project, originally published at [github.com/azharizz/leakhunter](https://github.com/azharizz/leakhunter); `leakhunter` imports and the `leakhunter` command remain compatible.
 
-```sh
-python3 -B -m unittest discover -s tests
-python3 -m example.generator --materialize /tmp/unspool-cases --count 8 --seed 17
-python3 -m example.generator --evaluate /tmp/unspool-cases --runtime-backend docker
-```
-
-The generator requires an empty destination. Measured synthetic precision/recall applies only to the executed labeled cases, not arbitrary repositories. The current ten-case customer example detects all four runtime-positive cases and leaves six safe cases unflagged; static analysis has documented misses and false positives. A live OpenRouter-generated repair has passed independent Docker verification on a generated target; larger-example proposals that retained leaks were correctly blocked.
-
-The contextual-review smoke used a separate external invoice repository with **zero static findings**: Docker captured authorization and tenant violations, the review included connected endpoint/repository source and matched sanitized evidence, and the context/response survived an immutable snapshot roundtrip and browser rendering. A real Luna request using that synthetic source-backed context returned all three typed answers; verification remained `UNRESOLVED` and release safety remained false. This checks the review pipeline, not general model detection accuracy.
-
-Metrics use `precision = TP/(TP+FP)`, `recall = TP/(TP+FN)`, and `false_safe_rate = FN/(TP+FN)` (missed-positive rate, not false-omission probability). Unknown/unexecuted cases are excluded rather than counted safe; undefined ratios are `null`. Repair success is verified successful attempts divided by all recorded attempts for that target.
-
-This is bounded, language-specific static analysis plus configured runtime evidence—not a sound whole-program proof. Python and the newer intraprocedural Tree-sitter adapters have different coverage and precision. Reflection, dynamic dispatch, implicit control taint, native extensions, framework/ORM semantics, and unconfigured sink transports are not fully modeled. Coverage reports include parse errors, unsupported constructs, unresolved calls, and limitations. Unsupported/failed analysis blocks automatic release; successfully exercised cases do not prove untested paths safe. Adapt fixtures/capture boundaries and build a dependency image for each real target. Existing production tests and human security review remain necessary.
+- The banner is generated from [`submission/assets/src/readme-art.html`](submission/assets/src/readme-art.html) by [`submission/assets/generate-readme-assets.py`](submission/assets/generate-readme-assets.py); the GIFs are excerpts of Unspool's own showreel, whose score is original.
+- Screenshots are captures of this project's real GitLab pages from the MR !44 run; credential-shaped lines are blurred.
+- Unspool is an independent project. GitLab and GitLab Duo are trademarks of GitLab Inc.; Google Cloud and Cloud Run are trademarks of Google LLC. No endorsement is implied.
