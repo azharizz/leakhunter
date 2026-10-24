@@ -26,18 +26,19 @@ CAPTURES = ["m44_mr", "m44_leakpipe", "m44_leaklog", "m44_note", "m44_commits", 
 STILLS = [("app-graph", 46.0), ("app-probes", 85.6), ("app-decision", 61.5), ("app-fixed", 146.5)]
 
 
-def banner(fonts):
-    html = (HERE / "src" / "readme-art.html").read_text().replace("url(FONTS/", f"url({Path(fonts).resolve().as_uri()}/")
+def page_png(fonts, source, out, width, height):
+    """Render one HTML page from src/ to a PNG (2x, downsampled for crisp text)."""
+    html = (HERE / "src" / source).read_text().replace("url(FONTS/", f"url({Path(fonts).resolve().as_uri()}/")
     with tempfile.TemporaryDirectory() as tmp, sync_playwright() as p:
-        page_file = Path(tmp) / "banner.html"
+        page_file = Path(tmp) / "page.html"
         page_file.write_text(html)
         browser = p.chromium.launch()
-        page = browser.new_page(viewport={"width": 1600, "height": 480}, device_scale_factor=2)
+        page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=2)
         page.goto(page_file.as_uri())
         page.wait_for_timeout(500)
-        page.screenshot(path=str(Path(tmp) / "banner.png"))
+        page.screenshot(path=str(Path(tmp) / "page.png"))
         browser.close()
-        Image.open(Path(tmp) / "banner.png").resize((1600, 480), Image.LANCZOS).save(HERE / "unspool-readme-banner.png", optimize=True)
+        Image.open(Path(tmp) / "page.png").resize((width, height), Image.LANCZOS).save(HERE / out, optimize=True)
 
 
 def gif(film, name, start, dur):
@@ -69,7 +70,8 @@ def main():
     parser.add_argument("--fonts", required=True)
     args = parser.parse_args()
     SHOTS.mkdir(exist_ok=True)
-    banner(args.fonts)
+    page_png(args.fonts, "readme-art.html", "unspool-readme-banner.png", 1600, 480)
+    page_png(args.fonts, "architecture.html", "unspool-architecture.png", 1600, 980)
     for item in GIFS:
         gif(args.film, *item)
     boxes = json.loads((Path(args.captures) / "boxes.json").read_text())

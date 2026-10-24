@@ -160,7 +160,7 @@ An issue works too: [issue #6](https://gitlab.com/gitlab-ai-hackathon/transcend-
 
 | | Capability | What you get | How it is built |
 | --- | --- | --- | --- |
-| 🧵 | **Exposure tracing** | Every sensitive field, from where it is born to where it leaves. | Python AST analysis with policy-classified sources and sinks; experimental Tree-sitter adapters for JS/TS/Go/Rust. |
+| 🧵 | **Exposure tracing in five languages** | Every sensitive field, from where it is born to where it leaves. | Python AST analysis plus Tree-sitter adapters for JavaScript, TypeScript, Go and Rust, with policy-classified sources and sinks and per-language runtime probes. |
 | 🛡️ | **Proven, not guessed** | A merge request blocked only by evidence it can show you. | Isolated runtime probes with canaries; `verify-exposure` writes `evidence.json`, a verdict note and a diff of exposures. |
 | 🤖 | **Duo fixes the same MR** | The leak fixed on the developer's own branch. | Duo Agent Platform API (`developer/v1`) started by the controller with the verdict; no @-mention trigger. |
 | 🚦 | **Hands-off promotion** | Merge, deploy and live check without a person. | `python3 -m unspool.handoff --watch`: exact-revision, allowlisted, required-jobs and signed-evidence checks before merging. |
@@ -188,6 +188,7 @@ An issue works too: [issue #6](https://gitlab.com/gitlab-ai-hackathon/transcend-
 | Hands-off issue | Labelled issue to `DEPLOYED_AND_VERIFIED` in ~7 min, untouched | [Issue #6](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/work_items/6) → [MR !39](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/merge_requests/39) |
 | 36 agent-written fixes (12 tasks × 3 runs) | 14 still leaked after passing their own tests; **14/14 blocked**; **22/22** clean fixes passed | [`benchmarks/gate_experiment`](benchmarks/gate_experiment) |
 | Determinism | 10 runs per revision on the same leak (MR !30's revisions): the same verdict every time (leak 0.74 blocked 10/10; Duo's fix 0.49 passed 10/10) | [`benchmarks/gate_experiment`](benchmarks/gate_experiment) |
+| Five languages | 50 synthetic holdout checks: runtime probes 10/10 for each of Python, JavaScript, TypeScript, Go and Rust (local and Docker); static recall 100%, with four false positives outside Python | [technical notes](submission/technical-notes.md) |
 | Test suite | 162 tests on Python 3.10 and 3.12, dashboard checks, installed-wheel verification | [CI pipelines](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/pipelines) |
 
 <p align="center">
@@ -223,6 +224,28 @@ Unspool began as **LeakHunter**, an MIT-licensed open-source CLI: [github.com/az
 | **Trust** | "It passed on my machine." | Exact revision, required jobs, independent evidence, stop on anything unknown. |
 
 ## How the system is built
+
+<p align="center">
+  <img src="submission/assets/unspool-architecture.png" alt="Architecture: the developer pushes a merge request; GitLab CI runs tests and the verify-exposure gate, which reads the decision-model key from Secret Manager through Workload Identity Federation and calls the typed decision model; when the gate blocks, the operator's Unspool controller starts the GitLab Duo Developer flow through the Agent Platform API; Duo pushes the fix; the controller merges the verified revision; the protected-main pipeline signs evidence with cosign, builds the report with Cloud Build into Artifact Registry, deploys Cloud Run and GitLab Pages, and smoke-checks the exact revision; the controller confirms the live revision." width="100%">
+</p>
+
+### Where it runs
+
+| Component | Where | Role |
+| --- | --- | --- |
+| **Unspool controller** | The operator's machine (`python3 -m unspool.handoff --watch`) | Watches merge requests and labelled issues, starts GitLab Duo when the gate blocks, merges only verified revisions, confirms the live revision. Uses the operator's `glab` login and `cosign`. |
+| **GitLab CI/CD** | GitLab.com shared runners | Tests, wheel, security audit, the `verify-exposure` gate; on protected `main`: signing, attestation, delivery, smoke. |
+| **GitLab Duo Developer flow** | GitLab Duo Agent Platform, on a GitLab runner | Writes the fix on the MR's branch as the Duo service account; cannot merge. |
+| **Typed decision model** | Third-party API, called only by `verify-exposure` | One call per changed boundary; picks which probes to run. |
+| **Workload Identity Federation** | Google Cloud IAM (pools `unspool-exposure-ci`, `unspool-gitlab`) | GitLab OIDC in place of service-account keys: one pool may only read the model key, the other may only deploy from protected `main`. |
+| **Secret Manager** | Google Cloud | Holds the decision-model API key; released only to this project's pipelines. |
+| **Cloud Build → Artifact Registry** | Google Cloud, `us-central1` | Builds the report image for each merged commit. |
+| **Cloud Run `unspool`** | Google Cloud, `us-central1`, scales to zero (max 1) | The read-only verified report; its `health.json` names the exact merged commit the controller checks. [Open](https://unspool-398376578726.us-central1.run.app) |
+| **Cloud Run `unspool-demo`** | Google Cloud, `us-central1`, scales to zero (max 2) | The read-only Unspool UI with recorded runs. [Open](https://unspool-demo-398376578726.us-central1.run.app) |
+| **GitLab Pages** | GitLab.com (`unspool-site`) | The fallback report, published only from passed evidence. [Open](https://unspool-site-1032c3.gitlab.io) |
+| **Unspool UI (local)** | `python -m unspool` on any machine | The full app: graph, findings, probes, snapshots and annotations. |
+
+### Code layout
 
 | Layer | Responsibility |
 | --- | --- |
@@ -278,7 +301,8 @@ The [technical notes](submission/technical-notes.md) keep the detailed implement
 - **The controller runs on the operator's machine.** It uses their existing `glab` login, the only identity allowed to merge; GitLab Duo's runtime cannot merge into `main`. "Walk away" means the watcher keeps running.
 - **The decision model is a third-party API** (a typed decision model over OpenRouter). It only chooses what to test; probes decide. GitLab Duo writes every fix.
 - **Duo is started through the Agent Platform API by the controller.** GitLab records that start under the operator's account, because that is the identity making the call.
-- **The demo target is synthetic.** `demo/target/service.py` is small on purpose; automatic promotion is limited to the files an operator allowlists, and Python is the supported language for repairs.
+- **The demo target is synthetic.** `demo/target/service.py` is small on purpose, and automatic promotion is limited to the files an operator allowlists.
+- **Five languages work; real-project validation is next.** Analysis and runtime probes run on Python, JavaScript, TypeScript, Go and Rust and are measured on synthetic holdouts. Automatic repair promotion is enabled for Python until the other four are validated on real projects.
 - **Probes cover what they are written for.** A passing gate means the configured probes saw nothing at a forbidden sink, not that every path is safe. Human security review still matters.
 - **"In parallel ≈ 1 second" is a projection.** Unspool calls the decision model one boundary at a time today; per-decision latency and cost are measured.
 - **The benchmark is synthetic.** The 36 patches come from 12 synthetic tasks; the numbers apply to those runs.
