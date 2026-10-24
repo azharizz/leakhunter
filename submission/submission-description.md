@@ -94,12 +94,16 @@ Unspool is **LeakHunter**, an MIT-licensed open-source project ([github.com/azha
 
 ## How we built it
 
+<p align="center">
+  <img src="https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43244671/unspool/-/raw/main/submission/assets/unspool-architecture.png" alt="Unspool architecture: GitLab CI and the verify-exposure gate, the controller starting GitLab Duo through the Agent Platform API, and delivery to Google Cloud Run through Workload Identity Federation, Secret Manager, Cloud Build and Artifact Registry, with GitLab Pages as fallback" width="100%">
+</p>
+
 | Technology | Role in Unspool |
 | --- | --- |
 | **GitLab Duo Agent Platform** | The Developer flow (`developer/v1`) writes every fix; the controller starts it through the Agent Platform API on the MR's branch. A Duo agent configuration prepares the runner. |
 | **GitLab CI/CD** | Tests, wheel build, security audit, `verify-exposure`, signing, attestation, Cloud Run and Pages delivery, production smoke. |
 | **Unspool controller** (`python3 -m unspool.handoff --watch`) | Watches merge requests and labelled issues; starts Duo when the gate blocks; promotes only verified, allowlisted, exact revisions. |
-| **Python analyzer + runtime probes** | AST data-flow tracing with policy or catalogue classification; isolated probes with synthetic canaries. |
+| **Analyzer + runtime probes** | Data-flow tracing for Python (AST) and JavaScript, TypeScript, Go and Rust (Tree-sitter) with policy or catalogue classification; isolated probes with synthetic canaries. |
 | **Typed decision model** (third-party API) | One call per boundary, typed answers with probabilities, no chat: from 180 ms (provider page), 1.11–1.38 s measured here, about $1 per 1,000 decisions. It chooses what to test; probes decide. |
 | **Google Cloud** | Cloud Run (report, demo UI), Cloud Build, Secret Manager, Workload Identity Federation: no service-account keys in CI. |
 | **Sigstore cosign** | Signs and verifies the protected-`main` evidence before the controller reports a deployment. |
@@ -127,14 +131,14 @@ An agent that writes code is only as trustworthy as the thing that checks it. Th
 
 - Running the controller as a GitLab-hosted service, once a merge identity can be scoped as tightly as it is today.
 - Parallel decision-model calls for large merge requests (today one boundary at a time).
-- Promotion for more languages; the JavaScript, TypeScript, Go and Rust analyzers are experimental.
+- Real-project validation for JavaScript, TypeScript, Go and Rust. Analysis and runtime probes already work in all five languages on synthetic holdouts (runtime 10/10 each); automatic repair promotion turns on per language once it is validated on real code.
 - Publishing Unspool's repair flow to the GitLab AI Catalog.
 
 ## Honest limits
 
 - The controller runs on the operator's machine with their `glab` login; "walk away" means the watcher keeps running. GitLab records the Duo start under the operator's account, because that is the identity making the API call.
 - The gate's decision model is a third-party API; GitLab Duo writes every fix.
-- The demo target is a small synthetic service, and automatic promotion is limited to allowlisted Python files.
+- The demo target is a small synthetic service, and automatic promotion is limited to allowlisted files; it is enabled for Python while the other four languages are validated on real projects.
 - A passing gate means the configured probes saw nothing at a forbidden sink, not that every path is safe.
 - The 36-patch benchmark is synthetic; "about one second in parallel" is a projection.
 

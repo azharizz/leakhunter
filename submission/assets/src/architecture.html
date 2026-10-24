@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unspool architecture</title>
+<style>
+@font-face { font-family: "JB"; src: url(FONTS/JetBrainsMono.ttf); font-weight: 100 900; }
+:root { --paper: #F3F3F0; --ink: #20251F; --muted: #60675D; --line: #c9cec3; --thread: #28765A; --glow: #3DDC97; --leak: #E5483E; --amber: #D9A13B;
+  --gitlab: #FC6D26; --gcp: #4285F4; --sf: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; --mono: "JB", ui-monospace, monospace; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1600px; height: 980px; overflow: hidden; }
+body { position: relative; background: var(--paper); color: var(--ink); font-family: var(--sf); -webkit-font-smoothing: antialiased; }
+.grid { position: absolute; inset: 0; background-image: radial-gradient(#d3d7cd 1.2px, transparent 1.3px); background-size: 26px 26px; }
+h1 { position: absolute; left: 48px; top: 34px; font: 800 38px/1 var(--sf); letter-spacing: -.03em; }
+.tag { position: absolute; left: 50px; top: 82px; font: 600 14px var(--mono); letter-spacing: .14em; color: var(--muted); }
+.zone { position: absolute; border-radius: 22px; border: 2px dashed var(--line); background: rgba(255,255,255,.55); }
+.zone > .zt { position: absolute; left: 18px; top: -13px; padding: 2px 10px; border-radius: 8px; font: 800 13px var(--mono); letter-spacing: .12em; color: #fff; }
+.box { position: absolute; border-radius: 14px; background: #fff; border: 2px solid var(--line); padding: 12px 14px; box-shadow: 0 16px 34px -24px rgba(32,37,31,.5); }
+.box b { display: block; font: 800 18px/1.2 var(--sf); letter-spacing: -.01em; }
+.box i { display: block; font: 600 12.5px/1.45 var(--mono); font-style: normal; color: var(--muted); margin-top: 5px; }
+.box.you { border-color: var(--amber); } .box.duo { border-color: var(--gitlab); } .box.gate { border-color: var(--leak); }
+.box.run { border-color: var(--gcp); } .box.ctl { border-color: var(--thread); }
+.job { position: absolute; height: 36px; border-radius: 9px; background: #fff; border: 2px solid var(--line); font: 700 13px/32px var(--mono); padding: 0 10px; white-space: nowrap; }
+.job.red { border-color: var(--leak); color: #a8322a; } .job.sec { border-color: var(--amber); } .job.dep { border-color: var(--gcp); color: #2f62c4; }
+.stage { position: absolute; font: 700 11px var(--mono); letter-spacing: .12em; color: var(--muted); }
+svg.wires { position: absolute; inset: 0; }
+.lbl { font: 600 12.5px var(--mono); fill: var(--muted); }
+.lbl.g { fill: var(--thread); } .lbl.r { fill: #a8322a; } .lbl.b { fill: #2f62c4; }
+.legend { position: absolute; left: 48px; bottom: 26px; font: 600 13px var(--mono); color: var(--muted); display: flex; gap: 26px; }
+.legend span::before { content: ""; display: inline-block; width: 26px; height: 0; border-top: 3px solid currentColor; margin-right: 8px; vertical-align: 4px; }
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<h1>How Unspool is built</h1>
+<div class="tag">ONE PUSH → GITLAB CI + GITLAB DUO → GOOGLE CLOUD · THE CONTROLLER HOLDS THE ONLY MERGE IDENTITY</div>
+
+<!-- operator side -->
+<div class="zone" style="left:40px;top:130px;width:300px;height:760px"><div class="zt" style="background:var(--amber)">DEVELOPER + OPERATOR</div></div>
+<div class="box you" style="left:62px;top:160px;width:256px"><b>Developer</b><i>git push → merge request<br>(or an issue labelled unspool)</i></div>
+<div class="box ctl" style="left:62px;top:420px;width:256px"><b>Unspool controller</b><i>unspool.handoff --watch<br>glab login + cosign<br>watches MRs, labelled issues<br>starts Duo when blocked<br>checks diff, revision, jobs<br>and signed evidence → merges<br>confirms the live revision</i></div>
+<div class="box" style="left:62px;top:720px;width:256px"><b>Unspool UI (local)</b><i>python -m unspool<br>graph, findings, probes,<br>snapshots, annotations</i></div>
+
+<!-- GitLab -->
+<div class="zone" style="left:380px;top:130px;width:760px;height:760px"><div class="zt" style="background:var(--gitlab)">GITLAB.COM · PROJECT unspool</div></div>
+<div class="box" style="left:404px;top:160px;width:200px"><b>Merge request</b><i>branch → protected main</i></div>
+<div class="box duo" style="left:640px;top:160px;width:476px"><b>GitLab Duo Agent Platform · Developer flow</b><i>started by the controller via the Agent Platform API<br>developer/v1 · the MR's own branch · the gate's verdict<br>Duo service account · pushes the fix · cannot merge</i></div>
+
+<div class="stage" style="left:404px;top:300px">GITLAB CI · MERGE REQUEST PIPELINE</div>
+<div class="job" style="left:404px;top:324px">build-wheel</div>
+<div class="job" style="left:528px;top:324px">python-tests</div>
+<div class="job" style="left:660px;top:324px">dashboard-tests</div>
+<div class="job" style="left:808px;top:324px">installed-wheel ×2</div>
+<div class="job sec" style="left:980px;top:324px">security-audit</div>
+<div class="box gate" style="left:404px;top:380px;width:712px"><b>verify-exposure · the Unspool gate</b><i>static tracing → typed decision model on changed boundaries → canary probes in isolation<br>→ evidence.json + verdict · blocks on a proven leak or on missing evidence</i></div>
+
+<div class="stage" style="left:404px;top:500px">GITLAB CI · PROTECTED MAIN PIPELINE (AFTER THE MERGE)</div>
+<div class="job" style="left:404px;top:524px">verify-exposure</div>
+<div class="job sec" style="left:552px;top:524px">sign-evidence · cosign</div>
+<div class="job sec" style="left:752px;top:524px">verify-attestation</div>
+<div class="job dep" style="left:926px;top:524px">deploy-cloud-run</div>
+<div class="job dep" style="left:404px;top:574px">deploy-pages (trigger)</div>
+<div class="job" style="left:604px;top:574px">production-smoke · exact revision</div>
+
+<div class="box" style="left:404px;top:650px;width:330px"><b>GitLab Pages (fallback)</b><i>unspool-site · read-only report<br>published only from passed evidence</i></div>
+<div class="box" style="left:770px;top:650px;width:346px"><b>Release 0.4.7 + run records</b><i>wheel, verification bundle,<br>MR notes: blocked → Duo session → shipped</i></div>
+<div class="box" style="left:404px;top:780px;width:712px"><b>Typed decision model (third-party API)</b><i>called only by verify-exposure · one call per boundary · picks what to test</i></div>
+
+<!-- Google Cloud -->
+<div class="zone" style="left:1180px;top:130px;width:380px;height:760px"><div class="zt" style="background:var(--gcp)">GOOGLE CLOUD · us-central1</div></div>
+<div class="box run" style="left:1202px;top:160px;width:336px"><b>Workload Identity Federation</b><i>GitLab OIDC, no service-account keys<br>unspool-exposure-ci → read the model key<br>unspool-gitlab → deploy from protected main</i></div>
+<div class="box run" style="left:1202px;top:310px;width:336px"><b>Secret Manager</b><i>decision-model API key, released only<br>to this project's MR and main pipelines</i></div>
+<div class="box run" style="left:1202px;top:430px;width:336px"><b>Cloud Build → Artifact Registry</b><i>builds the report image per commit</i></div>
+<div class="box run" style="left:1202px;top:540px;width:336px"><b>Cloud Run · unspool</b><i>read-only verified report · health.json<br>= exact merged commit · min 0, max 1</i></div>
+<div class="box run" style="left:1202px;top:670px;width:336px"><b>Cloud Run · unspool-demo</b><i>read-only Unspool UI with recorded runs<br>public · scales to zero</i></div>
+
+<svg class="wires" viewBox="0 0 1600 980">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#60675D"/></marker>
+    <marker id="ao" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#FC6D26"/></marker>
+    <marker id="ay" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D9A13B"/></marker>
+    <marker id="ag" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#28765A"/></marker>
+    <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#a8322a"/></marker>
+    <marker id="ab" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f62c4"/></marker>
+  </defs>
+  <path d="M320 196 L398 196" stroke="#D9A13B" stroke-width="3" fill="none" marker-end="url(#ay)"/>
+  <text class="lbl" x="334" y="186">push</text>
+  <path d="M638 206 L610 206" stroke="#FC6D26" stroke-width="3" fill="none" marker-end="url(#ao)"/>
+  <text class="lbl" x="612" y="196">fix</text>
+  <path d="M402 430 C 370 430, 360 455, 324 455" stroke="#a8322a" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+  <text class="lbl r" x="178" y="410">blocked + evidence</text>
+  <path d="M320 470 L352 470 L352 282 L632 282" stroke="#28765A" stroke-width="3" fill="none" stroke-dasharray="8 6" marker-end="url(#ag)"/>
+  <text class="lbl g" x="372" y="274">starts Duo · Agent Platform API</text>
+  <path d="M320 548 L398 548" stroke="#28765A" stroke-width="3" fill="none" marker-end="url(#ag)"/>
+  <text class="lbl g" x="326" y="568">verified</text><text class="lbl g" x="326" y="583">merge</text>
+  <path d="M1118 478 L1132 478 L1132 812 L1122 812" stroke="#a8322a" stroke-width="2" fill="none" stroke-dasharray="3 6" marker-end="url(#ar)"/>
+  <text class="lbl r" x="990" y="770">boundaries only</text>
+  <path d="M1118 400 C 1150 400, 1160 350, 1196 350" stroke="#2f62c4" stroke-width="2.5" fill="none" marker-end="url(#ab)"/>
+  <text class="lbl b" x="1140" y="362">WIF</text>
+  <path d="M1078 542 C 1140 542, 1150 470, 1196 470" stroke="#2f62c4" stroke-width="2.5" fill="none" marker-end="url(#ab)"/>
+  <path d="M1370 504 L1370 534" stroke="#2f62c4" stroke-width="2.5" fill="none" marker-end="url(#ab)"/>
+  <path d="M886 592 C 1000 600, 1120 590, 1196 584" stroke="#2f62c4" stroke-width="2" fill="none" stroke-dasharray="5 5" marker-end="url(#ab)"/>
+  <text class="lbl b" x="912" y="622">smoke: exact revision</text>
+  <path d="M500 612 L500 644" stroke="#60675D" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+</svg>
+<div class="legend"><span style="color:#D9A13B">human step</span><span style="color:#28765A">controller</span><span style="color:#FC6D26">GitLab Duo</span><span style="color:#a8322a">gate</span><span style="color:#2f62c4">Google Cloud</span></div>
+</body>
+</html>
