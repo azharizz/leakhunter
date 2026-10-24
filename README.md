@@ -213,7 +213,7 @@ Every stage of [GitLab's DevSecOps lifecycle](https://about.gitlab.com/topics/de
 
 ## Path B: before and after
 
-Unspool began as **LeakHunter**, an MIT-licensed open-source CLI: [github.com/azharizz/leakhunter](https://github.com/azharizz/leakhunter) (first commit `3e8c0af`, MIT in `c6ab65f`). It was imported to GitLab with its history and rebuilt around GitLab's lifecycle during the hackathon.
+Unspool began as **LeakHunter**, an MIT-licensed open-source CLI: [github.com/azharizz/leakhunter](https://github.com/azharizz/leakhunter) (first commit on 19 October 2026, MIT license added on 20 October). It was imported to GitLab with its history and rebuilt around GitLab's lifecycle during the hackathon.
 
 | | Before: LeakHunter | After: Unspool on GitLab |
 | --- | --- | --- |
