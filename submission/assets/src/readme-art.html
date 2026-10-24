@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unspool README banner</title>
+<style>
+@font-face { font-family: "Instrument Serif"; src: url(FONTS/InstrumentSerif-Italic.ttf); font-style: italic; }
+@font-face { font-family: "JB"; src: url(FONTS/JetBrainsMono.ttf); font-weight: 100 900; }
+:root { --night: #0E110D; --ink: #EEF3EA; --thread: #28765A; --glow: #3DDC97; --leak: #E5483E; --amber: #D9A13B; --muted: #9fb3a5;
+  --sf: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; --mono: "JB", ui-monospace, monospace; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1600px; height: 480px; overflow: hidden; }
+body { position: relative; background: radial-gradient(ellipse at 30% 40%, #182218 0%, var(--night) 62%); color: var(--ink);
+  font-family: var(--sf); -webkit-font-smoothing: antialiased; }
+.grid { position: absolute; inset: 0; background-image: radial-gradient(#2a3529 1.3px, transparent 1.4px); background-size: 26px 26px; opacity: .8; }
+.thread { position: absolute; inset: 0; }
+.lockup { position: absolute; left: 96px; top: 92px; display: flex; align-items: center; gap: 30px; }
+.tile { width: 112px; height: 112px; border-radius: 28px; background: #20251f; border: 2px solid #3a4637; padding: 14px; }
+.word { font: 800 92px/1 var(--sf); letter-spacing: -.035em; }
+.line { position: absolute; left: 100px; top: 250px; font: 800 52px/1.1 var(--sf); letter-spacing: -.03em; }
+.line em { font: italic 400 66px/1 "Instrument Serif", serif; color: var(--glow); letter-spacing: 0; }
+.sub { position: absolute; left: 102px; top: 336px; width: 820px; font: 500 21px/1.5 var(--sf); color: var(--muted); }
+.flow { position: absolute; right: 70px; top: 104px; width: 520px; display: flex; flex-direction: column; gap: 12px; }
+.step { display: flex; align-items: center; gap: 14px; padding: 13px 18px; border-radius: 14px; background: rgba(20,26,19,.86);
+  border: 2px solid #263026; font: 600 19px/1.2 var(--mono); }
+.step b { flex: none; font: 800 12px var(--mono); letter-spacing: .12em; padding: 4px 8px; border-radius: 6px; color: var(--night); background: var(--glow); }
+.step.you { border-color: #6b5420; } .step.you b { background: var(--amber); }
+.step.leak { border-color: #6a2a25; } .step.leak span { color: #ff8a80; }
+.step.live { border-color: var(--thread); } .step.live span { color: var(--glow); }
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<svg class="thread" viewBox="0 0 1600 480"><path d="M-20 462 C 260 448, 520 476, 760 456 S 980 420, 1010 392" fill="none" stroke="#E5483E" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9" opacity=".55"/></svg>
+<div class="lockup">
+  <div class="tile"><svg viewBox="0 0 32 32" width="84" height="84" style="display:block;fill:#fff"><path d="M8 9v14h16M8 16h8l8-7M16 16l8 7" fill="none" stroke="#fff" stroke-width="2"/><circle cx="8" cy="9" r="2"/><circle cx="24" cy="9" r="2"/><circle cx="24" cy="23" r="2"/></svg></div>
+  <div class="word">Unspool</div>
+</div>
+<div class="line">Pull the thread <em>before it unravels.</em></div>
+<div class="sub">A hands-off exposure gate for GitLab. Open a merge request: Unspool proves the leak,
+  GitLab Duo fixes it on the same branch, and the controller ships the verified revision to Cloud Run.</div>
+<div class="flow">
+  <div class="step you"><b>YOU</b><span>git push → merge request</span></div>
+  <div class="step leak"><b>CI</b><span>exposure gate: leak proven, blocked</span></div>
+  <div class="step"><b>DUO</b><span>fix pushed to the same branch</span></div>
+  <div class="step"><b>CI</b><span>gate re-runs: every check passes</span></div>
+  <div class="step live"><b>LIVE</b><span>merged · deployed · DEPLOYED_AND_VERIFIED</span></div>
+</div>
+</body>
+</html>

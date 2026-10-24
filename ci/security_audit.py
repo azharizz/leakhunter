@@ -22,7 +22,7 @@ def main():
     subprocess.run([sys.executable, "-m", "pip_audit", "-r", "requirements.lock", "-r", "requirements.build.lock",
                     "--no-deps", "--disable-pip", "--progress-spinner", "off", "-f", "json",
                     "-o", str(output / "dependencies.json")], check=True, timeout=180)
-    scan = subprocess.run([sys.executable, "-m", "bandit", "-r", "unspool", "unspool", "-f", "json",
+    scan = subprocess.run([sys.executable, "-m", "bandit", "-r", "unspool", "leakhunter", "-f", "json",
                            "-o", str(output / "bandit.json")], timeout=120)
     if scan.returncode not in {0, 1}:
         raise RuntimeError("Static scanner failed to execute")
